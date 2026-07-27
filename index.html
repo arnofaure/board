@@ -735,7 +735,24 @@
     flex-direction: column;
     align-items: center;
     gap: 18px;
+    position: relative;
   }
+  #today-clock-settings-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+  }
+  #today-clock-settings-btn:hover { color: var(--text); background: var(--surface2); }
 
   /* TIMER — its own box below the clock panel, same visual language (ring
      gauge, same size) but a freely-settable countdown instead of a fixed
@@ -1503,6 +1520,9 @@
     <div id="today-layout">
       <div id="today-side-panels">
       <div id="today-clock-panel">
+        <button type="button" id="today-clock-settings-btn" title="Customize day checkpoints">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </button>
         <div id="today-clock-time">00:00</div>
         <div class="today-clock-gauge" id="today-clock-gauge-noon">
           <div class="today-clock-ring-wrap">
@@ -2509,11 +2529,74 @@
   }
 
   // ---------- CLOCK PANEL ----------
-  // Two independent gauges, each counting down to its own fixed checkpoint —
-  // noon and 5pm — both always visible rather than swapping one for the other.
+  // Two independent gauges, each counting down to its own checkpoint — a
+  // midday target and an end-of-day target — both always visible rather
+  // than swapping one for the other. Checkpoints default to 9am/noon/5pm
+  // but are user-customizable and remembered across sessions.
   var CLOCK_RING_R = 52;
   var CLOCK_RING_CIRC = 2 * Math.PI * CLOCK_RING_R;
   var todayClockTimer = null;
+  var DAY_TIMES_KEY = 'kanban.dayTimes';
+
+  function loadDayTimes() {
+    try {
+      var raw = localStorage.getItem(DAY_TIMES_KEY);
+      if (raw) {
+        var t = JSON.parse(raw);
+        if (typeof t.start === 'number' && typeof t.mid === 'number' && typeof t.end === 'number') return t;
+      }
+    } catch (e) {}
+    return { start: 9 * 60, mid: 12 * 60, end: 17 * 60 };
+  }
+  var dayTimes = loadDayTimes();
+  function saveDayTimes() { localStorage.setItem(DAY_TIMES_KEY, JSON.stringify(dayTimes)); }
+
+  // Parses flexible time-of-day input ("8", "8am", "8:30am", "13:00", "1pm")
+  // into minutes since midnight, or null if unrecognized.
+  function parseTimeStr(str) {
+    if (!str) return null;
+    var m = str.trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+    if (!m) return null;
+    var h = parseInt(m[1], 10), min = m[2] ? parseInt(m[2], 10) : 0, ap = m[3];
+    if (h > 23 || min > 59) return null;
+    if (ap === 'pm' && h < 12) h += 12;
+    if (ap === 'am' && h === 12) h = 0;
+    return h * 60 + min;
+  }
+  function formatTimeMinutes(mins) {
+    var h = Math.floor(mins / 60), m = mins % 60;
+    var ap = h >= 12 ? 'pm' : 'am';
+    var h12 = h % 12; if (h12 === 0) h12 = 12;
+    return h12 + (m ? ':' + String(m).padStart(2, '0') : '') + ap;
+  }
+  function updateDayTimeLabels() {
+    document.querySelector('#today-clock-gauge-noon .today-clock-target').textContent = 'until ' + formatTimeMinutes(dayTimes.mid);
+    document.querySelector('#today-clock-gauge-5pm .today-clock-target').textContent = 'until ' + formatTimeMinutes(dayTimes.end);
+  }
+
+  function editDayTimes() {
+    var startStr = prompt('Start of day (e.g. 8am):', formatTimeMinutes(dayTimes.start));
+    if (startStr === null) return;
+    var start = parseTimeStr(startStr);
+    if (start === null) { alert('Could not understand that time — try something like 8am or 8:30.'); return; }
+
+    var midStr = prompt('Midday checkpoint (e.g. 1pm):', formatTimeMinutes(dayTimes.mid));
+    if (midStr === null) return;
+    var mid = parseTimeStr(midStr);
+    if (mid === null) { alert('Could not understand that time — try something like 1pm or 13:00.'); return; }
+
+    var endStr = prompt('End of day (e.g. 6pm):', formatTimeMinutes(dayTimes.end));
+    if (endStr === null) return;
+    var end = parseTimeStr(endStr);
+    if (end === null) { alert('Could not understand that time — try something like 6pm or 18:00.'); return; }
+
+    if (!(start < mid && mid < end)) { alert('Times must be in order: start of day, then midday, then end of day.'); return; }
+
+    dayTimes = { start: start, mid: mid, end: end };
+    saveDayTimes();
+    updateDayTimeLabels();
+    renderTodayClock();
+  }
 
   // The ring drains as the deadline approaches (full at midnight, empty right
   // at the target) — matches a countdown-timer feel, not a "time elapsed" fill.
@@ -2551,17 +2634,18 @@
     document.getElementById('today-clock-time').textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
 
     var minutesNow = h * 60 + m + now.getSeconds() / 60;
-    // Both gauges start draining from the same point — 9am, the start of the
-    // workday — just with different targets (noon vs 5pm), not one handing
-    // off to the other at noon.
-    var NINE_AM = 9 * 60, NOON = 12 * 60, FIVE_PM = 17 * 60;
-    setClockRing('today-clock-gauge-noon', 'today-clock-ring-noon', 'today-clock-remaining-noon', 'today-clock-center-noon', NINE_AM, NOON, minutesNow);
-    setClockRing('today-clock-gauge-5pm', 'today-clock-ring-5pm', 'today-clock-remaining-5pm', 'today-clock-center-5pm', NINE_AM, FIVE_PM, minutesNow);
+    // Both gauges start draining from the same point — the start of the
+    // workday — just with different targets (midday vs end of day), not one
+    // handing off to the other at midday.
+    setClockRing('today-clock-gauge-noon', 'today-clock-ring-noon', 'today-clock-remaining-noon', 'today-clock-center-noon', dayTimes.start, dayTimes.mid, minutesNow);
+    setClockRing('today-clock-gauge-5pm', 'today-clock-ring-5pm', 'today-clock-remaining-5pm', 'today-clock-center-5pm', dayTimes.start, dayTimes.end, minutesNow);
   }
 
   function startTodayClock() {
+    updateDayTimeLabels();
     renderTodayClock();
     if (!todayClockTimer) todayClockTimer = setInterval(renderTodayClock, 15000);
+    document.getElementById('today-clock-settings-btn').addEventListener('click', editDayTimes);
   }
 
   // ---------- CUSTOM TIMER ----------
