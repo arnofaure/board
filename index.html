@@ -286,6 +286,34 @@
   .column.drag-over { border-color: rgba(255,255,255,0.4); background: var(--surface2); }
   .column.dragging { opacity: 0.5; }
 
+  /* COLLAPSED COLUMN — shrinks to a thin vertical strip; click anywhere on
+     it to expand back to the normal column. */
+  .column.collapsed {
+    flex: 0 0 40px;
+    width: 40px;
+    max-height: calc(100vh - 110px);
+    cursor: pointer;
+  }
+  .column-header-collapsed {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    height: 100%;
+    padding: 14px 0;
+    cursor: pointer;
+  }
+  .column-collapse-icon { color: var(--text-dim); display: flex; }
+  .column-name-collapsed {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .column.collapsed .column-count { writing-mode: horizontal-tb; }
+
   /* MASONRY LAYOUT — columns wrap and pack by height (CSS multi-column)
      instead of one long horizontally-scrolling row. Toggled per project. */
   #board.masonry {
@@ -302,6 +330,7 @@
     margin: 0 0 14px;
   }
   #board.masonry .column { max-height: none; }
+  #board.masonry .column.collapsed { width: 40px; max-height: calc(100vh - 110px); }
   #board.masonry .column-body { overflow-y: visible; flex: none; }
 
   .column-header {
@@ -701,6 +730,8 @@
     color: var(--text);
   }
   .today-clock-gauge { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .today-clock-gauge.hide { display: none; }
+  .today-clock-ring-wrap { position: relative; }
   .today-clock-ring { transform: rotate(-90deg); }
   .today-clock-ring-track {
     fill: none;
@@ -715,6 +746,19 @@
     transition: stroke-dashoffset 0.3s;
   }
   .today-clock-ring-5pm-color { stroke: #b285f0; }
+  .today-clock-ring-center {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .today-clock-ring-center.show { display: flex; }
+  .today-clock-ring-center-noon { color: #fbbf24; }
+  .today-clock-ring-center-5pm { color: #b285f0; }
   .today-clock-remaining {
     font-size: 15px;
     font-weight: 700;
@@ -890,6 +934,20 @@
   #today-view .today-group:first-child:not(.today-group-done) .today-row:first-child .today-row-color {
     width: 10px;
     height: 10px;
+  }
+  /* 2nd and 3rd tasks step down in size after the first — a decrescendo
+     down to the normal size for everything from the 4th task on. */
+  #today-view .today-group:first-child:not(.today-group-done) .today-row:nth-child(2) { padding: 13px 13px; }
+  #today-view .today-group:first-child:not(.today-group-done) .today-row:nth-child(2) .today-row-title,
+  #today-view .today-group:first-child:not(.today-group-done) .today-row:nth-child(2) .today-row-title-input {
+    font-size: 14.5px;
+    font-weight: 700;
+  }
+  #today-view .today-group:first-child:not(.today-group-done) .today-row:nth-child(3) { padding: 11px 12px; }
+  #today-view .today-group:first-child:not(.today-group-done) .today-row:nth-child(3) .today-row-title,
+  #today-view .today-group:first-child:not(.today-group-done) .today-row:nth-child(3) .today-row-title-input {
+    font-size: 13.5px;
+    font-weight: 600;
   }
   #today-view .today-row-title,
   #today-view .today-row-title-input { color: #2c2205; }
@@ -1389,19 +1447,25 @@
     <div id="today-layout">
       <div id="today-clock-panel">
         <div id="today-clock-time">00:00</div>
-        <div class="today-clock-gauge">
-          <svg class="today-clock-ring" width="120" height="120" viewBox="0 0 120 120">
-            <circle class="today-clock-ring-track" cx="60" cy="60" r="52"/>
-            <circle class="today-clock-ring-progress today-clock-ring-noon-color" id="today-clock-ring-noon" cx="60" cy="60" r="52"/>
-          </svg>
+        <div class="today-clock-gauge" id="today-clock-gauge-noon">
+          <div class="today-clock-ring-wrap">
+            <svg class="today-clock-ring" width="120" height="120" viewBox="0 0 120 120">
+              <circle class="today-clock-ring-track" cx="60" cy="60" r="52"/>
+              <circle class="today-clock-ring-progress today-clock-ring-noon-color" id="today-clock-ring-noon" cx="60" cy="60" r="52"/>
+            </svg>
+            <div class="today-clock-ring-center today-clock-ring-center-noon" id="today-clock-center-noon"></div>
+          </div>
           <div class="today-clock-remaining" id="today-clock-remaining-noon"></div>
           <div class="today-clock-target">until noon</div>
         </div>
-        <div class="today-clock-gauge">
-          <svg class="today-clock-ring" width="120" height="120" viewBox="0 0 120 120">
-            <circle class="today-clock-ring-track" cx="60" cy="60" r="52"/>
-            <circle class="today-clock-ring-progress today-clock-ring-5pm-color" id="today-clock-ring-5pm" cx="60" cy="60" r="52"/>
-          </svg>
+        <div class="today-clock-gauge" id="today-clock-gauge-5pm">
+          <div class="today-clock-ring-wrap">
+            <svg class="today-clock-ring" width="120" height="120" viewBox="0 0 120 120">
+              <circle class="today-clock-ring-track" cx="60" cy="60" r="52"/>
+              <circle class="today-clock-ring-progress today-clock-ring-5pm-color" id="today-clock-ring-5pm" cx="60" cy="60" r="52"/>
+            </svg>
+            <div class="today-clock-ring-center today-clock-ring-center-5pm" id="today-clock-center-5pm"></div>
+          </div>
           <div class="today-clock-remaining" id="today-clock-remaining-5pm"></div>
           <div class="today-clock-target">until 5pm</div>
         </div>
@@ -1643,6 +1707,7 @@
       p.columns.forEach(function(col) {
         if (!col.id) col.id = uid();
         if (!col.cards) col.cards = [];
+        if (col.collapsed === undefined) col.collapsed = false;
         col.cards.forEach(function(c) {
           if (!c.id) c.id = uid();
           if (!c.color) c.color = randomColor();
@@ -1884,14 +1949,44 @@
     boardEl.innerHTML = html;
   }
 
+  // Cards with a due date always sort to the top (earliest first); undated
+  // cards keep their existing relative order after them. A stable sort on a
+  // copy — the underlying column.cards array (and its drag-reorder order)
+  // is left untouched.
+  function sortCardsByDue(cards) {
+    return cards.slice().sort(function(a, b) {
+      if (a.due && b.due) return a.due < b.due ? -1 : a.due > b.due ? 1 : 0;
+      if (a.due) return -1;
+      if (b.due) return 1;
+      return 0;
+    });
+  }
+
   function renderColumn(col) {
     var dueOnly = !!activeProject().dueOnlyFilter;
     var cards = dueOnly ? col.cards.filter(function(c) { return !!c.due; }) : col.cards;
-    var cardsHtml = cards.map(function(c) { return renderCard(c); }).join('');
+    cards = sortCardsByDue(cards);
     var countLabel = dueOnly ? (cards.length + '/' + col.cards.length) : col.cards.length;
+
+    if (col.collapsed) {
+      return (
+        '<div class="column collapsed" data-column-id="' + col.id + '">' +
+          '<div class="column-header-collapsed" data-action="expand-column" data-column="' + col.id + '" title="Expand column">' +
+            '<span class="column-collapse-icon">' + svgIcon('expand') + '</span>' +
+            '<span class="column-name-collapsed">' + esc(col.name || 'Untitled') + '</span>' +
+            '<span class="column-count">' + countLabel + '</span>' +
+          '</div>' +
+        '</div>'
+      );
+    }
+
+    var cardsHtml = cards.map(function(c) { return renderCard(c); }).join('');
     return (
       '<div class="column" data-column-id="' + col.id + '">' +
         '<div class="column-header" data-action="drag-column-handle">' +
+          '<button class="row-del" data-action="collapse-column" data-column="' + col.id + '" title="Collapse column" style="background:none;border:none;cursor:pointer;color:var(--text-dim);padding:3px;display:flex;">' +
+            svgIcon('collapse') +
+          '</button>' +
           '<input class="column-name" value="' + esc(col.name) + '" data-action="rename-column" data-column="' + col.id + '" placeholder="Column name">' +
           '<span class="column-count">' + countLabel + '</span>' +
           '<button class="row-del" data-action="delete-column" data-column="' + col.id + '" title="Delete column" style="background:none;border:none;cursor:pointer;color:var(--text-dim);padding:3px;display:flex;">' +
@@ -1948,7 +2043,9 @@
       board: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="10" rx="1"/></svg>',
       edit: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
       close: '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
-      grip: '<svg width="10" height="14" viewBox="0 0 10 16" fill="currentColor"><circle cx="3" cy="2" r="1.4"/><circle cx="7" cy="2" r="1.4"/><circle cx="3" cy="8" r="1.4"/><circle cx="7" cy="8" r="1.4"/><circle cx="3" cy="14" r="1.4"/><circle cx="7" cy="14" r="1.4"/></svg>'
+      grip: '<svg width="10" height="14" viewBox="0 0 10 16" fill="currentColor"><circle cx="3" cy="2" r="1.4"/><circle cx="7" cy="2" r="1.4"/><circle cx="3" cy="8" r="1.4"/><circle cx="7" cy="8" r="1.4"/><circle cx="3" cy="14" r="1.4"/><circle cx="7" cy="14" r="1.4"/></svg>',
+      collapse: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>',
+      expand: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>'
     };
     return icons[name] || '';
   }
@@ -2342,20 +2439,28 @@
   // gauge across 9am–noon, the 5pm gauge across noon–5pm — so it reads as
   // full until that segment actually starts, not already half-drained by
   // the time you open the app in the morning.
-  function setClockRing(ringId, remainingId, startMinutes, targetMinutes, minutesNow) {
-    var remainingFraction;
-    if (minutesNow <= startMinutes) remainingFraction = 1;
-    else if (minutesNow >= targetMinutes) remainingFraction = 0;
-    else remainingFraction = (targetMinutes - minutesNow) / (targetMinutes - startMinutes);
+  function setClockRing(gaugeId, ringId, remainingId, centerId, startMinutes, targetMinutes, minutesNow) {
+    // Once the deadline has passed, the whole gauge disappears rather than
+    // sitting there at 0% / "Passed".
+    var passed = minutesNow >= targetMinutes;
+    document.getElementById(gaugeId).classList.toggle('hide', passed);
+    if (passed) return;
 
+    var remainingFraction = minutesNow <= startMinutes ? 1 : (targetMinutes - minutesNow) / (targetMinutes - startMinutes);
     var ring = document.getElementById(ringId);
     ring.style.strokeDasharray = CLOCK_RING_CIRC;
     ring.style.strokeDashoffset = CLOCK_RING_CIRC * (1 - remainingFraction);
 
     var remainingMin = Math.max(0, Math.round(targetMinutes - minutesNow));
     var rh = Math.floor(remainingMin / 60), rm = remainingMin % 60;
-    document.getElementById(remainingId).textContent =
-      remainingMin <= 0 ? 'Passed' : (rh > 0 ? rh + 'h ' : '') + rm + 'm left';
+    document.getElementById(remainingId).textContent = (rh > 0 ? rh + 'h ' : '') + rm + 'm left';
+
+    // Inside the last 30 minutes, the remaining minutes take over the center
+    // of the ring itself — hard to miss when a deadline is close.
+    var centerEl = document.getElementById(centerId);
+    var urgent = remainingMin <= 30;
+    centerEl.classList.toggle('show', urgent);
+    if (urgent) centerEl.textContent = remainingMin + 'm';
   }
 
   function renderTodayClock() {
@@ -2368,8 +2473,8 @@
     // workday — just with different targets (noon vs 5pm), not one handing
     // off to the other at noon.
     var NINE_AM = 9 * 60, NOON = 12 * 60, FIVE_PM = 17 * 60;
-    setClockRing('today-clock-ring-noon', 'today-clock-remaining-noon', NINE_AM, NOON, minutesNow);
-    setClockRing('today-clock-ring-5pm', 'today-clock-remaining-5pm', NINE_AM, FIVE_PM, minutesNow);
+    setClockRing('today-clock-gauge-noon', 'today-clock-ring-noon', 'today-clock-remaining-noon', 'today-clock-center-noon', NINE_AM, NOON, minutesNow);
+    setClockRing('today-clock-gauge-5pm', 'today-clock-ring-5pm', 'today-clock-remaining-5pm', 'today-clock-center-5pm', NINE_AM, FIVE_PM, minutesNow);
   }
 
   function startTodayClock() {
@@ -2968,6 +3073,9 @@
       toggleCardDone(btn.getAttribute('data-card'));
     } else if (action === 'toggle-today-from-card') {
       toggleCardInToday(btn.getAttribute('data-card'));
+    } else if (action === 'collapse-column' || action === 'expand-column') {
+      var col2 = findColumn(btn.getAttribute('data-column'));
+      if (col2) { col2.collapsed = !col2.collapsed; save(); renderBoard(); }
     }
   });
 
