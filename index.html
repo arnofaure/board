@@ -2579,6 +2579,30 @@
     return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
   }
 
+  // Gentle two-note ascending chime, synthesized with the Web Audio API so
+  // there's no sound asset to bundle and it works offline. The AudioContext
+  // is created on the Start click (a user gesture) so it's already unlocked
+  // by the time the chime needs to autoplay when the timer hits zero.
+  var timerAudioCtx = null;
+  function playTimerChime() {
+    if (!timerAudioCtx) return;
+    var ctx = timerAudioCtx;
+    var now = ctx.currentTime;
+    [{ freq: 880, start: 0 }, { freq: 1174.66, start: 0.18 }].forEach(function(note) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = note.freq;
+      gain.gain.setValueAtTime(0, now + note.start);
+      gain.gain.linearRampToValueAtTime(0.25, now + note.start + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + note.start + 0.5);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + note.start);
+      osc.stop(now + note.start + 0.55);
+    });
+  }
+
   function renderCustomTimer() {
     var fraction = customTimerTotalSec > 0 ? customTimerRemainingSec / customTimerTotalSec : 0;
     var ring = document.getElementById('today-clock-ring-custom');
@@ -2601,6 +2625,7 @@
     if (customTimerRemainingSec <= 0) {
       customTimerRemainingSec = 0;
       stopCustomTimer();
+      playTimerChime();
       return;
     }
     renderCustomTimer();
@@ -2608,6 +2633,10 @@
 
   function startCustomTimer() {
     if (customTimerRunning) return;
+    if (!timerAudioCtx && (window.AudioContext || window.webkitAudioContext)) {
+      timerAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (timerAudioCtx && timerAudioCtx.state === 'suspended') timerAudioCtx.resume();
     if (customTimerRemainingSec <= 0) customTimerRemainingSec = customTimerTotalSec;
     customTimerRunning = true;
     customTimerInterval = setInterval(tickCustomTimer, 1000);
