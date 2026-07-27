@@ -193,7 +193,11 @@
   }
 
   /* PROJECT MENU */
-  .project-row { display: flex; align-items: center; gap: 4px; padding: 1px; }
+  .project-row { display: flex; align-items: center; gap: 4px; padding: 1px; border-radius: 4px; transition: background 0.1s; }
+  .project-row.dragging { opacity: 0.4; }
+  .project-row.drag-over { background: var(--surface2); }
+  .project-row-handle { display: flex; align-items: center; flex-shrink: 0; color: var(--text-dim); cursor: grab; }
+  .project-row-handle:hover { color: var(--text-muted); }
   .project-dot {
     width: 16px; height: 16px;
     border-radius: 50%;
@@ -825,6 +829,12 @@
   }
   #today-view .today-row.done .today-row-title,
   #today-view .today-row.done .today-row-title-input { color: rgba(44,34,5,0.55); }
+  /* The default checkbox border and DONE badge are tuned for the dark theme
+     (translucent white / green-on-dark) — barely visible on the yellow
+     sticky-note background, so both get high-contrast, ink-toned overrides here. */
+  #today-view .checklist-check { border-color: rgba(44,34,5,0.55); }
+  #today-view .checklist-check.done { background: #2c2205; border-color: #2c2205; color: #fdea72; }
+  #today-view .today-done-badge { background: #2c2205; border-color: #2c2205; color: #fdea72; }
 
   /* RANDOM IDEAS VIEW */
   #ideas-main { max-width: 720px; margin: 0 auto; }
@@ -1011,10 +1021,10 @@
     position: relative;
     overflow: hidden;
   }
-  .card-cover-pick .cover-remove {
+  .card-cover-pick .cover-remove, .card-cover-pick .cover-change {
     display: none;
     position: absolute;
-    top: 6px; right: 6px;
+    top: 6px;
     background: rgba(13,13,13,0.75);
     border: none;
     border-radius: 50%;
@@ -1024,8 +1034,45 @@
     color: var(--text);
     cursor: pointer;
   }
-  .card-cover-pick.has-cover .cover-remove { display: flex; }
+  .card-cover-pick .cover-remove { right: 6px; }
+  .card-cover-pick .cover-change { right: 32px; }
+  .card-cover-pick.has-cover .cover-remove,
+  .card-cover-pick.has-cover .cover-change { display: flex; }
   .card-cover-pick.has-cover .cover-hint { display: none; }
+  .card-cover-pick.has-cover { cursor: zoom-in; }
+
+  /* LIGHTBOX */
+  #lightbox-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+  }
+  #lightbox-overlay.show { display: flex; }
+  #lightbox-overlay img {
+    max-width: 92vw;
+    max-height: 92vh;
+    border-radius: var(--radius);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  #lightbox-close {
+    position: absolute;
+    top: 18px; right: 22px;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    border-radius: 50%;
+    width: 34px; height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text);
+    cursor: pointer;
+  }
+  #lightbox-close:hover { background: rgba(255,255,255,0.2); }
 
   .color-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
   .color-swatch {
@@ -1216,6 +1263,10 @@
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
     Masonry
   </button>
+  <button class="tb-btn" id="due-only-btn" title="Only show cards that have a due date">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><circle cx="12" cy="15" r="2.2"/></svg>
+    Due date only
+  </button>
   <button class="tb-btn" id="done-list-btn" title="View completed cards in this project">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
     Done <span id="done-count-badge">0</span>
@@ -1284,7 +1335,7 @@
       <input id="idea-add-input" class="text-input" placeholder="+ Drop an idea…" autocomplete="off">
       <div id="idea-tag-filter"></div>
       <div id="idea-list"></div>
-      <div id="idea-empty">No ideas yet.<br>Jot anything down here, then turn it into a board whenever you're ready to work on it.</div>
+      <div id="idea-empty">No ideas yet.<br>Jot anything down here, then send it to your active board whenever you're ready to work on it.</div>
     </div>
   </div>
 
@@ -1310,7 +1361,7 @@
       <li><strong>Shuffle colors</strong> from the top bar any time you like — and the current board also reshuffles itself automatically the first time you open it each day.</li>
       <li><strong>Timeline view</strong> lays dated cards out on a horizontal calendar, spanning from start to due date — drag a bar's edges to trim it, or its middle to move it. Switch the project filter to see one board or every project at once.</li>
       <li><strong>Today view</strong> is a daily to-do list separate from your boards: search for any card across every project and add it to today's list, then check it off as you go. It resets itself each morning.</li>
-      <li><strong>Random Ideas</strong> is a quick capture list — drop any idea in, and turn it into a full board whenever you're ready to work on it.</li>
+      <li><strong>Random Ideas</strong> is a quick capture list — drop any idea in, tag and describe it, then send it to your active board as a task whenever you're ready to work on it.</li>
       <li><strong>Done cards archive themselves</strong> the day after you check them off — find them again anytime from the Archive button, where you can restore or delete them.</li>
       <li><strong>Nothing is saved to a file automatically.</strong> Use <strong>Export (JSON)</strong> (<kbd>Cmd/Ctrl+S</kbd>, in this menu) to download a backup, and <strong>Import (JSON)</strong> to restore it later.</li>
     </ol>
@@ -1352,6 +1403,9 @@
 
     <div class="card-cover-pick" id="cover-pick">
       <span class="cover-hint">Click to add a cover image</span>
+      <button class="cover-change" id="cover-change" title="Replace cover image">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </button>
       <button class="cover-remove" id="cover-remove" title="Remove cover">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
@@ -1390,6 +1444,14 @@
       <button class="tb-btn danger" id="card-delete">Delete card</button>
     </div>
   </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox-overlay">
+  <button id="lightbox-close" title="Close">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+  <img id="lightbox-img" src="" alt="">
 </div>
 
 <input type="file" id="import-file" accept="application/json" style="display:none">
@@ -1478,6 +1540,7 @@
       if (!p.lastArchiveDate) p.lastArchiveDate = todayStr();
       if (!p.archive) p.archive = [];
       if (p.masonryLayout === undefined) p.masonryLayout = false;
+      if (p.dueOnlyFilter === undefined) p.dueOnlyFilter = false;
       p.columns.forEach(function(col) {
         if (!col.id) col.id = uid();
         if (!col.cards) col.cards = [];
@@ -1580,13 +1643,23 @@
   }
 
   // Single source of truth for "this card is done" — used by the board
-  // checkbox, the Today view and each project's Done list alike.
+  // checkbox, the Today view and each project's Done list alike. Checking a
+  // card off here is what keeps Today and the board in sync either way.
   function toggleCardDone(cardId) {
     var found = findCard(cardId);
     if (!found) return;
     var c = found.card;
     c.done = !c.done;
     c.doneAt = c.done ? todayStr() : null;
+    // Marking done also moves the card into a "Done" column on its board,
+    // if one exists, so completing it from Today is reflected there too.
+    if (c.done) {
+      var doneCol = found.project.columns.find(function(col) { return (col.name || '').trim().toLowerCase() === 'done'; });
+      if (doneCol && doneCol.id !== found.column.id) {
+        found.column.cards = found.column.cards.filter(function(x) { return x.id !== c.id; });
+        doneCol.cards.push(c);
+      }
+    }
     save();
     render();
   }
@@ -1706,18 +1779,22 @@
     }
     boardEl.classList.toggle('masonry', !!proj.masonryLayout);
     document.getElementById('masonry-btn').classList.toggle('active', !!proj.masonryLayout);
+    document.getElementById('due-only-btn').classList.toggle('active', !!proj.dueOnlyFilter);
     var html = columns.map(renderColumn).join('');
     html += '<div class="add-column-block"><input class="text-input" id="new-column-input" placeholder="+ New column…"></div>';
     boardEl.innerHTML = html;
   }
 
   function renderColumn(col) {
-    var cardsHtml = col.cards.map(function(c) { return renderCard(c); }).join('');
+    var dueOnly = !!activeProject().dueOnlyFilter;
+    var cards = dueOnly ? col.cards.filter(function(c) { return !!c.due; }) : col.cards;
+    var cardsHtml = cards.map(function(c) { return renderCard(c); }).join('');
+    var countLabel = dueOnly ? (cards.length + '/' + col.cards.length) : col.cards.length;
     return (
       '<div class="column" data-column-id="' + col.id + '">' +
         '<div class="column-header" data-action="drag-column-handle">' +
           '<input class="column-name" value="' + esc(col.name) + '" data-action="rename-column" data-column="' + col.id + '" placeholder="Column name">' +
-          '<span class="column-count">' + col.cards.length + '</span>' +
+          '<span class="column-count">' + countLabel + '</span>' +
           '<button class="row-del" data-action="delete-column" data-column="' + col.id + '" title="Delete column" style="background:none;border:none;cursor:pointer;color:var(--text-dim);padding:3px;display:flex;">' +
             svgIcon('trash') +
           '</button>' +
@@ -2359,6 +2436,12 @@
     save();
     renderBoard();
   });
+  document.getElementById('due-only-btn').addEventListener('click', function() {
+    var proj = activeProject();
+    proj.dueOnlyFilter = !proj.dueOnlyFilter;
+    save();
+    renderBoard();
+  });
 
   // ---------- LOGO MENU ----------
   var logoBtn = document.getElementById('logo-btn');
@@ -2396,7 +2479,8 @@
     document.getElementById('project-list').innerHTML = data.projects.map(function(p) {
       var isActive = p.id === data.activeProjectId;
       return (
-        '<div class="project-row">' +
+        '<div class="project-row" data-project="' + p.id + '">' +
+          '<span class="project-row-handle" title="Drag to reorder">' + svgIcon('grip') + '</span>' +
           '<button type="button" class="project-dot' + (isActive ? ' active' : '') + '" data-action="select-project" data-project="' + p.id + '" title="Switch to this project">' + (isActive ? svgIcon('check') : '') + '</button>' +
           '<input class="text-input" value="' + esc(p.name) + '" data-action="rename-project" data-project="' + p.id + '" placeholder="Project name">' +
           (canDelete ? '<button type="button" class="row-del" data-action="delete-project" data-project="' + p.id + '" style="background:none;border:none;cursor:pointer;color:var(--text-dim);padding:3px;display:flex;">' + svgIcon('trash') + '</button>' : '') +
@@ -2437,6 +2521,58 @@
       document.getElementById('project-btn-label').textContent = activeProject().name || 'Untitled project';
     }
   });
+
+  // ---------- DRAG & DROP: reorder the project/board list ----------
+  var projectDrag = null;
+  document.getElementById('project-list').addEventListener('pointerdown', function(e) {
+    if (e.button !== 0) return;
+    if (!e.target.closest('.project-row-handle')) return;
+    var row = e.target.closest('.project-row');
+    if (!row) return;
+    e.preventDefault();
+    projectDrag = { id: row.getAttribute('data-project'), el: row, startX: e.clientX, startY: e.clientY, active: false };
+    window.addEventListener('pointermove', onProjectDragMove, { passive: false });
+    window.addEventListener('pointerup', onProjectDragEnd);
+  });
+
+  function onProjectDragMove(e) {
+    if (!projectDrag) return;
+    var dx = e.clientX - projectDrag.startX, dy = e.clientY - projectDrag.startY;
+    if (!projectDrag.active) {
+      if (Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) return;
+      projectDrag.active = true;
+      projectDrag.el.classList.add('dragging');
+    }
+    e.preventDefault();
+    document.querySelectorAll('.project-row.drag-over').forEach(function(el) { el.classList.remove('drag-over'); });
+    var under = document.elementFromPoint(e.clientX, e.clientY);
+    var targetRow = under && under.closest('.project-row');
+    if (targetRow && targetRow !== projectDrag.el) targetRow.classList.add('drag-over');
+  }
+
+  function onProjectDragEnd(e) {
+    window.removeEventListener('pointermove', onProjectDragMove);
+    window.removeEventListener('pointerup', onProjectDragEnd);
+    if (!projectDrag) return;
+    var wasActive = projectDrag.active;
+    projectDrag.el.classList.remove('dragging');
+    document.querySelectorAll('.project-row.drag-over').forEach(function(el) { el.classList.remove('drag-over'); });
+    if (wasActive) {
+      var under = document.elementFromPoint(e.clientX, e.clientY);
+      var targetRow = under && under.closest('.project-row');
+      if (targetRow && targetRow !== projectDrag.el) {
+        var fromIdx = data.projects.findIndex(function(p) { return p.id === projectDrag.id; });
+        var toIdx = data.projects.findIndex(function(p) { return p.id === targetRow.getAttribute('data-project'); });
+        if (fromIdx !== -1 && toIdx !== -1) {
+          var moved = data.projects.splice(fromIdx, 1)[0];
+          data.projects.splice(toIdx, 0, moved);
+          save();
+        }
+      }
+      renderProjectMenu();
+    }
+    projectDrag = null;
+  }
 
   // Creates a new project, makes it active, and returns its id. Shared by the
   // "+ New project" input and by converting a Random Idea into a board.
@@ -2485,10 +2621,16 @@
     renderIdeas();
   }
 
+  // Adds the idea as a card (task) in the active project's first column,
+  // rather than spinning up a brand new project — the active project is
+  // whichever board is currently selected via the project switcher.
   function convertIdeaToBoard(id) {
     var idea = data.ideas.find(function(i) { return i.id === id; });
     if (!idea) return;
-    createProject(idea.text);
+    var proj = activeProject();
+    if (!proj.columns.length) proj.columns = defaultColumns();
+    var col = proj.columns[0];
+    col.cards.push({ id: uid(), title: idea.text, description: idea.description || '', due: null, start: null, done: false, doneAt: null, checklist: [], cover: null, color: randomColor() });
     data.ideas = data.ideas.filter(function(i) { return i.id !== id; });
     save();
     currentView = 'board';
@@ -2535,7 +2677,7 @@
             (idea.description ? '<span class="idea-row-desc-flag" title="Has a description">' + svgIcon('description') + '</span>' : '') +
           '</div>' +
           '<button type="button" data-action="expand-idea" data-idea="' + idea.id + '" title="Edit idea">' + svgIcon('edit') + '</button>' +
-          '<button type="button" data-action="convert-idea" data-idea="' + idea.id + '" title="Turn into a board">' + svgIcon('board') + '</button>' +
+          '<button type="button" data-action="convert-idea" data-idea="' + idea.id + '" title="Add to active board as a task">' + svgIcon('board') + '</button>' +
           '<button type="button" data-action="delete-idea" data-idea="' + idea.id + '" title="Delete idea">' + svgIcon('trash') + '</button>' +
         '</div>'
       );
@@ -2545,7 +2687,7 @@
       '<div class="idea-row idea-row-expanded" data-idea="' + idea.id + '">' +
         '<div class="idea-edit-top">' +
           '<input class="text-input idea-edit-title" data-action="edit-idea-title" data-idea="' + idea.id + '" value="' + esc(idea.text) + '" placeholder="Idea title">' +
-          '<button type="button" data-action="convert-idea" data-idea="' + idea.id + '" title="Turn into a board">' + svgIcon('board') + '</button>' +
+          '<button type="button" data-action="convert-idea" data-idea="' + idea.id + '" title="Add to active board as a task">' + svgIcon('board') + '</button>' +
           '<button type="button" data-action="delete-idea" data-idea="' + idea.id + '" title="Delete idea">' + svgIcon('trash') + '</button>' +
           '<button type="button" data-action="collapse-idea" data-idea="' + idea.id + '" title="Done editing">' + svgIcon('check') + '</button>' +
         '</div>' +
@@ -2592,7 +2734,7 @@
     var emptyEl = document.getElementById('idea-empty');
     emptyEl.classList.toggle('show', visible.length === 0);
     emptyEl.innerHTML = data.ideas.length === 0
-      ? 'No ideas yet.<br>Jot anything down here, then turn it into a board whenever you\'re ready to work on it.'
+      ? 'No ideas yet.<br>Jot anything down here, then send it to your active board whenever you\'re ready to work on it.'
       : 'No ideas match the selected tag' + (activeIdeaTagFilters.length > 1 ? 's' : '') + '.';
     document.getElementById('idea-list').innerHTML = visible.map(renderIdeaRow).join('');
   }
@@ -2810,7 +2952,16 @@
   var coverPick = document.getElementById('cover-pick');
   var coverFile = document.getElementById('cover-file');
   coverPick.addEventListener('click', function(e) {
-    if (e.target.closest('.cover-remove')) return;
+    if (e.target.closest('.cover-remove') || e.target.closest('.cover-change')) return;
+    if (coverPick.classList.contains('has-cover')) {
+      var c = currentCard();
+      if (c && c.cover) openLightbox(c.cover);
+      return;
+    }
+    coverFile.click();
+  });
+  document.getElementById('cover-change').addEventListener('click', function(e) {
+    e.stopPropagation();
     coverFile.click();
   });
   coverFile.addEventListener('change', function() {
@@ -2834,6 +2985,24 @@
     save();
     coverPick.classList.remove('has-cover');
     coverPick.style.backgroundImage = '';
+  });
+
+  // ---------- LIGHTBOX (full-size view of an attached cover image) ----------
+  var lightboxOverlay = document.getElementById('lightbox-overlay');
+  function openLightbox(src) {
+    document.getElementById('lightbox-img').src = src;
+    lightboxOverlay.classList.add('show');
+  }
+  function closeLightbox() {
+    lightboxOverlay.classList.remove('show');
+    document.getElementById('lightbox-img').src = '';
+  }
+  lightboxOverlay.addEventListener('click', function(e) {
+    if (e.target === this || e.target.id === 'lightbox-img') closeLightbox();
+  });
+  document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && lightboxOverlay.classList.contains('show')) closeLightbox();
   });
 
   document.getElementById('checklist-add-input').addEventListener('keydown', function(e) {
