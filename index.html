@@ -50,6 +50,19 @@
     user-select: none !important;
   }
 
+  /* SCROLLBARS — styled to match the app instead of the OS default */
+  * { scrollbar-width: thin; scrollbar-color: var(--border-hover) transparent; }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb {
+    background: var(--border-hover);
+    border-radius: 8px;
+    border: 2px solid var(--bg);
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover { background: var(--text-dim); background-clip: padding-box; }
+  *::-webkit-scrollbar-corner { background: transparent; }
+
   /* TOOLBAR */
   #toolbar {
     position: sticky;
@@ -164,6 +177,8 @@
   .tb-btn:hover { background: var(--surface2); color: var(--text); }
   .tb-btn.danger { color: var(--danger); }
   .tb-btn.danger:hover { background: rgba(224,88,74,0.1); }
+  .tb-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .tb-btn.active:hover { background: var(--text); color: var(--bg); }
 
   .tb-dropdown .tb-btn {
     width: 100%;
@@ -266,6 +281,24 @@
   }
   .column.drag-over { border-color: rgba(255,255,255,0.4); background: var(--surface2); }
   .column.dragging { opacity: 0.5; }
+
+  /* MASONRY LAYOUT — columns wrap and pack by height (CSS multi-column)
+     instead of one long horizontally-scrolling row. Toggled per project. */
+  #board.masonry {
+    display: block;
+    column-width: 272px;
+    column-gap: 14px;
+    overflow-x: visible;
+  }
+  #board.masonry .column,
+  #board.masonry .add-column-block {
+    width: 100%;
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    margin: 0 0 14px;
+  }
+  #board.masonry .column { max-height: none; }
+  #board.masonry .column-body { overflow-y: visible; flex: none; }
 
   .column-header {
     display: flex;
@@ -783,6 +816,28 @@
   /* RANDOM IDEAS VIEW */
   #ideas-main { max-width: 720px; margin: 0 auto; }
   #idea-add-input { margin-bottom: 18px; }
+  #idea-tag-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  #idea-tag-filter:empty { margin-bottom: 0; }
+  .idea-tag-filter-btn {
+    font-size: 11px;
+    font-weight: 600;
+    border: 0.5px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 9px;
+    cursor: pointer;
+    transition: filter 0.1s;
+  }
+  .idea-tag-filter-btn:hover { filter: brightness(1.15); }
+  .idea-tag-filter-clear {
+    font-size: 11px;
+    color: var(--text-dim);
+    background: none;
+    border: 0.5px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 9px;
+    cursor: pointer;
+  }
+  .idea-tag-filter-clear:hover { color: var(--text); border-color: var(--border-hover); }
   #idea-list { display: flex; flex-direction: column; gap: 6px; }
   .idea-row {
     display: flex;
@@ -836,6 +891,14 @@
     padding: 8px 10px;
   }
   .idea-edit-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .desc-links { display: flex; flex-direction: column; gap: 2px; }
+  .desc-links:empty { display: none; }
+  .desc-links a {
+    font-size: 11.5px;
+    color: #6ea8fe;
+    word-break: break-all;
+  }
+  .desc-links a:hover { text-decoration: underline; }
   .idea-tag-input {
     background: transparent;
     border: none;
@@ -1136,6 +1199,10 @@
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
     Shuffle colors
   </button>
+  <button class="tb-btn" id="masonry-btn" title="Toggle masonry layout for columns">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+    Masonry
+  </button>
   <button class="tb-btn" id="done-list-btn" title="View completed cards in this project">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
     Done <span id="done-count-badge">0</span>
@@ -1192,6 +1259,7 @@
   <div id="ideas-view" class="hide">
     <div id="ideas-main">
       <input id="idea-add-input" class="text-input" placeholder="+ Drop an idea…" autocomplete="off">
+      <div id="idea-tag-filter"></div>
       <div id="idea-list"></div>
       <div id="idea-empty">No ideas yet.<br>Jot anything down here, then turn it into a board whenever you're ready to work on it.</div>
     </div>
@@ -1277,6 +1345,7 @@
 
     <label for="card-description-input">Description</label>
     <textarea id="card-description-input" class="text-input" rows="3" placeholder="Add a description…"></textarea>
+    <div class="desc-links" id="card-description-links"></div>
 
     <label for="card-start-input">Start date</label>
     <input id="card-start-input" class="text-input" type="date">
@@ -1315,18 +1384,22 @@
     var d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
+  // Same as todayStr() but with a time component — used for one-off record
+  // stamps (export filenames) where todayStr()'s date-only granularity would
+  // collide across multiple saves in the same day.
+  function nowStamp() {
+    var d = new Date();
+    return todayStr() + '_' + String(d.getHours()).padStart(2, '0') + '-' + String(d.getMinutes()).padStart(2, '0') + '-' + String(d.getSeconds()).padStart(2, '0');
+  }
   function randomColor() { return PALETTE[Math.floor(Math.random() * PALETTE.length)]; }
 
-  // Deterministic color per tag name, so the same tag always looks the same
-  // (e.g. "movie" is always the same hue) without storing a color per tag.
-  function tagColor(tag) {
+  // Deterministic hue per tag name, spread across the full color wheel (not
+  // just the 8-color card PALETTE) so different tags reliably look different
+  // — e.g. "movie" is always the same hue, and unrelated tags rarely collide.
+  function tagHue(tag) {
     var hash = 0;
     for (var i = 0; i < tag.length; i++) hash = (hash * 31 + tag.charCodeAt(i)) >>> 0;
-    return PALETTE[hash % PALETTE.length];
-  }
-  function hexToRgb(hex) {
-    var n = parseInt(hex.slice(1), 16);
-    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+    return hash % 360;
   }
 
   // Picks a color for the card at `index` in `col.cards`, avoiding the color
@@ -1375,6 +1448,7 @@
       if (!p.lastShuffleDate) p.lastShuffleDate = todayStr();
       if (!p.lastArchiveDate) p.lastArchiveDate = todayStr();
       if (!p.archive) p.archive = [];
+      if (p.masonryLayout === undefined) p.masonryLayout = false;
       p.columns.forEach(function(col) {
         if (!col.id) col.id = uid();
         if (!col.cards) col.cards = [];
@@ -1522,6 +1596,18 @@
     return d.innerHTML;
   }
 
+  // Descriptions are plain-text textareas (so typing/editing stays simple),
+  // but any URL inside one should still be reachable — this renders detected
+  // links as a small clickable row below the textarea.
+  var URL_REGEX = /(https?:\/\/[^\s<>"']+)/g;
+  function renderLinksPreview(text) {
+    var urls = text ? text.match(URL_REGEX) : null;
+    if (!urls || !urls.length) return '';
+    return urls.map(function(u) {
+      return '<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + esc(u) + '</a>';
+    }).join('');
+  }
+
   // ---------- SHUFFLE ----------
   // Shuffling (manual or daily-automatic) is scoped to a single project:
   // it's what's on screen that should feel fresh, not boards you aren't
@@ -1578,15 +1664,18 @@
   }
 
   function renderBoard() {
-    document.getElementById('board-title-header').textContent = activeProject().name || 'Untitled project';
+    var proj = activeProject();
+    document.getElementById('board-title-header').textContent = proj.name || 'Untitled project';
     var boardEl = document.getElementById('board');
     var emptyEl = document.getElementById('board-empty');
-    var columns = activeProject().columns;
+    var columns = proj.columns;
     if (!columns.length) {
       emptyEl.classList.add('show');
     } else {
       emptyEl.classList.remove('show');
     }
+    boardEl.classList.toggle('masonry', !!proj.masonryLayout);
+    document.getElementById('masonry-btn').classList.toggle('active', !!proj.masonryLayout);
     var html = columns.map(renderColumn).join('');
     html += '<div class="add-column-block"><input class="text-input" id="new-column-input" placeholder="+ New column…"></div>';
     boardEl.innerHTML = html;
@@ -1910,9 +1999,18 @@
   // A personal daily checklist, separate from the boards: cards get pulled
   // in by reference (cardId) from any project, and resets itself each day —
   // same "fresh start" mechanic as the daily color shuffle.
+  // Rolls the Today list over to a new day: only items already checked off
+  // drop out (that's Today's own "archiving"), unfinished items carry over
+  // to the new day instead of being wiped.
   function ensureTodayList() {
-    if (!data.today || data.today.date !== todayStr()) {
-      data.today = { date: todayStr(), items: [] };
+    if (!data.today || !data.today.items) data.today = { date: todayStr(), items: [] };
+    var today = todayStr();
+    if (data.today.date !== today) {
+      data.today.date = today;
+      data.today.items = data.today.items.filter(function(i) {
+        var info = todayEntryInfo(i);
+        return !info || !info.done;
+      });
       save();
     }
     return data.today;
@@ -2212,6 +2310,12 @@
   });
 
   document.getElementById('shuffle-btn').addEventListener('click', shuffleColors);
+  document.getElementById('masonry-btn').addEventListener('click', function() {
+    var proj = activeProject();
+    proj.masonryLayout = !proj.masonryLayout;
+    save();
+    renderBoard();
+  });
 
   // ---------- LOGO MENU ----------
   var logoBtn = document.getElementById('logo-btn');
@@ -2372,9 +2476,8 @@
 
   function renderIdeaRow(idea) {
     var tagsHtml = idea.tags.map(function(t) {
-      var rgb = hexToRgb(tagColor(t));
-      var rgbStr = rgb.r + ',' + rgb.g + ',' + rgb.b;
-      var style = 'color:rgb(' + rgbStr + ');background:rgba(' + rgbStr + ',0.16);border-color:rgba(' + rgbStr + ',0.4);';
+      var hue = tagHue(t);
+      var style = 'color:hsl(' + hue + ',75%,68%);background:hsla(' + hue + ',75%,50%,0.16);border-color:hsla(' + hue + ',75%,50%,0.4);';
       return '<span class="idea-tag" style="' + style + '">' + esc(t) + '<button type="button" data-action="remove-tag" data-idea="' + idea.id + '" data-tag="' + esc(t) + '">' + svgIcon('close') + '</button></span>';
     }).join('');
 
@@ -2402,6 +2505,7 @@
           '<button type="button" data-action="collapse-idea" data-idea="' + idea.id + '" title="Done editing">' + svgIcon('check') + '</button>' +
         '</div>' +
         '<textarea class="text-input idea-edit-desc" data-action="edit-idea-desc" data-idea="' + idea.id + '" placeholder="Add a description…" rows="2">' + esc(idea.description) + '</textarea>' +
+        '<div class="desc-links" data-idea-links="' + idea.id + '">' + renderLinksPreview(idea.description) + '</div>' +
         '<div class="idea-edit-tags">' +
           tagsHtml +
           '<input class="idea-tag-input" data-action="add-tag" data-idea="' + idea.id + '" placeholder="+ tag">' +
@@ -2410,14 +2514,59 @@
     );
   }
 
+  // Which tags are currently toggled on in the Random Ideas filter bar —
+  // an idea matching ANY of these (not all) is shown.
+  var activeIdeaTagFilters = [];
+
+  function allIdeaTags() {
+    var set = {};
+    data.ideas.forEach(function(i) { i.tags.forEach(function(t) { set[t] = true; }); });
+    return Object.keys(set).sort();
+  }
+
+  function renderIdeaTagFilterBar() {
+    var tags = allIdeaTags();
+    activeIdeaTagFilters = activeIdeaTagFilters.filter(function(t) { return tags.indexOf(t) !== -1; });
+    var el = document.getElementById('idea-tag-filter');
+    if (!tags.length) { el.innerHTML = ''; return; }
+    el.innerHTML = tags.map(function(t) {
+      var hue = tagHue(t);
+      var active = activeIdeaTagFilters.indexOf(t) !== -1;
+      var style = active
+        ? 'color:#fff;background:hsl(' + hue + ',60%,42%);border-color:hsl(' + hue + ',60%,42%);'
+        : 'color:hsl(' + hue + ',75%,68%);background:hsla(' + hue + ',75%,50%,0.16);border-color:hsla(' + hue + ',75%,50%,0.4);';
+      return '<button type="button" class="idea-tag-filter-btn" data-action="filter-tag" data-tag="' + esc(t) + '" style="' + style + '">' + esc(t) + '</button>';
+    }).join('') + (activeIdeaTagFilters.length ? '<button type="button" class="idea-tag-filter-clear" data-action="clear-tag-filters">Clear filter</button>' : '');
+  }
+
   function renderIdeas() {
-    document.getElementById('idea-empty').classList.toggle('show', data.ideas.length === 0);
-    document.getElementById('idea-list').innerHTML = data.ideas.map(renderIdeaRow).join('');
+    renderIdeaTagFilterBar();
+    var visible = activeIdeaTagFilters.length
+      ? data.ideas.filter(function(i) { return i.tags.some(function(t) { return activeIdeaTagFilters.indexOf(t) !== -1; }); })
+      : data.ideas;
+    var emptyEl = document.getElementById('idea-empty');
+    emptyEl.classList.toggle('show', visible.length === 0);
+    emptyEl.innerHTML = data.ideas.length === 0
+      ? 'No ideas yet.<br>Jot anything down here, then turn it into a board whenever you\'re ready to work on it.'
+      : 'No ideas match the selected tag' + (activeIdeaTagFilters.length > 1 ? 's' : '') + '.';
+    document.getElementById('idea-list').innerHTML = visible.map(renderIdeaRow).join('');
   }
 
   var ideaAddInput = document.getElementById('idea-add-input');
   ideaAddInput.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') { addIdea(this.value); this.value = ''; }
+  });
+  document.getElementById('idea-tag-filter').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    if (btn.getAttribute('data-action') === 'clear-tag-filters') {
+      activeIdeaTagFilters = [];
+    } else if (btn.getAttribute('data-action') === 'filter-tag') {
+      var tag = btn.getAttribute('data-tag');
+      var idx = activeIdeaTagFilters.indexOf(tag);
+      if (idx === -1) activeIdeaTagFilters.push(tag); else activeIdeaTagFilters.splice(idx, 1);
+    }
+    renderIdeas();
   });
   document.getElementById('idea-list').addEventListener('click', function(e) {
     var btn = e.target.closest('[data-action]');
@@ -2436,7 +2585,11 @@
     var idea = findIdea(el.getAttribute('data-idea'));
     if (!idea) return;
     if (action === 'edit-idea-title') { idea.text = el.value; save(); }
-    else if (action === 'edit-idea-desc') { idea.description = el.value; save(); }
+    else if (action === 'edit-idea-desc') {
+      idea.description = el.value; save();
+      var linksEl = document.querySelector('[data-idea-links="' + idea.id + '"]');
+      if (linksEl) linksEl.innerHTML = renderLinksPreview(el.value);
+    }
   });
   document.getElementById('idea-list').addEventListener('keydown', function(e) {
     if (e.target.getAttribute('data-action') === 'add-tag' && e.key === 'Enter') {
@@ -2450,6 +2603,7 @@
     var name = inputEl.value.trim();
     if (!name) return;
     activeProject().columns.push({ id: uid(), name: name, cards: [] });
+    inputEl.value = '';
     save(); render();
   }
   document.getElementById('board').addEventListener('keydown', function(e) {
@@ -2516,6 +2670,7 @@
     document.getElementById('card-title-input').value = c.title || '';
     updateCardTodayToggleUI(cardId);
     document.getElementById('card-description-input').value = c.description || '';
+    document.getElementById('card-description-links').innerHTML = renderLinksPreview(c.description || '');
     document.getElementById('card-start-input').value = c.start || '';
     document.getElementById('card-due-input').value = c.due || '';
 
@@ -2572,6 +2727,7 @@
   document.getElementById('card-description-input').addEventListener('input', function() {
     var c = currentCard(); if (!c) return;
     c.description = this.value; save();
+    document.getElementById('card-description-links').innerHTML = renderLinksPreview(this.value);
   });
   document.getElementById('card-start-input').addEventListener('input', function() {
     var c = currentCard(); if (!c) return;
@@ -2920,7 +3076,7 @@
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = 'board-export-' + todayStr() + '.json';
+    a.download = 'board-export-' + nowStamp() + '.json';
     a.click();
     URL.revokeObjectURL(url);
   });
