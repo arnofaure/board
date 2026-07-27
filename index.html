@@ -1139,6 +1139,63 @@
   #today-view .checklist-check.done { background: #2c2205; border-color: #2c2205; color: #fdea72; }
   #today-view .today-done-badge { background: #2c2205; border-color: #2c2205; color: #fdea72; }
 
+  /* Row action buttons (postpone / remove) — always a visible circle,
+     same convention as the clock panel's icon buttons, so they read as
+     clickable at a glance instead of the old bare/borderless icons. */
+  .today-row-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+    background: var(--surface2);
+    color: var(--text-dim);
+  }
+  .today-row-action-btn:hover { background: var(--border-hover); color: var(--text); }
+  #today-view .today-row-action-btn { background: rgba(44,34,5,0.08); color: rgba(44,34,5,0.55); }
+  #today-view .today-row-action-btn:hover { background: rgba(44,34,5,0.16); color: rgba(44,34,5,0.85); }
+
+  /* TOMORROW BOX — items postponed off today's list, sitting below it in
+     their own orange sticky-note so they read as "queued for tomorrow"
+     rather than mixed in with today's active tasks. */
+  #today-tomorrow-box {
+    margin-top: 14px;
+    background: linear-gradient(180deg, #f0a860, #dd8636);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+  }
+  #today-tomorrow-box.hide { display: none; }
+  #today-tomorrow-box-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(50,25,5,0.6);
+    margin-bottom: 10px;
+  }
+  #today-tomorrow-list { display: flex; flex-direction: column; gap: 6px; }
+  .today-tomorrow-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 6px;
+  }
+  .today-tomorrow-row-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 12.5px;
+    color: #2c1505;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   /* RANDOM IDEAS VIEW */
   #ideas-main { max-width: 720px; margin: 0 auto; }
   #idea-add-input { margin-bottom: 18px; }
@@ -1758,6 +1815,11 @@
 
       <div id="today-list"></div>
       <div id="today-empty">Nothing on today's list yet.<br>Search above to pull in cards from any project and board, or add a standalone task.</div>
+
+      <div id="today-tomorrow-box" class="hide">
+        <div id="today-tomorrow-box-title">Tomorrow · <span id="today-tomorrow-count">0</span></div>
+        <div id="today-tomorrow-list"></div>
+      </div>
       </div>
     </div>
   </div>
@@ -1936,6 +1998,11 @@
     var d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
+  function tomorrowStr() {
+    var d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
   // Same as todayStr() but with a time component — used for one-off record
   // stamps (export filenames) where todayStr()'s date-only granularity would
   // collide across multiple saves in the same day.
@@ -2037,6 +2104,7 @@
         if (i.doneAt === undefined) i.doneAt = null;
         if (!i.color) i.color = randomColor();
       }
+      if (i.postponedTo === undefined) i.postponedTo = null;
     });
     if (!d.ideas) d.ideas = [];
     d.ideas.forEach(function(i) {
@@ -2338,7 +2406,8 @@
 
   function svgIcon(name) {
     var icons = {
-      trash: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>',
+      trash: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/></svg>',
+      tomorrow: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 6 19 12 13 18"/><polyline points="6 6 12 12 6 18"/></svg>',
       check: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
       checklist: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 20 6"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>',
       description: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="13" y2="18"/></svg>',
@@ -2631,6 +2700,11 @@
         var info = todayEntryInfo(i);
         return !info || !info.done;
       });
+      // Whatever was postponed to "tomorrow" as of the old day is now
+      // today — clear the flag so those items rejoin the active list.
+      data.today.items.forEach(function(i) {
+        if (i.postponedTo && i.postponedTo <= today) i.postponedTo = null;
+      });
       save();
     }
     return data.today;
@@ -2650,6 +2724,25 @@
   function removeFromToday(itemId) {
     var list = ensureTodayList();
     list.items = list.items.filter(function(i) { return i.id !== itemId; });
+    save();
+    render();
+  }
+  // Postponed items stay in the today list (so they still carry over /
+  // count toward the board) but are set aside into the Tomorrow box
+  // instead of showing among today's active tasks.
+  function postponeTodayItem(itemId) {
+    var list = ensureTodayList();
+    var item = list.items.find(function(i) { return i.id === itemId; });
+    if (!item) return;
+    item.postponedTo = tomorrowStr();
+    save();
+    render();
+  }
+  function unpostponeTodayItem(itemId) {
+    var list = ensureTodayList();
+    var item = list.items.find(function(i) { return i.id === itemId; });
+    if (!item) return;
+    item.postponedTo = null;
     save();
     render();
   }
@@ -3069,19 +3162,29 @@
     list.items = list.items.filter(function(i) { return !i.cardId || !!findCard(i.cardId); });
     if (list.items.length !== before) save();
 
-    var entries = list.items.map(function(i) {
+    var allEntries = list.items.map(function(i) {
       return { item: i, info: todayEntryInfo(i) };
     }).filter(function(e) { return !!e.info; });
+    var tomorrow = tomorrowStr();
+    var postponed = allEntries.filter(function(e) { return e.item.postponedTo === tomorrow; });
+    var entries = allEntries.filter(function(e) { return e.item.postponedTo !== tomorrow; });
     var todo = entries.filter(function(e) { return !e.info.done; });
     var done = entries.filter(function(e) { return e.info.done; });
     var doneToday = entries.filter(function(e) { return e.info.done && e.info.doneAt === todayStr(); });
 
-    document.getElementById('today-empty').classList.toggle('show', entries.length === 0);
+    document.getElementById('today-empty').classList.toggle('show', entries.length === 0 && postponed.length === 0);
 
     var html = '';
     if (todo.length) html += '<div class="today-group">' + todo.map(renderTodayRow).join('') + '</div>';
     if (done.length) html += '<div class="today-group today-group-done"><div class="today-group-title">Done · ' + done.length + '</div>' + done.map(renderTodayRow).join('') + '</div>';
     document.getElementById('today-list').innerHTML = html;
+
+    var tomorrowBox = document.getElementById('today-tomorrow-box');
+    tomorrowBox.classList.toggle('hide', postponed.length === 0);
+    if (postponed.length) {
+      document.getElementById('today-tomorrow-count').textContent = postponed.length;
+      document.getElementById('today-tomorrow-list').innerHTML = postponed.map(renderTomorrowRow).join('');
+    }
 
     var rewardEl = document.getElementById('today-reward');
     if (doneToday.length > 0) {
@@ -3110,7 +3213,20 @@
         (info.done ? '<span class="today-done-badge">DONE</span>' : '') +
         (pct ? '<span class="card-checklist-pct' + (pct.pct === 100 ? ' complete' : '') + '">' + svgIcon('checklist') + pct.done + '/' + pct.total + '</span>' : '') +
         '<span class="today-row-tag">' + esc(info.tag) + '</span>' +
-        '<button type="button" class="row-del" data-action="remove-today" data-item="' + item.id + '" title="Remove from today">' + svgIcon('trash') + '</button>' +
+        '<button type="button" class="today-row-action-btn" data-action="postpone-today" data-item="' + item.id + '" title="Postpone to tomorrow">' + svgIcon('tomorrow') + '</button>' +
+        '<button type="button" class="today-row-action-btn" data-action="remove-today" data-item="' + item.id + '" title="Remove from today">' + svgIcon('trash') + '</button>' +
+      '</div>'
+    );
+  }
+
+  function renderTomorrowRow(entry) {
+    var item = entry.item, info = entry.info;
+    return (
+      '<div class="today-tomorrow-row" data-item="' + item.id + '">' +
+        '<span class="today-row-color" style="background:' + info.color + ';"></span>' +
+        '<span class="today-tomorrow-row-title">' + esc(info.title || 'Untitled card') + '</span>' +
+        '<span class="today-row-tag">' + esc(info.tag) + '</span>' +
+        '<button type="button" class="today-row-action-btn" data-action="unpostpone-today" data-item="' + item.id + '" title="Move back to today">' + svgIcon('restore') + '</button>' +
       '</div>'
     );
   }
@@ -3121,6 +3237,7 @@
       var action = btn.getAttribute('data-action');
       if (action === 'toggle-today-done') toggleTodayItemDone(btn.getAttribute('data-item'));
       else if (action === 'remove-today') removeFromToday(btn.getAttribute('data-item'));
+      else if (action === 'postpone-today') postponeTodayItem(btn.getAttribute('data-item'));
       return;
     }
     if (e.target.tagName === 'INPUT') return;
@@ -3140,6 +3257,10 @@
     var list = ensureTodayList();
     var item = list.items.find(function(i) { return i.id === el.getAttribute('data-item'); });
     if (item) { item.title = el.value; save(); }
+  });
+  document.getElementById('today-tomorrow-list').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-action="unpostpone-today"]');
+    if (btn) unpostponeTodayItem(btn.getAttribute('data-item'));
   });
 
   // ---------- DRAG & DROP: reorder the Today list (within its group) ----------
