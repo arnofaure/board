@@ -2831,8 +2831,9 @@
     var isTimeline = clockDisplayMode === 'timeline';
     document.getElementById('today-clock-rings').classList.toggle('hide', isTimeline);
     document.getElementById('today-timeline-bar').classList.toggle('hide', !isTimeline);
+    // Icon shows the mode a click will switch TO, not the one on screen now.
     var btn = document.getElementById('today-clock-mode-btn');
-    btn.innerHTML = isTimeline ? '<span class="today-clock-mode-icon-t">T</span>' : '<span class="today-clock-mode-icon-pie"></span>';
+    btn.innerHTML = isTimeline ? '<span class="today-clock-mode-icon-pie"></span>' : '<span class="today-clock-mode-icon-t">T</span>';
     btn.title = isTimeline ? 'Switch to ring gauges view' : 'Switch to horizontal timeline view';
   }
 
