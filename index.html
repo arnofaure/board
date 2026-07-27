@@ -291,7 +291,7 @@
     max-height: calc(100vh - 110px);
   }
   .column.drag-over { border-color: rgba(255,255,255,0.4); background: var(--surface2); }
-  .column.dragging { opacity: 0.5; }
+  .column.dragging { opacity: 0.5; pointer-events: none; }
 
   /* COLLAPSED COLUMN — shrinks to a thin vertical strip; click anywhere on
      it to expand back to the normal column. */
@@ -397,7 +397,7 @@
   }
   .card:hover { filter: brightness(1.1); }
   .card.is-done { background: var(--surface2); }
-  .card.dragging { opacity: 0.35; }
+  .card.dragging { opacity: 0.35; pointer-events: none; }
   .drag-ghost {
     position: fixed;
     z-index: 500;
@@ -3817,19 +3817,32 @@
         var found = findCard(cardDrag.id);
         if (found && targetCol) {
           found.column.cards = found.column.cards.filter(function(x) { return x.id !== cardDrag.id; });
-          var afterCardEl = under.closest('.card');
-          if (afterCardEl && afterCardEl.getAttribute('data-card-id') !== cardDrag.id) {
-            var idx = targetCol.cards.findIndex(function(x) { return x.id === afterCardEl.getAttribute('data-card-id'); });
-            targetCol.cards.splice(idx >= 0 ? idx : targetCol.cards.length, 0, found.card);
-          } else {
-            targetCol.cards.push(found.card);
-          }
+          var insertIdx = cardDropIndex(colBody, e.clientY, cardDrag.id);
+          targetCol.cards.splice(insertIdx, 0, found.card);
           save();
         }
       }
       render();
     }
     cardDrag = null;
+  }
+
+  // Where to insert the dropped card within colBody, based on the cursor's Y
+  // position relative to the *other* cards' vertical midpoints. Deliberately
+  // not hit-testing elementFromPoint for a specific card here: the dragged
+  // card's own element stays in the DOM at its original spot throughout the
+  // drag (only a ghost clone follows the cursor), so a drop that lands back
+  // in that now-empty-feeling gap has no other card directly underneath it
+  // — geometry still resolves the right slot even then.
+  function cardDropIndex(colBody, clientY, excludeCardId) {
+    var cardEls = Array.prototype.filter.call(colBody.querySelectorAll('.card'), function(el) {
+      return el.getAttribute('data-card-id') !== excludeCardId;
+    });
+    for (var i = 0; i < cardEls.length; i++) {
+      var rect = cardEls[i].getBoundingClientRect();
+      if (clientY < rect.top + rect.height / 2) return i;
+    }
+    return cardEls.length;
   }
 
   function onColumnDragMove(e) {
