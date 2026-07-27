@@ -273,7 +273,7 @@
     flex: 0 0 272px;
     width: 272px;
     background: var(--surface);
-    border: 1px solid rgba(255,255,255,0.18);
+    border: 1px solid rgba(211,211,211,0.4);
     border-radius: var(--radius-lg);
     display: flex;
     flex-direction: column;
@@ -514,11 +514,13 @@
   #timeline-toolbar {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 10px;
     max-width: 960px;
     margin: 0 auto 16px;
   }
-  #timeline-toolbar.hide { display: none; }
+  #timeline-project-filter-wrap { display: flex; align-items: center; gap: 10px; }
+  #timeline-project-filter-wrap.hide { display: none; }
   .timeline-filter-label {
     font-size: 11px;
     color: var(--text-dim);
@@ -526,6 +528,17 @@
     letter-spacing: 0.05em;
   }
   #timeline-project-filter { max-width: 220px; padding: 6px 8px; font-size: 12.5px; }
+  #timeline-zoom { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+  #timeline-zoom button {
+    background: transparent;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    padding: 5px 7px;
+    display: flex;
+    cursor: pointer;
+  }
+  #timeline-zoom button:hover { background: var(--surface2); color: var(--text); }
   .gantt-row-tag {
     font-size: 9px;
     color: var(--text-dim);
@@ -1225,9 +1238,19 @@
   </div>
 
   <div id="timeline-view" class="hide">
-    <div id="timeline-toolbar" class="hide">
-      <label for="timeline-project-filter" class="timeline-filter-label">Project</label>
-      <select id="timeline-project-filter" class="text-input"></select>
+    <div id="timeline-toolbar">
+      <div id="timeline-project-filter-wrap" class="hide">
+        <label for="timeline-project-filter" class="timeline-filter-label">Project</label>
+        <select id="timeline-project-filter" class="text-input"></select>
+      </div>
+      <div id="timeline-zoom">
+        <button type="button" id="timeline-zoom-out" title="Zoom out (see more days)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        </button>
+        <button type="button" id="timeline-zoom-in" title="Zoom in (see fewer days)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        </button>
+      </div>
     </div>
     <div id="timeline-main"></div>
     <div id="timeline-empty">No cards yet.<br>Add cards to your board to see them here, sorted by due date.</div>
@@ -1402,6 +1425,12 @@
     return hash % 360;
   }
 
+  // Deterministic color per project (by id, so it's stable across renames),
+  // used to tell projects apart at a glance in the "all projects" Timeline view.
+  function projectColor(project) {
+    return 'hsl(' + tagHue(project.id) + ',70%,65%)';
+  }
+
   // Picks a color for the card at `index` in `col.cards`, avoiding the color
   // of its immediate neighbors so adjacent cards in a column are never the same hue.
   function pickColorAvoidingNeighbors(col, index) {
@@ -1484,6 +1513,7 @@
       if (i.text === undefined) i.text = '';
       if (i.description === undefined) i.description = '';
       if (!i.tags) i.tags = [];
+      i.tags = i.tags.map(function(t) { return t.toLowerCase(); }).filter(function(t, idx, arr) { return arr.indexOf(t) === idx; });
       if (!i.createdAt) i.createdAt = todayStr();
     });
     return d;
@@ -1752,10 +1782,12 @@
 
   // ---------- RENDER: TIMELINE ----------
   var GANTT_DAY_WIDTH = 34;
+  var GANTT_DAY_WIDTH_MIN = 18;
+  var GANTT_DAY_WIDTH_MAX = 90;
   var timelineFilter = 'all';
 
   function renderTimelineFilterOptions() {
-    var toolbar = document.getElementById('timeline-toolbar');
+    var toolbar = document.getElementById('timeline-project-filter-wrap');
     var select = document.getElementById('timeline-project-filter');
     toolbar.classList.toggle('hide', data.projects.length <= 1);
     if (!select.options.length || select.getAttribute('data-count') != data.projects.length) {
@@ -1836,7 +1868,7 @@
       var width = (endIdx - startIdx + 1) * dw - 4;
       var pct = checklistPct(c);
       var barLabel = esc(c.title || 'Untitled card') + (pct ? ' · ' + pct.done + '/' + pct.total : '');
-      var tagHtml = showProjectTag ? '<span class="gantt-row-tag">' + esc(entry.project.name || 'Untitled') + '</span>' : '';
+      var tagHtml = showProjectTag ? '<span class="gantt-row-tag" style="color:' + projectColor(entry.project) + ';">' + esc(entry.project.name || 'Untitled') + '</span>' : '';
       return (
         '<div class="gantt-row" data-card-id="' + c.id + '">' +
           '<div class="gantt-row-label">' + tagHtml + '<span class="gantt-row-title-text">' + esc(c.title || 'Untitled card') + '</span></div>' +
@@ -1869,10 +1901,12 @@
     var rows = undated.map(function(entry) {
       var c = entry.card;
       var pct = checklistPct(c);
-      var colLabel = showProjectTag ? (entry.project.name || 'Untitled') + ' · ' + entry.column.name : entry.column.name;
+      var colLabel = showProjectTag
+        ? '<span style="color:' + projectColor(entry.project) + ';">' + esc(entry.project.name || 'Untitled') + '</span> · ' + esc(entry.column.name)
+        : esc(entry.column.name);
       return (
         '<div class="tl-row" data-card-id="' + c.id + '" style="--card-color:' + c.color + ';">' +
-          '<span class="tl-row-col">' + esc(colLabel) + '</span>' +
+          '<span class="tl-row-col">' + colLabel + '</span>' +
           '<span class="tl-row-title">' + esc(c.title || 'Untitled card') + '</span>' +
           (pct ? '<span class="card-checklist-pct' + (pct.pct === 100 ? ' complete' : '') + '">' + svgIcon('checklist') + pct.done + '/' + pct.total + '</span>' : '') +
         '</div>'
@@ -1992,6 +2026,15 @@
 
   document.getElementById('timeline-project-filter').addEventListener('change', function() {
     timelineFilter = this.value;
+    renderTimeline();
+  });
+
+  document.getElementById('timeline-zoom-in').addEventListener('click', function() {
+    GANTT_DAY_WIDTH = Math.min(GANTT_DAY_WIDTH_MAX, GANTT_DAY_WIDTH + 12);
+    renderTimeline();
+  });
+  document.getElementById('timeline-zoom-out').addEventListener('click', function() {
+    GANTT_DAY_WIDTH = Math.max(GANTT_DAY_WIDTH_MIN, GANTT_DAY_WIDTH - 12);
     renderTimeline();
   });
 
@@ -2457,8 +2500,10 @@
     render();
   }
 
+  // Tags are case-insensitive: normalized to lowercase so "Movie" and "movie"
+  // are treated as the same tag (same color, same filter, no duplicates).
   function addIdeaTag(id, tag) {
-    tag = tag.trim();
+    tag = tag.trim().toLowerCase();
     var idea = findIdea(id);
     if (!idea || !tag || idea.tags.indexOf(tag) !== -1) return;
     idea.tags.push(tag);
