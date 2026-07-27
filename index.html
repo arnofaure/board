@@ -379,28 +379,25 @@
     -webkit-user-drag: none;
     pointer-events: none;
   }
-  .card-body { padding: 9px 10px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+  /* Right padding reserves room for the corner actions (done-check + today
+     buttons), which float via position:absolute — without it, a long title
+     can run underneath them. */
+  .card-body { padding: 9px 10px; padding-right: 62px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
   .card.is-done { opacity: 0.55; }
-  .card.is-done .card-title {
-    background: transparent;
-    border: 1.5px solid var(--card-color, var(--text-dim));
-    color: var(--card-color, var(--text));
-    padding: 1.5px 6.5px;
-    text-decoration: line-through;
-  }
+  .card.is-done .card-title { color: var(--text-muted); text-decoration: line-through; }
+  /* White text + shadow instead of a solid white pill: stays legible on every
+     card color without the harsher, boxed-in look of an opaque background. */
   .card-title {
     display: inline-block;
     font-size: 12.5px;
-    font-weight: 600;
-    color: #0d0d0d;
-    background: #ffffff;
-    padding: 3px 8px;
-    border-radius: 4px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.55), 0 0 1px rgba(0,0,0,0.4);
     line-height: 1.4;
     word-break: break-word;
   }
-  .card-title.untitled { display: block; color: rgba(255,255,255,0.5); background: transparent; padding: 0; font-style: italic; font-weight: 500; }
-  .card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; justify-content: flex-end; }
+  .card-title.untitled { display: block; color: rgba(255,255,255,0.55); text-shadow: none; font-style: italic; font-weight: 500; }
+  .card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; }
   .card-due {
     display: inline-flex;
     align-items: center;
@@ -426,6 +423,7 @@
     border-radius: 4px;
     background: #0d0d0d;
     border: 0.5px solid rgba(255,255,255,0.1);
+    margin-left: auto;
   }
   .card-checklist-pct.complete { color: #4ade80; }
   .card-checklist-pct svg { flex-shrink: 0; }
@@ -476,7 +474,6 @@
   }
   .text-input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   textarea.text-input { resize: vertical; min-height: 56px; line-height: 1.5; }
-  .card-desc-icon { display: inline-flex; align-items: center; color: var(--text-dim); }
   .card-corner-actions {
     position: absolute;
     top: 6px; right: 6px;
@@ -671,7 +668,67 @@
 
   /* TODAY VIEW */
   #today-view.hide { display: none; }
-  #today-main { max-width: 720px; margin: 0 auto; }
+  #today-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    max-width: 904px;
+    margin: 0 auto;
+  }
+  #today-main { flex: 1; min-width: 0; }
+
+  /* CLOCK PANEL — big current time + two ring gauges, one counting down to
+     noon and one to 5pm, so "how much time is left" reads at a glance. */
+  #today-clock-panel {
+    flex: 0 0 160px;
+    width: 160px;
+    background: var(--surface);
+    border: 1px solid rgba(211,211,211,0.4);
+    border-radius: var(--radius-lg);
+    padding: 18px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    position: sticky;
+    top: 72px;
+  }
+  #today-clock-time {
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+  .today-clock-gauge { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .today-clock-ring { transform: rotate(-90deg); }
+  .today-clock-ring-track {
+    fill: none;
+    stroke: var(--surface2);
+    stroke-width: 8;
+  }
+  .today-clock-ring-progress {
+    fill: none;
+    stroke: #fbbf24;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.3s;
+  }
+  .today-clock-ring-5pm-color { stroke: #b285f0; }
+  .today-clock-remaining {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .today-clock-target {
+    font-size: 10.5px;
+    color: var(--text-dim);
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
 
   #today-reward {
     display: flex;
@@ -813,6 +870,27 @@
   }
   #today-view .today-group .today-row:nth-child(even) { transform: rotate(0.7deg); background: #fbe25e; }
   #today-view .today-row:hover { border-color: transparent; transform: rotate(0deg) scale(1.01); }
+
+  /* The first not-yet-done task is your current top priority — make it
+     noticeably bigger (taller row, larger text) so it stands out from the rest. */
+  #today-view .today-group:first-child:not(.today-group-done) .today-row:first-child {
+    padding: 16px 14px;
+    transform: rotate(-0.4deg);
+  }
+  #today-view .today-group:first-child:not(.today-group-done) .today-row:first-child:hover { transform: rotate(0deg) scale(1.01); }
+  #today-view .today-group:first-child:not(.today-group-done) .today-row:first-child .today-row-title,
+  #today-view .today-group:first-child:not(.today-group-done) .today-row:first-child .today-row-title-input {
+    font-size: 16px;
+    font-weight: 700;
+  }
+  #today-view .today-group:first-child:not(.today-group-done) .today-row:first-child .checklist-check {
+    width: 19px;
+    height: 19px;
+  }
+  #today-view .today-group:first-child:not(.today-group-done) .today-row:first-child .today-row-color {
+    width: 10px;
+    height: 10px;
+  }
   #today-view .today-row-title,
   #today-view .today-row-title-input { color: #2c2205; }
   #today-view .today-row-handle { color: rgba(44,34,5,0.4); }
@@ -1259,11 +1337,11 @@
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
     Shuffle colors
   </button>
-  <button class="tb-btn" id="masonry-btn" title="Toggle masonry layout for columns">
+  <button class="tb-btn" id="masonry-btn" title="Toggle masonry layout for columns (M)">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
     Masonry
   </button>
-  <button class="tb-btn" id="due-only-btn" title="Only show cards that have a due date">
+  <button class="tb-btn" id="due-only-btn" title="Only show cards that have a due date (D)">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><circle cx="12" cy="15" r="2.2"/></svg>
     Due date only
   </button>
@@ -1308,7 +1386,27 @@
   </div>
 
   <div id="today-view" class="hide">
-    <div id="today-main">
+    <div id="today-layout">
+      <div id="today-clock-panel">
+        <div id="today-clock-time">00:00</div>
+        <div class="today-clock-gauge">
+          <svg class="today-clock-ring" width="120" height="120" viewBox="0 0 120 120">
+            <circle class="today-clock-ring-track" cx="60" cy="60" r="52"/>
+            <circle class="today-clock-ring-progress today-clock-ring-noon-color" id="today-clock-ring-noon" cx="60" cy="60" r="52"/>
+          </svg>
+          <div class="today-clock-remaining" id="today-clock-remaining-noon"></div>
+          <div class="today-clock-target">until noon</div>
+        </div>
+        <div class="today-clock-gauge">
+          <svg class="today-clock-ring" width="120" height="120" viewBox="0 0 120 120">
+            <circle class="today-clock-ring-track" cx="60" cy="60" r="52"/>
+            <circle class="today-clock-ring-progress today-clock-ring-5pm-color" id="today-clock-ring-5pm" cx="60" cy="60" r="52"/>
+          </svg>
+          <div class="today-clock-remaining" id="today-clock-remaining-5pm"></div>
+          <div class="today-clock-target">until 5pm</div>
+        </div>
+      </div>
+      <div id="today-main">
       <div id="today-reward" class="hide">
         <span class="today-reward-icon">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4a2 2 0 0 0 0 4h1.5"/><path d="M17 5h3a2 2 0 0 1 0 4h-1.5"/></svg>
@@ -1327,6 +1425,7 @@
 
       <div id="today-list"></div>
       <div id="today-empty">Nothing on today's list yet.<br>Search above to pull in cards from any project and board, or add a standalone task.</div>
+      </div>
     </div>
   </div>
 
@@ -1814,9 +1913,6 @@
       var status = dueStatus(c.due);
       metaBits += '<span class="card-due' + (status === 'overdue' ? ' overdue' : status === 'today' ? ' today' : '') + '">' + formatDateRange(c.start, c.due) + '</span>';
     }
-    if (c.description && c.description.trim()) {
-      metaBits += '<span class="card-desc-icon" title="Has a description">' + svgIcon('description') + '</span>';
-    }
     var pct = checklistPct(c);
     if (pct) {
       metaBits += '<span class="card-checklist-pct' + (pct.pct === 100 ? ' complete' : '') + '">' + svgIcon('checklist') + pct.done + '/' + pct.total + '</span>';
@@ -2231,6 +2327,54 @@
     if (n >= 6) return 'Amazing focus today.';
     if (n >= 3) return 'Great momentum today.';
     return 'Nice work today.';
+  }
+
+  // ---------- CLOCK PANEL ----------
+  // Two independent gauges, each counting down to its own fixed checkpoint —
+  // noon and 5pm — both always visible rather than swapping one for the other.
+  var CLOCK_RING_R = 52;
+  var CLOCK_RING_CIRC = 2 * Math.PI * CLOCK_RING_R;
+  var todayClockTimer = null;
+
+  // The ring drains as the deadline approaches (full at midnight, empty right
+  // at the target) — matches a countdown-timer feel, not a "time elapsed" fill.
+  // Each gauge only drains across its own segment of the workday — the noon
+  // gauge across 9am–noon, the 5pm gauge across noon–5pm — so it reads as
+  // full until that segment actually starts, not already half-drained by
+  // the time you open the app in the morning.
+  function setClockRing(ringId, remainingId, startMinutes, targetMinutes, minutesNow) {
+    var remainingFraction;
+    if (minutesNow <= startMinutes) remainingFraction = 1;
+    else if (minutesNow >= targetMinutes) remainingFraction = 0;
+    else remainingFraction = (targetMinutes - minutesNow) / (targetMinutes - startMinutes);
+
+    var ring = document.getElementById(ringId);
+    ring.style.strokeDasharray = CLOCK_RING_CIRC;
+    ring.style.strokeDashoffset = CLOCK_RING_CIRC * (1 - remainingFraction);
+
+    var remainingMin = Math.max(0, Math.round(targetMinutes - minutesNow));
+    var rh = Math.floor(remainingMin / 60), rm = remainingMin % 60;
+    document.getElementById(remainingId).textContent =
+      remainingMin <= 0 ? 'Passed' : (rh > 0 ? rh + 'h ' : '') + rm + 'm left';
+  }
+
+  function renderTodayClock() {
+    var now = new Date();
+    var h = now.getHours(), m = now.getMinutes();
+    document.getElementById('today-clock-time').textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+
+    var minutesNow = h * 60 + m + now.getSeconds() / 60;
+    // Both gauges start draining from the same point — 9am, the start of the
+    // workday — just with different targets (noon vs 5pm), not one handing
+    // off to the other at noon.
+    var NINE_AM = 9 * 60, NOON = 12 * 60, FIVE_PM = 17 * 60;
+    setClockRing('today-clock-ring-noon', 'today-clock-remaining-noon', NINE_AM, NOON, minutesNow);
+    setClockRing('today-clock-ring-5pm', 'today-clock-remaining-5pm', NINE_AM, FIVE_PM, minutesNow);
+  }
+
+  function startTodayClock() {
+    renderTodayClock();
+    if (!todayClockTimer) todayClockTimer = setInterval(renderTodayClock, 15000);
   }
 
   function renderToday() {
@@ -3301,6 +3445,17 @@
     }
   });
 
+  // Shortcuts: M toggles Masonry, D toggles Due date only — ignored while
+  // typing anywhere editable so they don't fire mid-title/description.
+  document.addEventListener('keydown', function(e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var tag = e.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
+    var key = e.key.toLowerCase();
+    if (key === 'm') document.getElementById('masonry-btn').click();
+    else if (key === 'd') document.getElementById('due-only-btn').click();
+  });
+
   var importFile = document.getElementById('import-file');
   document.getElementById('menu-import').addEventListener('click', function() { importFile.click(); });
   importFile.addEventListener('change', function() {
@@ -3347,6 +3502,7 @@
   checkDailyShuffle(activeProject());
   data.projects.forEach(checkDailyArchive);
   render();
+  startTodayClock();
 })();
 </script>
 </body>
