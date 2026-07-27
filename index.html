@@ -1211,6 +1211,63 @@
   }
   .modal-close:hover { color: var(--text); }
 
+  /* DAY TIMES MODAL — three sliders (start / midday / end of day) whose
+     min/max cascade off each other so they can never be dragged out of
+     order. Thumb colors mirror each checkpoint's ring color. */
+  .daytimes-row { margin-top: 18px; }
+  .daytimes-row:first-of-type { margin-top: 0; }
+  .daytimes-row-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .daytimes-row-head label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .daytimes-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .daytimes-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface2);
+    outline: none;
+    cursor: pointer;
+  }
+  .daytimes-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--thumb-color, var(--text));
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
+    cursor: pointer;
+  }
+  .daytimes-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--thumb-color, var(--text));
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
+    cursor: pointer;
+  }
+  #daytimes-start-slider { --thumb-color: #9ca3af; }
+  #daytimes-mid-slider { --thumb-color: #fbbf24; }
+  #daytimes-end-slider { --thumb-color: #b285f0; }
+
   /* CARD MODAL */
   #card-modal { max-width: 420px; }
   .card-cover-pick {
@@ -1652,6 +1709,41 @@
     <h2 id="archive-modal-title">Archive</h2>
     <div class="entries-modal-list" id="archive-modal-list"></div>
     <div id="archive-modal-empty" style="text-align:center;color:var(--text-dim);font-size:12.5px;padding:24px 0;">No archived cards in this project yet.</div>
+  </div>
+</div>
+
+<!-- DAY TIMES MODAL -->
+<div class="modal-overlay" id="daytimes-overlay">
+  <div class="modal" id="daytimes-modal" style="max-width:340px;">
+    <button class="modal-close" id="daytimes-close">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h2>Day checkpoints</h2>
+    <div class="daytimes-row">
+      <div class="daytimes-row-head">
+        <label>Start of day</label>
+        <span class="daytimes-value" id="daytimes-start-value"></span>
+      </div>
+      <input type="range" class="daytimes-slider" id="daytimes-start-slider" min="0" max="1425" step="15">
+    </div>
+    <div class="daytimes-row">
+      <div class="daytimes-row-head">
+        <label>Midday checkpoint</label>
+        <span class="daytimes-value" id="daytimes-mid-value"></span>
+      </div>
+      <input type="range" class="daytimes-slider" id="daytimes-mid-slider" min="0" max="1425" step="15">
+    </div>
+    <div class="daytimes-row">
+      <div class="daytimes-row-head">
+        <label>End of day</label>
+        <span class="daytimes-value" id="daytimes-end-value"></span>
+      </div>
+      <input type="range" class="daytimes-slider" id="daytimes-end-slider" min="0" max="1425" step="15">
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="tb-btn" id="daytimes-cancel">Cancel</button>
+      <button type="button" class="tb-btn primary" id="daytimes-save">Save</button>
+    </div>
   </div>
 </div>
 
@@ -2594,18 +2686,6 @@
   var dayTimes = loadDayTimes();
   function saveDayTimes() { localStorage.setItem(DAY_TIMES_KEY, JSON.stringify(dayTimes)); }
 
-  // Parses flexible time-of-day input ("8", "8am", "8:30am", "13:00", "1pm")
-  // into minutes since midnight, or null if unrecognized.
-  function parseTimeStr(str) {
-    if (!str) return null;
-    var m = str.trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
-    if (!m) return null;
-    var h = parseInt(m[1], 10), min = m[2] ? parseInt(m[2], 10) : 0, ap = m[3];
-    if (h > 23 || min > 59) return null;
-    if (ap === 'pm' && h < 12) h += 12;
-    if (ap === 'am' && h === 12) h = 0;
-    return h * 60 + min;
-  }
   function formatTimeMinutes(mins) {
     var h = Math.floor(mins / 60), m = mins % 60;
     var ap = h >= 12 ? 'pm' : 'am';
@@ -2617,33 +2697,80 @@
     document.querySelector('#today-clock-gauge-5pm .today-clock-target').textContent = 'until ' + formatTimeMinutes(dayTimes.end);
   }
 
-  function editDayTimes() {
-    var startStr = prompt('Start of day (e.g. 8am):', formatTimeMinutes(dayTimes.start));
-    if (startStr === null) return;
-    var start = parseTimeStr(startStr);
-    if (start === null) { alert('Could not understand that time — try something like 8am or 8:30.'); return; }
+  // DAY TIMES MODAL — three range sliders whose min/max cascade off
+  // whichever one was just moved, so start < mid < end can never be broken
+  // by dragging, with at least 15 minutes between each pair.
+  var daytimesStartSlider, daytimesMidSlider, daytimesEndSlider;
 
-    var midStr = prompt('Midday checkpoint (e.g. 1pm):', formatTimeMinutes(dayTimes.mid));
-    if (midStr === null) return;
-    var mid = parseTimeStr(midStr);
-    if (mid === null) { alert('Could not understand that time — try something like 1pm or 13:00.'); return; }
+  function daytimesReadValues() {
+    return {
+      start: parseInt(daytimesStartSlider.value, 10),
+      mid: parseInt(daytimesMidSlider.value, 10),
+      end: parseInt(daytimesEndSlider.value, 10)
+    };
+  }
 
-    var endStr = prompt('End of day (e.g. 6pm):', formatTimeMinutes(dayTimes.end));
-    if (endStr === null) return;
-    var end = parseTimeStr(endStr);
-    if (end === null) { alert('Could not understand that time — try something like 6pm or 18:00.'); return; }
+  function renderDaytimesModal(source) {
+    var v = daytimesReadValues();
+    if (source === 'start') {
+      if (v.mid < v.start + 15) { v.mid = v.start + 15; daytimesMidSlider.value = v.mid; }
+      if (v.end < v.mid + 15) { v.end = v.mid + 15; daytimesEndSlider.value = v.end; }
+    } else if (source === 'mid') {
+      if (v.start > v.mid - 15) { v.start = v.mid - 15; daytimesStartSlider.value = v.start; }
+      if (v.end < v.mid + 15) { v.end = v.mid + 15; daytimesEndSlider.value = v.end; }
+    } else if (source === 'end') {
+      if (v.mid > v.end - 15) { v.mid = v.end - 15; daytimesMidSlider.value = v.mid; }
+      if (v.start > v.mid - 15) { v.start = v.mid - 15; daytimesStartSlider.value = v.start; }
+    }
+    daytimesStartSlider.max = v.mid - 15;
+    daytimesMidSlider.min = v.start + 15;
+    daytimesMidSlider.max = v.end - 15;
+    daytimesEndSlider.min = v.mid + 15;
+    document.getElementById('daytimes-start-value').textContent = formatTimeMinutes(v.start);
+    document.getElementById('daytimes-mid-value').textContent = formatTimeMinutes(v.mid);
+    document.getElementById('daytimes-end-value').textContent = formatTimeMinutes(v.end);
+  }
 
-    if (!(start < mid && mid < end)) { alert('Times must be in order: start of day, then midday, then end of day.'); return; }
+  function openDaytimesModal() {
+    daytimesStartSlider.min = 0; daytimesStartSlider.max = 1425;
+    daytimesMidSlider.min = 0; daytimesMidSlider.max = 1425;
+    daytimesEndSlider.min = 0; daytimesEndSlider.max = 1425;
+    daytimesStartSlider.value = dayTimes.start;
+    daytimesMidSlider.value = dayTimes.mid;
+    daytimesEndSlider.value = dayTimes.end;
+    renderDaytimesModal('mid');
+    document.getElementById('daytimes-overlay').classList.add('show');
+  }
 
-    dayTimes = { start: start, mid: mid, end: end };
+  function saveDaytimesModal() {
+    var v = daytimesReadValues();
+    dayTimes = { start: v.start, mid: v.mid, end: v.end };
     saveDayTimes();
     // Re-derive fired state against the new targets so a checkpoint that's
     // already in the past doesn't immediately chime, but one still ahead can.
     var now = new Date();
     var minutesNow = now.getHours() * 60 + now.getMinutes();
-    dayAlarmState = { date: todayStr(), midFired: minutesNow >= mid, endFired: minutesNow >= end };
+    dayAlarmState = { date: todayStr(), midFired: minutesNow >= v.mid, endFired: minutesNow >= v.end };
     updateDayTimeLabels();
     renderTodayClock();
+    document.getElementById('daytimes-overlay').classList.remove('show');
+  }
+
+  function initDaytimesModal() {
+    daytimesStartSlider = document.getElementById('daytimes-start-slider');
+    daytimesMidSlider = document.getElementById('daytimes-mid-slider');
+    daytimesEndSlider = document.getElementById('daytimes-end-slider');
+    daytimesStartSlider.addEventListener('input', function() { renderDaytimesModal('start'); });
+    daytimesMidSlider.addEventListener('input', function() { renderDaytimesModal('mid'); });
+    daytimesEndSlider.addEventListener('input', function() { renderDaytimesModal('end'); });
+    document.getElementById('today-clock-settings-btn').addEventListener('click', openDaytimesModal);
+    document.getElementById('daytimes-save').addEventListener('click', saveDaytimesModal);
+    var close = function() { document.getElementById('daytimes-overlay').classList.remove('show'); };
+    document.getElementById('daytimes-cancel').addEventListener('click', close);
+    document.getElementById('daytimes-close').addEventListener('click', close);
+    document.getElementById('daytimes-overlay').addEventListener('click', function(e) {
+      if (e.target === this) close();
+    });
   }
 
   // The ring drains as the deadline approaches (full at midnight, empty right
@@ -2691,10 +2818,10 @@
   }
 
   function startTodayClock() {
+    initDaytimesModal();
     updateDayTimeLabels();
     renderTodayClock();
     if (!todayClockTimer) todayClockTimer = setInterval(renderTodayClock, 15000);
-    document.getElementById('today-clock-settings-btn').addEventListener('click', editDayTimes);
   }
 
   // ---------- CUSTOM TIMER ----------
