@@ -735,24 +735,51 @@
     flex-direction: column;
     align-items: center;
     gap: 18px;
-    position: relative;
   }
+  /* A normal-flow row above the time, right-aligned — not absolutely
+     positioned over it — so the buttons can never overlap the digits
+     underneath no matter how wide the time text renders. */
+  #today-clock-panel-btns {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    align-self: stretch;
+    margin-bottom: -6px;
+  }
+  /* Icon buttons always sit inside a visible circle — never bare/transparent
+     — so they read as clickable at a glance instead of hiding until hover.
+     Comfortable gap + outline-offset keep the focus ring from one button
+     visually colliding with its neighbor. */
+  #today-clock-mode-btn,
   #today-clock-settings-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     border: none;
     border-radius: 50%;
-    background: transparent;
-    color: var(--text-dim);
     cursor: pointer;
+    outline-offset: 3px;
   }
-  #today-clock-settings-btn:hover { color: var(--text); background: var(--surface2); }
+  #today-clock-settings-btn { background: var(--surface2); color: var(--text-dim); }
+  #today-clock-settings-btn:hover { color: var(--text); background: var(--border-hover); }
+  /* Mode toggle is always accent-colored (like the Timer's play button) —
+     its icon shows the display currently on screen: a partial ring for the
+     gauge view, a "T" for the timeline view — rather than a generic,
+     hard-to-parse symbol. */
+  #today-clock-mode-btn { background: #e8cf7c; color: #2c2205; }
+  #today-clock-mode-btn:hover { background: #dfc167; }
+  .today-clock-mode-icon-pie {
+    display: block;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: conic-gradient(#2c2205 0deg 270deg, rgba(44,34,5,0.3) 270deg 360deg);
+  }
+  .today-clock-mode-icon-t { font-size: 13px; font-weight: 800; line-height: 1; }
+  #today-clock-rings.hide { display: none; }
 
   /* TIMER — its own box below the clock panel, same visual language (ring
      gauge, same size) but a freely-settable countdown instead of a fixed
@@ -863,6 +890,73 @@
   #today-reward-total { font-size: 18px; font-weight: 700; color: var(--text-dim); font-variant-numeric: tabular-nums; }
   #today-reward-label { font-size: 13px; color: var(--text-muted); }
   .today-reward-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; font-style: italic; }
+
+  /* TIMELINE BAR — alternate horizontal display for the day gauge (toggled
+     via #today-clock-mode-btn), spanning start-of-day to end-of-day with a
+     marker at the midday checkpoint and a cursor that advances as the day
+     goes on. Sits where the ring gauges would normally be reflected, but
+     inline in the main column below the reward counter. */
+  /* Top margin reserves room for the "now" time label, which floats above
+     the track — without it, the label overlaps whatever sits above the bar
+     (the reward counter). */
+  #today-timeline-bar { margin-top: 28px; margin-bottom: 20px; }
+  #today-timeline-bar.hide { display: none; }
+  #today-timeline-track {
+    position: relative;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--surface2);
+    margin: 0 6px;
+  }
+  #today-timeline-fill {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #fbbf24, #b285f0);
+    width: 0%;
+  }
+  #today-timeline-mid-marker {
+    position: absolute;
+    top: -3px;
+    width: 2px;
+    height: 14px;
+    border-radius: 1px;
+    background: var(--bg);
+    left: 50%;
+  }
+  #today-timeline-cursor {
+    position: absolute;
+    top: -5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--text);
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.25);
+    left: 0%;
+    transform: translateX(-50%);
+    transition: left 0.3s;
+  }
+  #today-timeline-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  #today-timeline-mid-label { color: var(--text-muted); }
+  #today-timeline-now-label {
+    position: absolute;
+    top: -24px;
+    left: 0%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    transition: left 0.3s;
+  }
 
   #today-search-wrap { position: relative; margin-bottom: 18px; }
   #today-search-results {
@@ -1577,10 +1671,14 @@
     <div id="today-layout">
       <div id="today-side-panels">
       <div id="today-clock-panel">
-        <button type="button" id="today-clock-settings-btn" title="Customize day checkpoints">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-        </button>
+        <div id="today-clock-panel-btns">
+          <button type="button" id="today-clock-mode-btn" title="Switch to horizontal timeline view"></button>
+          <button type="button" id="today-clock-settings-btn" title="Customize day checkpoints">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </button>
+        </div>
         <div id="today-clock-time">00:00</div>
+        <div id="today-clock-rings">
         <div class="today-clock-gauge" id="today-clock-gauge-noon">
           <div class="today-clock-ring-wrap">
             <svg class="today-clock-ring" width="120" height="120" viewBox="0 0 120 120">
@@ -1602,6 +1700,7 @@
           </div>
           <div class="today-clock-remaining" id="today-clock-remaining-5pm"></div>
           <div class="today-clock-target">until 5pm</div>
+        </div>
         </div>
       </div>
       <div id="today-timer-panel">
@@ -1634,6 +1733,20 @@
         <div>
           <div class="today-reward-count-row"><span id="today-reward-count">0</span><span id="today-reward-total">/0</span> <span id="today-reward-label">cards done today</span></div>
           <div id="today-reward-sub" class="today-reward-sub"></div>
+        </div>
+      </div>
+
+      <div id="today-timeline-bar" class="hide">
+        <div id="today-timeline-track">
+          <div id="today-timeline-fill"></div>
+          <div id="today-timeline-mid-marker"></div>
+          <div id="today-timeline-now-label"></div>
+          <div id="today-timeline-cursor"></div>
+        </div>
+        <div id="today-timeline-labels">
+          <span id="today-timeline-start-label"></span>
+          <span id="today-timeline-mid-label"></span>
+          <span id="today-timeline-end-label"></span>
         </div>
       </div>
 
@@ -2695,6 +2808,49 @@
   function updateDayTimeLabels() {
     document.querySelector('#today-clock-gauge-noon .today-clock-target').textContent = 'until ' + formatTimeMinutes(dayTimes.mid);
     document.querySelector('#today-clock-gauge-5pm .today-clock-target').textContent = 'until ' + formatTimeMinutes(dayTimes.end);
+    document.getElementById('today-timeline-start-label').textContent = formatTimeMinutes(dayTimes.start);
+    document.getElementById('today-timeline-mid-label').textContent = formatTimeMinutes(dayTimes.mid);
+    document.getElementById('today-timeline-end-label').textContent = formatTimeMinutes(dayTimes.end);
+    var midPct = clockPct(dayTimes.mid);
+    document.getElementById('today-timeline-mid-marker').style.left = midPct + '%';
+  }
+
+  // DAY GAUGE DISPLAY MODE — 'rings' (default) shows the two ring gauges in
+  // the side panel; 'timeline' swaps them for a horizontal bar spanning the
+  // whole day, placed in the main column below the reward counter.
+  var CLOCK_MODE_KEY = 'kanban.clockDisplayMode';
+  var clockDisplayMode = localStorage.getItem(CLOCK_MODE_KEY) === 'timeline' ? 'timeline' : 'rings';
+
+  function clockPct(minutes) {
+    var span = dayTimes.end - dayTimes.start;
+    if (span <= 0) return 0;
+    return Math.max(0, Math.min(100, (minutes - dayTimes.start) / span * 100));
+  }
+
+  function applyClockDisplayMode() {
+    var isTimeline = clockDisplayMode === 'timeline';
+    document.getElementById('today-clock-rings').classList.toggle('hide', isTimeline);
+    document.getElementById('today-timeline-bar').classList.toggle('hide', !isTimeline);
+    var btn = document.getElementById('today-clock-mode-btn');
+    btn.innerHTML = isTimeline ? '<span class="today-clock-mode-icon-t">T</span>' : '<span class="today-clock-mode-icon-pie"></span>';
+    btn.title = isTimeline ? 'Switch to ring gauges view' : 'Switch to horizontal timeline view';
+  }
+
+  function toggleClockDisplayMode() {
+    clockDisplayMode = clockDisplayMode === 'timeline' ? 'rings' : 'timeline';
+    localStorage.setItem(CLOCK_MODE_KEY, clockDisplayMode);
+    applyClockDisplayMode();
+    renderTodayClock();
+  }
+
+  function renderTimelineBar(minutesNow) {
+    if (clockDisplayMode !== 'timeline') return;
+    var pct = clockPct(minutesNow);
+    document.getElementById('today-timeline-fill').style.width = pct + '%';
+    document.getElementById('today-timeline-cursor').style.left = pct + '%';
+    var nowLabel = document.getElementById('today-timeline-now-label');
+    nowLabel.style.left = pct + '%';
+    nowLabel.textContent = formatTimeMinutes(Math.round(minutesNow));
   }
 
   // DAY TIMES MODAL — three range sliders whose min/max cascade off
@@ -2814,11 +2970,14 @@
     // handing off to the other at midday.
     setClockRing('today-clock-gauge-noon', 'today-clock-ring-noon', 'today-clock-remaining-noon', 'today-clock-center-noon', dayTimes.start, dayTimes.mid, minutesNow);
     setClockRing('today-clock-gauge-5pm', 'today-clock-ring-5pm', 'today-clock-remaining-5pm', 'today-clock-center-5pm', dayTimes.start, dayTimes.end, minutesNow);
+    renderTimelineBar(minutesNow);
     checkDayAlarms(minutesNow);
   }
 
   function startTodayClock() {
     initDaytimesModal();
+    document.getElementById('today-clock-mode-btn').addEventListener('click', toggleClockDisplayMode);
+    applyClockDisplayMode();
     updateDayTimeLabels();
     renderTodayClock();
     if (!todayClockTimer) todayClockTimer = setInterval(renderTodayClock, 15000);
