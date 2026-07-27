@@ -2538,6 +2538,49 @@
   var todayClockTimer = null;
   var DAY_TIMES_KEY = 'kanban.dayTimes';
 
+  // Gentle two-note ascending chime, synthesized with the Web Audio API so
+  // there's no sound asset to bundle and it works offline. Shared by the
+  // midday/end-of-day checkpoints and the custom Timer below. Browsers
+  // require a user gesture before audio can play, so the AudioContext is
+  // created lazily on the first click anywhere in the page — by the time a
+  // checkpoint or timer actually fires, it's already unlocked.
+  var chimeAudioCtx = null;
+  function ensureChimeAudioCtx() {
+    if (!chimeAudioCtx && (window.AudioContext || window.webkitAudioContext)) {
+      chimeAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (chimeAudioCtx && chimeAudioCtx.state === 'suspended') chimeAudioCtx.resume();
+  }
+  document.addEventListener('click', ensureChimeAudioCtx, { once: true });
+
+  function playChime() {
+    if (!chimeAudioCtx) return;
+    var ctx = chimeAudioCtx;
+    var now = ctx.currentTime;
+    [{ freq: 880, start: 0 }, { freq: 1174.66, start: 0.18 }].forEach(function(note) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = note.freq;
+      gain.gain.setValueAtTime(0, now + note.start);
+      gain.gain.linearRampToValueAtTime(0.25, now + note.start + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + note.start + 0.5);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + note.start);
+      osc.stop(now + note.start + 0.55);
+    });
+  }
+
+  // Fires the chime once per checkpoint per day, the moment each is crossed
+  // — not on every 15s render tick after — and resets at midnight.
+  var dayAlarmState = { date: todayStr(), midFired: false, endFired: false };
+  function checkDayAlarms(minutesNow) {
+    if (dayAlarmState.date !== todayStr()) dayAlarmState = { date: todayStr(), midFired: false, endFired: false };
+    if (!dayAlarmState.midFired && minutesNow >= dayTimes.mid) { dayAlarmState.midFired = true; playChime(); }
+    if (!dayAlarmState.endFired && minutesNow >= dayTimes.end) { dayAlarmState.endFired = true; playChime(); }
+  }
+
   function loadDayTimes() {
     try {
       var raw = localStorage.getItem(DAY_TIMES_KEY);
@@ -2594,6 +2637,11 @@
 
     dayTimes = { start: start, mid: mid, end: end };
     saveDayTimes();
+    // Re-derive fired state against the new targets so a checkpoint that's
+    // already in the past doesn't immediately chime, but one still ahead can.
+    var now = new Date();
+    var minutesNow = now.getHours() * 60 + now.getMinutes();
+    dayAlarmState = { date: todayStr(), midFired: minutesNow >= mid, endFired: minutesNow >= end };
     updateDayTimeLabels();
     renderTodayClock();
   }
@@ -2639,6 +2687,7 @@
     // handing off to the other at midday.
     setClockRing('today-clock-gauge-noon', 'today-clock-ring-noon', 'today-clock-remaining-noon', 'today-clock-center-noon', dayTimes.start, dayTimes.mid, minutesNow);
     setClockRing('today-clock-gauge-5pm', 'today-clock-ring-5pm', 'today-clock-remaining-5pm', 'today-clock-center-5pm', dayTimes.start, dayTimes.end, minutesNow);
+    checkDayAlarms(minutesNow);
   }
 
   function startTodayClock() {
@@ -2663,30 +2712,6 @@
     return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
   }
 
-  // Gentle two-note ascending chime, synthesized with the Web Audio API so
-  // there's no sound asset to bundle and it works offline. The AudioContext
-  // is created on the Start click (a user gesture) so it's already unlocked
-  // by the time the chime needs to autoplay when the timer hits zero.
-  var timerAudioCtx = null;
-  function playTimerChime() {
-    if (!timerAudioCtx) return;
-    var ctx = timerAudioCtx;
-    var now = ctx.currentTime;
-    [{ freq: 880, start: 0 }, { freq: 1174.66, start: 0.18 }].forEach(function(note) {
-      var osc = ctx.createOscillator();
-      var gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = note.freq;
-      gain.gain.setValueAtTime(0, now + note.start);
-      gain.gain.linearRampToValueAtTime(0.25, now + note.start + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + note.start + 0.5);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now + note.start);
-      osc.stop(now + note.start + 0.55);
-    });
-  }
-
   function renderCustomTimer() {
     var fraction = customTimerTotalSec > 0 ? customTimerRemainingSec / customTimerTotalSec : 0;
     var ring = document.getElementById('today-clock-ring-custom');
@@ -2709,7 +2734,7 @@
     if (customTimerRemainingSec <= 0) {
       customTimerRemainingSec = 0;
       stopCustomTimer();
-      playTimerChime();
+      playChime();
       return;
     }
     renderCustomTimer();
@@ -2717,10 +2742,7 @@
 
   function startCustomTimer() {
     if (customTimerRunning) return;
-    if (!timerAudioCtx && (window.AudioContext || window.webkitAudioContext)) {
-      timerAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (timerAudioCtx && timerAudioCtx.state === 'suspended') timerAudioCtx.resume();
+    ensureChimeAudioCtx();
     if (customTimerRemainingSec <= 0) customTimerRemainingSec = customTimerTotalSec;
     customTimerRunning = true;
     customTimerInterval = setInterval(tickCustomTimer, 1000);
