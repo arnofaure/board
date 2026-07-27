@@ -736,6 +736,15 @@
     font-variant-numeric: tabular-nums;
     color: var(--text);
   }
+  #today-task-progress {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    background: var(--surface2);
+    border-radius: 4px;
+    padding: 3px 10px;
+  }
   .today-clock-gauge { display: flex; flex-direction: column; align-items: center; gap: 10px; }
   .today-clock-gauge.hide { display: none; }
   .today-clock-ring-wrap { position: relative; }
@@ -1454,6 +1463,7 @@
     <div id="today-layout">
       <div id="today-clock-panel">
         <div id="today-clock-time">00:00</div>
+        <div id="today-task-progress" title="Tasks done today">0/0</div>
         <div class="today-clock-gauge" id="today-clock-gauge-noon">
           <div class="today-clock-ring-wrap">
             <svg class="today-clock-ring" width="120" height="120" viewBox="0 0 120 120">
@@ -2502,6 +2512,7 @@
     var done = entries.filter(function(e) { return e.info.done; });
     var doneToday = entries.filter(function(e) { return e.info.done && e.info.doneAt === todayStr(); });
 
+    document.getElementById('today-task-progress').textContent = done.length + '/' + entries.length;
     document.getElementById('today-empty').classList.toggle('show', entries.length === 0);
 
     var html = '';
