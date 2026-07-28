@@ -263,7 +263,7 @@
 
   /* MAIN */
   #main { padding: 20px 20px 60px; }
-  #board-view.hide, #timeline-view.hide, #ideas-view.hide { display: none; }
+  #board-view.hide, #timeline-view.hide, #ideas-view.hide, #achievements-view.hide { display: none; }
 
   /* BOARD */
   #board-title-header {
@@ -1221,6 +1221,51 @@
     cursor: pointer;
   }
   .idea-tag-filter-clear:hover { color: var(--text); border-color: var(--border-hover); }
+
+  /* ACHIEVEMENTS — a GitHub-style contribution calendar over data.history,
+     scoped to a plain ADHD-friendly "did I do the thing" readout: no score,
+     just filled squares and a level tied to consistency, not volume. */
+  #achievements-view { max-width: 920px; margin: 0 auto; }
+  #achievements-summary { display: flex; gap: 14px; margin-bottom: 26px; flex-wrap: wrap; }
+  .achievements-stat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    color: #4ade80;
+  }
+  .achievements-stat div { display: flex; flex-direction: column; }
+  .achievements-stat span { font-size: 22px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .achievements-stat label { font-size: 11px; color: var(--text-dim); }
+  #achievements-calendar-wrap { overflow-x: auto; padding-bottom: 4px; }
+  #achievements-month-labels { display: flex; gap: 3px; margin-bottom: 4px; }
+  .ach-month-label { width: 13px; font-size: 10px; color: var(--text-dim); flex-shrink: 0; white-space: nowrap; }
+  #achievements-calendar { display: flex; gap: 3px; width: max-content; }
+  .ach-week { display: flex; flex-direction: column; gap: 3px; }
+  .ach-day {
+    width: 13px;
+    height: 13px;
+    border-radius: 3px;
+    background: var(--surface2);
+    border: 0.5px solid var(--border);
+  }
+  .ach-day[data-level="1"] { background: #14532d; border-color: #14532d; }
+  .ach-day[data-level="2"] { background: #166534; border-color: #166534; }
+  .ach-day[data-level="3"] { background: #22a55e; border-color: #22a55e; }
+  .ach-day[data-level="4"] { background: #4ade80; border-color: #4ade80; }
+  .ach-day.ach-future { background: transparent; border-color: transparent; }
+  #achievements-legend { display: flex; align-items: center; gap: 5px; margin-top: 12px; font-size: 11px; color: var(--text-dim); }
+  .achievements-legend-sq { width: 13px; height: 13px; border-radius: 3px; background: var(--surface2); border: 0.5px solid var(--border); }
+  .achievements-legend-sq[data-level="1"] { background: #14532d; border-color: #14532d; }
+  .achievements-legend-sq[data-level="2"] { background: #166534; border-color: #166534; }
+  .achievements-legend-sq[data-level="3"] { background: #22a55e; border-color: #22a55e; }
+  .achievements-legend-sq[data-level="4"] { background: #4ade80; border-color: #4ade80; }
+  #achievements-empty { text-align: center; color: var(--text-dim); margin-top: 40px; line-height: 1.6; }
+  #achievements-empty.hide { display: none; }
+
   #idea-list { display: flex; flex-direction: column; gap: 6px; }
   .idea-row {
     display: flex;
@@ -1570,6 +1615,15 @@
     </button>
     <div class="tb-dropdown" id="logo-dropdown">
       <div class="tb-menu-heading">Board</div>
+      <button class="tb-btn" id="done-list-btn" title="View completed cards in this project">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Done <span id="done-count-badge">0</span>
+      </button>
+      <button class="tb-btn" id="archive-btn" title="View archived cards in this project">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg>
+        Archive <span id="archive-count-badge">0</span>
+      </button>
+      <div class="tb-sep-h"></div>
       <button class="tb-btn" id="menu-export">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Export (JSON)
@@ -1667,6 +1721,7 @@
     </div>
   </div>
   <div class="tb-view-switch">
+    <button class="tb-btn view-btn" id="view-achievements-btn" data-view="achievements">Achievements</button>
     <button class="tb-btn view-btn" id="view-today-btn" data-view="today">Today</button>
     <button class="tb-btn view-btn active" id="view-board-btn" data-view="board">Board</button>
     <button class="tb-btn view-btn" id="view-timeline-btn" data-view="timeline">Timeline</button>
@@ -1683,14 +1738,6 @@
   <button class="tb-btn" id="due-only-btn" title="Only show cards that have a due date (D)">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><circle cx="12" cy="15" r="2.2"/></svg>
     Due date only
-  </button>
-  <button class="tb-btn" id="done-list-btn" title="View completed cards in this project">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-    Done <span id="done-count-badge">0</span>
-  </button>
-  <button class="tb-btn" id="archive-btn" title="View archived cards in this project">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg>
-    Archive <span id="archive-count-badge">0</span>
   </button>
   <div class="tb-right">
     <span id="card-total">0 cards<span class="overdue" id="overdue-count"></span></span>
@@ -1831,6 +1878,37 @@
       <div id="idea-list"></div>
       <div id="idea-empty">No ideas yet.<br>Jot anything down here, then send it to your active board whenever you're ready to work on it.</div>
     </div>
+  </div>
+
+  <div id="achievements-view" class="hide">
+    <div id="achievements-summary">
+      <div class="achievements-stat">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.3L22 9.3l-5 4.9 1.2 7-6.2-3.4-6.2 3.4 1.2-7-5-4.9 7.1-1z"/></svg>
+        <div><span id="achievements-level">1</span><label>Level</label></div>
+      </div>
+      <div class="achievements-stat">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c3 4-2 6-2 10a4 4 0 0 0 8 0c0-2-1-3-1-3s1 4-2 4-2-3-1-5c1.5-3-1-5-2-6z"/></svg>
+        <div><span id="achievements-streak">0</span><label id="achievements-streak-label">day streak</label></div>
+      </div>
+      <div class="achievements-stat">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <div><span id="achievements-today-ratio">0/0</span><label>today</label></div>
+      </div>
+    </div>
+    <div id="achievements-calendar-wrap">
+      <div id="achievements-month-labels"></div>
+      <div id="achievements-calendar"></div>
+    </div>
+    <div id="achievements-legend">
+      <span>Less</span>
+      <span class="achievements-legend-sq" data-level="0"></span>
+      <span class="achievements-legend-sq" data-level="1"></span>
+      <span class="achievements-legend-sq" data-level="2"></span>
+      <span class="achievements-legend-sq" data-level="3"></span>
+      <span class="achievements-legend-sq" data-level="4"></span>
+      <span>More</span>
+    </div>
+    <div id="achievements-empty" class="hide">No history yet.<br>Come back tomorrow — each day you use the Today list gets logged here.</div>
   </div>
 
 </div>
@@ -2003,6 +2081,10 @@
     d.setDate(d.getDate() + 1);
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   }
+  function dateKeyFor(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  var MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   // Same as todayStr() but with a time component — used for one-off record
   // stamps (export filenames) where todayStr()'s date-only granularity would
   // collide across multiple saves in the same day.
@@ -2053,7 +2135,8 @@
     return {
       projects: [{ id: pid, name: 'Project 1', columns: defaultColumns(), lastShuffleDate: todayStr(), lastArchiveDate: todayStr(), archive: [] }],
       activeProjectId: pid,
-      ideas: []
+      ideas: [],
+      history: []
     };
   }
 
@@ -2107,6 +2190,7 @@
       if (i.postponedTo === undefined) i.postponedTo = null;
     });
     if (!d.ideas) d.ideas = [];
+    if (!d.history) d.history = [];
     d.ideas.forEach(function(i) {
       if (!i.id) i.id = uid();
       if (i.text === undefined) i.text = '';
@@ -2299,6 +2383,7 @@
     renderTimeline();
     renderToday();
     renderIdeas();
+    renderAchievements();
     updateTotals();
   }
 
@@ -2594,6 +2679,8 @@
   document.getElementById('done-list-btn').addEventListener('click', function() {
     renderDoneModalList();
     document.getElementById('done-overlay').classList.add('show');
+    logoBtn.classList.remove('open');
+    logoDropdown.classList.remove('open');
   });
   document.getElementById('done-close').addEventListener('click', function() {
     document.getElementById('done-overlay').classList.remove('show');
@@ -2640,6 +2727,8 @@
   document.getElementById('archive-btn').addEventListener('click', function() {
     renderArchiveModalList();
     document.getElementById('archive-overlay').classList.add('show');
+    logoBtn.classList.remove('open');
+    logoDropdown.classList.remove('open');
   });
   document.getElementById('archive-close').addEventListener('click', function() {
     document.getElementById('archive-overlay').classList.remove('show');
@@ -2688,6 +2777,23 @@
   // A personal daily checklist, separate from the boards: cards get pulled
   // in by reference (cardId) from any project, and resets itself each day —
   // same "fresh start" mechanic as the daily color shuffle.
+  // Snapshots a finished day's Today list into data.history before it gets
+  // purged — this is the only place a day's done/total ratio survives past
+  // its own rollover, so the Achievements calendar has something to show.
+  // Items postponed away are excluded: they were never actually attempted
+  // that day, so counting them would unfairly tank the day's ratio.
+  function recordHistoryDay(dateStr, items) {
+    if (!dateStr) return;
+    var relevant = (items || []).filter(function(i) {
+      return !!todayEntryInfo(i) && !i.postponedTo;
+    });
+    if (!relevant.length) return;
+    var done = relevant.filter(function(i) { return todayEntryInfo(i).done; }).length;
+    var entry = data.history.find(function(h) { return h.date === dateStr; });
+    if (entry) { entry.done = done; entry.total = relevant.length; }
+    else data.history.push({ date: dateStr, done: done, total: relevant.length });
+  }
+
   // Rolls the Today list over to a new day: only items already checked off
   // drop out (that's Today's own "archiving"), unfinished items carry over
   // to the new day instead of being wiped.
@@ -2695,6 +2801,7 @@
     if (!data.today || !data.today.items) data.today = { date: todayStr(), items: [] };
     var today = todayStr();
     if (data.today.date !== today) {
+      recordHistoryDay(data.today.date, data.today.items);
       data.today.date = today;
       data.today.items = data.today.items.filter(function(i) {
         var info = todayEntryInfo(i);
@@ -3376,8 +3483,10 @@
       document.getElementById('timeline-view').classList.toggle('hide', currentView !== 'timeline');
       document.getElementById('today-view').classList.toggle('hide', currentView !== 'today');
       document.getElementById('ideas-view').classList.toggle('hide', currentView !== 'ideas');
+      document.getElementById('achievements-view').classList.toggle('hide', currentView !== 'achievements');
       if (currentView === 'today') renderToday();
       if (currentView === 'ideas') renderIdeas();
+      if (currentView === 'achievements') renderAchievements();
     });
   });
 
@@ -3689,6 +3798,81 @@
       ? 'No ideas yet.<br>Jot anything down here, then send it to your active board whenever you\'re ready to work on it.'
       : 'No ideas match the selected tag' + (activeIdeaTagFilters.length > 1 ? 's' : '') + '.';
     document.getElementById('idea-list').innerHTML = visible.map(renderIdeaRow).join('');
+  }
+
+  // ---------- RENDER: ACHIEVEMENTS ----------
+  // A GitHub-style contribution calendar over data.history (see
+  // recordHistoryDay), plus a streak and a level that only rewards
+  // consistency (days at/above a 70% completion ratio), not raw volume.
+  function renderAchievements() {
+    var historyMap = {};
+    data.history.forEach(function(h) { historyMap[h.date] = { done: h.done, total: h.total }; });
+
+    // Merge in today's live, not-yet-archived numbers so today's square
+    // and the "today" stat update as tasks get checked off.
+    var todayList = ensureTodayList();
+    var todayRelevant = todayList.items.filter(function(i) { return !!todayEntryInfo(i) && !i.postponedTo; });
+    var todayDone = todayRelevant.filter(function(i) { return todayEntryInfo(i).done; }).length;
+    historyMap[todayStr()] = { done: todayDone, total: todayRelevant.length };
+    document.getElementById('achievements-today-ratio').textContent = todayDone + '/' + todayRelevant.length;
+
+    var streak = 0;
+    var cursor = new Date();
+    var first = true;
+    while (true) {
+      var key = dateKeyFor(cursor);
+      var entry = historyMap[key];
+      if (entry && entry.done > 0) streak++;
+      else if (!first) break;
+      first = false;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    document.getElementById('achievements-streak').textContent = streak;
+
+    var successfulDays = Object.keys(historyMap).filter(function(k) {
+      var e = historyMap[k];
+      return e.total > 0 && (e.done / e.total) >= 0.7;
+    }).length;
+    var level = 1 + Math.floor(successfulDays / 5);
+    document.getElementById('achievements-level').textContent = level;
+
+    var WEEKS = 18;
+    var endDate = new Date();
+    endDate.setDate(endDate.getDate() + (6 - endDate.getDay()));
+    var startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - (WEEKS * 7 - 1));
+
+    var now = new Date();
+    var weeksHtml = [];
+    var monthLabels = [];
+    var lastMonth = null;
+    var lastLabelWeek = -99;
+    var cursorDate = new Date(startDate);
+    for (var w = 0; w < WEEKS; w++) {
+      var daysHtml = '';
+      var weekMonth = cursorDate.getMonth();
+      for (var d = 0; d < 7; d++) {
+        var key2 = dateKeyFor(cursorDate);
+        var isFuture = cursorDate > now;
+        var entry2 = historyMap[key2];
+        var lvl = 0;
+        if (entry2 && entry2.total > 0) {
+          var ratio = entry2.done / entry2.total;
+          lvl = ratio >= 1 ? 4 : ratio >= 0.7 ? 3 : ratio >= 0.4 ? 2 : 1;
+        }
+        var title = isFuture ? '' : (key2 + (entry2 ? ': ' + entry2.done + '/' + entry2.total : ': no data'));
+        daysHtml += '<div class="ach-day' + (isFuture ? ' ach-future' : '') + '" data-level="' + lvl + '" title="' + title + '"></div>';
+        cursorDate.setDate(cursorDate.getDate() + 1);
+      }
+      weeksHtml.push('<div class="ach-week">' + daysHtml + '</div>');
+      var showLabel = weekMonth !== lastMonth && (w - lastLabelWeek) >= 3;
+      monthLabels.push(showLabel ? '<span class="ach-month-label">' + MONTH_NAMES[weekMonth] + '</span>' : '<span class="ach-month-label"></span>');
+      if (showLabel) lastLabelWeek = w;
+      lastMonth = weekMonth;
+    }
+    document.getElementById('achievements-calendar').innerHTML = weeksHtml.join('');
+    document.getElementById('achievements-month-labels').innerHTML = monthLabels.join('');
+    document.getElementById('achievements-empty').classList.toggle('hide', data.history.length > 0 || todayRelevant.length > 0);
   }
 
   var ideaAddInput = document.getElementById('idea-add-input');
