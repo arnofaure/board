@@ -781,20 +781,34 @@
     font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums; color: var(--text); flex-shrink: 0;
   }
-  #cp-track { position: relative; flex: 1; height: 16px; }
-  #cp-track::before {
+  .cp-track { position: relative; flex: 1; height: 16px; }
+  .cp-track::before {
     content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 3px; transform: translateY(-50%);
     border-radius: 2px; background: var(--surface2);
   }
-  #cp-fill {
+  .cp-fill {
     position: absolute; left: 0; top: 50%; height: 3px; transform: translateY(-50%);
     border-radius: 2px; width: 0%;
     background-repeat: no-repeat; background-position: left center;
   }
-  #cp-now {
+  .cp-now {
     position: absolute; top: 50%; width: 8px; height: 8px; margin-left: -4px;
     border-radius: 50%; background: #fff; transform: translateY(-50%); left: 0%; z-index: 2;
   }
+  /* EXTRA WORK TIME — a second, optional block (e.g. an evening session)
+     sharing the same line as the main day, scaled to its real duration
+     rather than stretching to fill its own row. The unfilled gap between
+     the main block's end and the extra block's start reads as off-time;
+     teal keeps the extra segment visually distinct from yellow/purple. */
+  .cp-fill-extra {
+    position: absolute; top: 50%; height: 3px; transform: translateY(-50%);
+    border-radius: 2px; left: 0%; width: 0%; background: #5fc9c0;
+  }
+  .cp-tick.hide, .cp-fill-extra.hide { display: none; }
+  .cp-tick.extra { border-color: #5fc9c0; }
+  .cp-tick.extra.passed { background: #5fc9c0; }
+  .cp-hour-label.extra { color: #5fc9c0; }
+  .cp-remaining-label.extra { color: #5fc9c0; }
   /* Checkpoint markers: bigger than the plain hour graduations, hollow
      (outline only) until that checkpoint is actually reached, then filled
      solid — a small "done" signal built into the line itself. */
@@ -865,21 +879,21 @@
   #today-summary-count { font-size: 26px; font-weight: 700; color: #4ade80; line-height: 1.1; }
   #today-summary-label { margin-top: 4px; font-size: 11px; color: #4ade80; opacity: 0.85; }
 
-  /* Timer box — just the gauge (ring + countdown), no more draining line
-     across the hero; reset/edit tucked underneath as plain icon buttons. */
+  /* Timer box — neutral chrome, with color reserved for the gauge (ring)
+     itself; reset/edit tucked underneath as plain icon buttons. */
   #today-timer-box {
-    background: rgba(239,107,92,0.1);
-    border: 1px solid rgba(239,107,92,0.3);
+    background: var(--surface2);
+    border: 1px solid var(--border-hover);
   }
   #today-timer-pill {
     display: flex; align-items: center; justify-content: center;
     position: relative; width: 88px; height: 88px;
     padding: 0; border-radius: 50%; cursor: pointer;
-    background: transparent; border: none; color: #ef6b5c;
+    background: transparent; border: none; color: var(--text);
   }
   #today-timer-label {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; color: #ef6b5c;
+    font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text);
   }
   .cp-timer-ring { position: absolute; inset: 0; width: 88px; height: 88px; }
   /* Start/end the ring's draw at the bottom (where the play badge sits)
@@ -897,22 +911,22 @@
     position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%);
     display: flex; align-items: center; justify-content: center;
     width: 28px; height: 28px; border-radius: 50%;
-    background: #ef6b5c; color: #fff;
+    background: var(--text); color: var(--bg);
     box-shadow: 0 2px 6px rgba(0,0,0,0.35);
   }
   #today-timer-badge svg { flex-shrink: 0; }
-  #today-timer-pill:hover #today-timer-badge { background: #f28d80; }
+  #today-timer-pill:hover #today-timer-badge { opacity: 0.85; }
   .today-timer-box-actions { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
 
   /* FOCUS HERO — the one task currently "up" gets the spotlight; the rest
      waits below in a plain queue. "Later" reorders without marking done.
-     Outlined green (not filled) so it reads as "the one in focus" without
-     competing with the actual done/success green used on the Done button. */
+     "On Air" styling: red throughout (matching the timer's tomato accent),
+     everything except the task title itself. */
   #today-hero {
     position: relative;
     padding: 26px 22px; text-align: center;
-    background: linear-gradient(180deg, rgba(74,222,128,0.4), rgba(74,222,128,0.18));
-    border: 1px solid rgba(74,222,128,0.55);
+    background: linear-gradient(180deg, rgba(239,107,92,0.4), rgba(239,107,92,0.18));
+    border: 1px solid rgba(239,107,92,0.55);
     border-radius: var(--radius-lg);
     overflow: hidden;
   }
@@ -920,7 +934,7 @@
   .today-hero-top { position: relative; margin-bottom: 10px; }
   .today-hero-eyebrow {
     font-family: ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.08em;
-    text-transform: uppercase; color: #b285f0; text-align: center;
+    text-transform: uppercase; color: #ef6b5c; text-align: center;
   }
   .today-hero-title { font-size: 30px; font-weight: 700; color: var(--text); margin-bottom: 18px; word-break: break-word; }
   .today-hero-title-input {
@@ -936,9 +950,9 @@
   }
   .today-hero-btn:hover { background: var(--surface2); color: var(--text); }
   .today-hero-btn.done {
-    border-color: #4ade80; color: #4ade80; font-weight: 600;
+    border-color: #ef6b5c; color: #ef6b5c; font-weight: 600;
   }
-  .today-hero-btn.done:hover { background: rgba(74,222,128,0.15); }
+  .today-hero-btn.done:hover { background: rgba(239,107,92,0.15); }
 
   /* Add row — sits right under the "Up next" queue, like the Board's
      "+ New card" input at the bottom of a column, rather than up top as
@@ -1501,6 +1515,19 @@
   #daytimes-start-slider { --thumb-color: #9ca3af; }
   #daytimes-mid-slider { --thumb-color: #fbbf24; }
   #daytimes-end-slider { --thumb-color: #b285f0; }
+  #daytimes-extra-start-slider { --thumb-color: #9ca3af; }
+  #daytimes-extra-end-slider { --thumb-color: #5fc9c0; }
+  .daytimes-divider { height: 0.5px; background: var(--border); margin: 20px 0 2px; }
+  .daytimes-toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 16px; cursor: pointer;
+  }
+  .daytimes-toggle-row label {
+    font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer;
+  }
+  .daytimes-toggle-row input[type="checkbox"] { cursor: pointer; accent-color: #5fc9c0; }
+  #daytimes-extra-fields.hide { display: none; }
+  #daytimes-extra-fields .daytimes-row:first-of-type { margin-top: 14px; }
 
   /* CARD MODAL — horizontal two-column layout: content (cover, title,
      description, checklist) on the left, metadata (status toggles, dates,
@@ -1858,16 +1885,20 @@
       <div id="cp-topbar">
         <div class="cp-row cp-row-checkpoints">
           <span id="today-clock-time">00:00</span>
-          <div id="cp-track">
-            <span id="cp-fill"></span>
-            <span id="cp-now"></span>
+          <div id="cp-track" class="cp-track">
+            <span id="cp-fill" class="cp-fill"></span>
+            <span id="cp-fill-extra" class="cp-fill-extra"></span>
+            <span id="cp-now" class="cp-now"></span>
             <span id="cp-tick-noon" class="cp-tick"></span>
             <span id="cp-tick-pm" class="cp-tick pm"></span>
+            <span id="cp-tick-extra-end" class="cp-tick extra"></span>
             <span class="cp-hour-label noon" id="cp-noon-hour"></span>
             <span class="cp-hour-label pm" id="cp-pm-hour"></span>
+            <span class="cp-hour-label extra" id="cp-extra-end-hour"></span>
             <div class="cp-remaining-wrap" id="cp-remaining-wrap">
               <span class="cp-remaining-label noon" id="cp-noon-remaining"></span>
               <span class="cp-remaining-label pm" id="cp-pm-remaining"></span>
+              <span class="cp-remaining-label extra" id="cp-extra-end-remaining"></span>
             </div>
           </div>
           <button type="button" class="cp-mini-btn" id="today-clock-settings-btn" title="Customize day checkpoints">
@@ -2100,6 +2131,27 @@
         <span class="daytimes-value" id="daytimes-end-value"></span>
       </div>
       <input type="range" class="daytimes-slider" id="daytimes-end-slider" min="0" max="1425" step="15">
+    </div>
+    <div class="daytimes-divider"></div>
+    <div class="daytimes-toggle-row">
+      <label for="daytimes-extra-enabled">Extra work time block</label>
+      <input type="checkbox" id="daytimes-extra-enabled">
+    </div>
+    <div id="daytimes-extra-fields" class="hide">
+      <div class="daytimes-row">
+        <div class="daytimes-row-head">
+          <label>Extra start</label>
+          <span class="daytimes-value" id="daytimes-extra-start-value"></span>
+        </div>
+        <input type="range" class="daytimes-slider" id="daytimes-extra-start-slider" min="0" max="1425" step="15">
+      </div>
+      <div class="daytimes-row">
+        <div class="daytimes-row-head">
+          <label>Extra end</label>
+          <span class="daytimes-value" id="daytimes-extra-end-value"></span>
+        </div>
+        <input type="range" class="daytimes-slider" id="daytimes-extra-end-slider" min="0" max="1440" step="15">
+      </div>
     </div>
     <div class="modal-actions">
       <button type="button" class="tb-btn" id="daytimes-cancel">Cancel</button>
@@ -3254,11 +3306,15 @@
 
   // Fires the chime once per checkpoint per day, the moment each is crossed
   // — not on every 15s render tick after — and resets at midnight.
-  var dayAlarmState = { date: todayStr(), midFired: false, endFired: false };
+  var dayAlarmState = { date: todayStr(), midFired: false, endFired: false, extraStartFired: false, extraEndFired: false };
   function checkDayAlarms(minutesNow) {
-    if (dayAlarmState.date !== todayStr()) dayAlarmState = { date: todayStr(), midFired: false, endFired: false };
+    if (dayAlarmState.date !== todayStr()) dayAlarmState = { date: todayStr(), midFired: false, endFired: false, extraStartFired: false, extraEndFired: false };
     if (!dayAlarmState.midFired && minutesNow >= dayTimes.mid) { dayAlarmState.midFired = true; playChime(); }
     if (!dayAlarmState.endFired && minutesNow >= dayTimes.end) { dayAlarmState.endFired = true; playChime(); }
+    if (dayTimes.extraEnabled) {
+      if (!dayAlarmState.extraStartFired && minutesNow >= dayTimes.extraStart) { dayAlarmState.extraStartFired = true; playChime(); }
+      if (!dayAlarmState.extraEndFired && minutesNow >= dayTimes.extraEnd) { dayAlarmState.extraEndFired = true; playChime(); }
+    }
   }
 
   function loadDayTimes() {
@@ -3266,15 +3322,21 @@
       var raw = localStorage.getItem(DAY_TIMES_KEY);
       if (raw) {
         var t = JSON.parse(raw);
-        if (typeof t.start === 'number' && typeof t.mid === 'number' && typeof t.end === 'number') return t;
+        if (typeof t.start === 'number' && typeof t.mid === 'number' && typeof t.end === 'number') {
+          if (typeof t.extraStart !== 'number') t.extraStart = 20 * 60;
+          if (typeof t.extraEnd !== 'number') t.extraEnd = 24 * 60;
+          if (typeof t.extraEnabled !== 'boolean') t.extraEnabled = false;
+          return t;
+        }
       }
     } catch (e) {}
-    return { start: 9 * 60, mid: 12 * 60, end: 17 * 60 };
+    return { start: 9 * 60, mid: 12 * 60, end: 17 * 60, extraEnabled: false, extraStart: 20 * 60, extraEnd: 24 * 60 };
   }
   var dayTimes = loadDayTimes();
   function saveDayTimes() { localStorage.setItem(DAY_TIMES_KEY, JSON.stringify(dayTimes)); }
 
   function formatTimeMinutes(mins) {
+    mins = ((mins % 1440) + 1440) % 1440;
     var h = Math.floor(mins / 60), m = mins % 60;
     var ap = h >= 12 ? 'pm' : 'am';
     var h12 = h % 12; if (h12 === 0) h12 = 12;
@@ -3283,20 +3345,39 @@
   function updateDayTimeLabels() {
     document.getElementById('cp-noon-hour').textContent = formatTimeMinutes(dayTimes.mid);
     document.getElementById('cp-pm-hour').textContent = formatTimeMinutes(dayTimes.end);
+    document.getElementById('cp-extra-end-hour').textContent = formatTimeMinutes(dayTimes.extraEnd);
+    document.getElementById('cp-tick-extra-end').classList.toggle('hide', !dayTimes.extraEnabled);
+    document.getElementById('cp-extra-end-hour').classList.toggle('hide', !dayTimes.extraEnabled);
+    document.getElementById('cp-extra-end-remaining').classList.toggle('hide', !dayTimes.extraEnabled);
     renderCpGraduations();
   }
 
+  // One shared line, scaled to the real span from day-start to the last
+  // active checkpoint (day-end, or the extra block's end when it's on) —
+  // so each segment's width reflects its actual duration instead of every
+  // block stretching to fill its own row. The unfilled space between the
+  // main block's end and the extra block's start reads as off-time.
+  function unifiedSpanEnd() {
+    return dayTimes.extraEnabled ? dayTimes.extraEnd : dayTimes.end;
+  }
+  function unifiedPct(minutes) {
+    var span = unifiedSpanEnd() - dayTimes.start;
+    if (span <= 0) return 0;
+    return Math.max(0, Math.min(100, (minutes - dayTimes.start) / span * 100));
+  }
+
   // Graduations are quartered *within each checkpoint segment* (start→noon,
-  // noon→end) rather than placed on absolute clock hours — so they're
-  // always proportional to the two checkpoints regardless of how the day
-  // is configured, and the checkpoint circles always land exactly on a
-  // graduation, never floating between two of them. Only depends on the
-  // day-time settings, so it's rebuilt on save, not on every 15s clock tick.
+  // noon→end, and extraStart→extraEnd when enabled) rather than placed on
+  // absolute clock hours — so they're always proportional to the segment
+  // they belong to, and the checkpoint circles always land exactly on a
+  // graduation. Only depends on the day-time settings, so it's rebuilt on
+  // save, not on every 15s clock tick.
   function renderCpGraduations() {
     var track = document.getElementById('cp-track');
     track.querySelectorAll('.cp-grad').forEach(function(el) { el.remove(); });
     addSegmentGraduations(track, dayTimes.start, dayTimes.mid);
     addSegmentGraduations(track, dayTimes.mid, dayTimes.end);
+    if (dayTimes.extraEnabled) addSegmentGraduations(track, dayTimes.extraStart, dayTimes.extraEnd);
   }
   function addSegmentGraduations(track, from, to) {
     var subdivisions = 4;
@@ -3304,27 +3385,25 @@
       var mins = from + (to - from) * (i / subdivisions);
       var el = document.createElement('span');
       el.className = 'cp-grad';
-      el.style.left = clockPct(mins) + '%';
+      el.style.left = unifiedPct(mins) + '%';
       track.insertBefore(el, track.firstChild);
     }
-  }
-
-  function clockPct(minutes) {
-    var span = dayTimes.end - dayTimes.start;
-    if (span <= 0) return 0;
-    return Math.max(0, Math.min(100, (minutes - dayTimes.start) / span * 100));
   }
 
   // DAY TIMES MODAL — three range sliders whose min/max cascade off
   // whichever one was just moved, so start < mid < end can never be broken
   // by dragging, with at least 15 minutes between each pair.
   var daytimesStartSlider, daytimesMidSlider, daytimesEndSlider;
+  var daytimesExtraStartSlider, daytimesExtraEndSlider, daytimesExtraEnabledCheckbox;
 
   function daytimesReadValues() {
     return {
       start: parseInt(daytimesStartSlider.value, 10),
       mid: parseInt(daytimesMidSlider.value, 10),
-      end: parseInt(daytimesEndSlider.value, 10)
+      end: parseInt(daytimesEndSlider.value, 10),
+      extraStart: parseInt(daytimesExtraStartSlider.value, 10),
+      extraEnd: parseInt(daytimesExtraEndSlider.value, 10),
+      extraEnabled: daytimesExtraEnabledCheckbox.checked
     };
   }
 
@@ -3339,36 +3418,56 @@
     } else if (source === 'end') {
       if (v.mid > v.end - 15) { v.mid = v.end - 15; daytimesMidSlider.value = v.mid; }
       if (v.start > v.mid - 15) { v.start = v.mid - 15; daytimesStartSlider.value = v.start; }
+    } else if (source === 'extra-start') {
+      if (v.extraEnd < v.extraStart + 15) { v.extraEnd = v.extraStart + 15; daytimesExtraEndSlider.value = v.extraEnd; }
+    } else if (source === 'extra-end') {
+      if (v.extraStart > v.extraEnd - 15) { v.extraStart = v.extraEnd - 15; daytimesExtraStartSlider.value = v.extraStart; }
     }
     daytimesStartSlider.max = v.mid - 15;
     daytimesMidSlider.min = v.start + 15;
     daytimesMidSlider.max = v.end - 15;
     daytimesEndSlider.min = v.mid + 15;
+    daytimesExtraStartSlider.max = v.extraEnd - 15;
+    daytimesExtraEndSlider.min = v.extraStart + 15;
     document.getElementById('daytimes-start-value').textContent = formatTimeMinutes(v.start);
     document.getElementById('daytimes-mid-value').textContent = formatTimeMinutes(v.mid);
     document.getElementById('daytimes-end-value').textContent = formatTimeMinutes(v.end);
+    document.getElementById('daytimes-extra-start-value').textContent = formatTimeMinutes(v.extraStart);
+    document.getElementById('daytimes-extra-end-value').textContent = formatTimeMinutes(v.extraEnd);
   }
 
   function openDaytimesModal() {
     daytimesStartSlider.min = 0; daytimesStartSlider.max = 1425;
     daytimesMidSlider.min = 0; daytimesMidSlider.max = 1425;
     daytimesEndSlider.min = 0; daytimesEndSlider.max = 1425;
+    daytimesExtraStartSlider.min = 0; daytimesExtraStartSlider.max = 1425;
+    daytimesExtraEndSlider.min = 0; daytimesExtraEndSlider.max = 1440;
     daytimesStartSlider.value = dayTimes.start;
     daytimesMidSlider.value = dayTimes.mid;
     daytimesEndSlider.value = dayTimes.end;
+    daytimesExtraStartSlider.value = dayTimes.extraStart;
+    daytimesExtraEndSlider.value = dayTimes.extraEnd;
+    daytimesExtraEnabledCheckbox.checked = dayTimes.extraEnabled;
+    document.getElementById('daytimes-extra-fields').classList.toggle('hide', !dayTimes.extraEnabled);
     renderDaytimesModal('mid');
     document.getElementById('daytimes-overlay').classList.add('show');
   }
 
   function saveDaytimesModal() {
     var v = daytimesReadValues();
-    dayTimes = { start: v.start, mid: v.mid, end: v.end };
+    dayTimes = { start: v.start, mid: v.mid, end: v.end, extraEnabled: v.extraEnabled, extraStart: v.extraStart, extraEnd: v.extraEnd };
     saveDayTimes();
     // Re-derive fired state against the new targets so a checkpoint that's
     // already in the past doesn't immediately chime, but one still ahead can.
     var now = new Date();
     var minutesNow = now.getHours() * 60 + now.getMinutes();
-    dayAlarmState = { date: todayStr(), midFired: minutesNow >= v.mid, endFired: minutesNow >= v.end };
+    dayAlarmState = {
+      date: todayStr(),
+      midFired: minutesNow >= v.mid,
+      endFired: minutesNow >= v.end,
+      extraStartFired: minutesNow >= v.extraStart,
+      extraEndFired: minutesNow >= v.extraEnd
+    };
     updateDayTimeLabels();
     renderTodayClock();
     document.getElementById('daytimes-overlay').classList.remove('show');
@@ -3378,9 +3477,17 @@
     daytimesStartSlider = document.getElementById('daytimes-start-slider');
     daytimesMidSlider = document.getElementById('daytimes-mid-slider');
     daytimesEndSlider = document.getElementById('daytimes-end-slider');
+    daytimesExtraStartSlider = document.getElementById('daytimes-extra-start-slider');
+    daytimesExtraEndSlider = document.getElementById('daytimes-extra-end-slider');
+    daytimesExtraEnabledCheckbox = document.getElementById('daytimes-extra-enabled');
     daytimesStartSlider.addEventListener('input', function() { renderDaytimesModal('start'); });
     daytimesMidSlider.addEventListener('input', function() { renderDaytimesModal('mid'); });
     daytimesEndSlider.addEventListener('input', function() { renderDaytimesModal('end'); });
+    daytimesExtraStartSlider.addEventListener('input', function() { renderDaytimesModal('extra-start'); });
+    daytimesExtraEndSlider.addEventListener('input', function() { renderDaytimesModal('extra-end'); });
+    daytimesExtraEnabledCheckbox.addEventListener('change', function() {
+      document.getElementById('daytimes-extra-fields').classList.toggle('hide', !this.checked);
+    });
     document.getElementById('today-clock-settings-btn').addEventListener('click', openDaytimesModal);
     document.getElementById('daytimes-save').addEventListener('click', saveDaytimesModal);
     var close = function() { document.getElementById('daytimes-overlay').classList.remove('show'); };
@@ -3403,18 +3510,27 @@
   }
 
   function renderCheckpointLine(minutesNow) {
-    var pct = clockPct(minutesNow);
-    var midPct = clockPct(dayTimes.mid);
-    document.getElementById('cp-now').style.left = pct + '%';
+    var nowPct = unifiedPct(minutesNow);
+    var midPct = unifiedPct(dayTimes.mid);
+    var endPct = unifiedPct(dayTimes.end);
+    document.getElementById('cp-now').style.left = nowPct + '%';
     document.getElementById('cp-tick-noon').style.left = midPct + '%';
+    document.getElementById('cp-tick-pm').style.left = endPct + '%';
     document.getElementById('cp-noon-hour').style.left = midPct + '%';
-    document.getElementById('cp-remaining-wrap').style.left = pct + '%';
+    document.getElementById('cp-pm-hour').style.left = endPct + '%';
+    document.getElementById('cp-remaining-wrap').style.left = nowPct + '%';
 
+    // The main block's fill never extends past day-end, even once "now" has
+    // moved into the gap (or the extra block) — its yellow→purple gradient
+    // is revealed proportionally to the start→end span alone, not the full
+    // unified line, so the colors still land exactly at noon/day-end.
+    var mainNowPct = unifiedPct(Math.min(minutesNow, dayTimes.end));
     var fill = document.getElementById('cp-fill');
-    fill.style.width = pct + '%';
-    if (pct > 0) {
-      fill.style.backgroundImage = 'linear-gradient(to right, #e8cf7c 0%, #e8cf7c ' + midPct + '%, #b285f0 100%)';
-      fill.style.backgroundSize = (100 / pct * 100) + '% 100%';
+    fill.style.width = mainNowPct + '%';
+    if (mainNowPct > 0 && endPct > 0) {
+      var midWithinMain = (dayTimes.mid - dayTimes.start) / (dayTimes.end - dayTimes.start) * 100;
+      fill.style.backgroundImage = 'linear-gradient(to right, #e8cf7c 0%, #e8cf7c ' + midWithinMain + '%, #b285f0 100%)';
+      fill.style.backgroundSize = (endPct / mainNowPct * 100) + '% 100%';
     }
 
     document.getElementById('cp-noon-hour').classList.toggle('hide', minutesNow >= dayTimes.mid);
@@ -3425,6 +3541,27 @@
     document.getElementById('cp-pm-remaining').textContent = fmtRemaining(dayTimes.end - minutesNow);
     document.getElementById('cp-tick-noon').classList.toggle('passed', minutesNow >= dayTimes.mid);
     document.getElementById('cp-tick-pm').classList.toggle('passed', minutesNow >= dayTimes.end);
+
+    if (!dayTimes.extraEnabled) {
+      document.getElementById('cp-fill-extra').style.width = '0%';
+      return;
+    }
+
+    var extraStartPct = unifiedPct(dayTimes.extraStart);
+    var extraEndPct = unifiedPct(dayTimes.extraEnd);
+    var extraNowPct = unifiedPct(Math.max(Math.min(minutesNow, dayTimes.extraEnd), dayTimes.extraStart));
+    var extraFill = document.getElementById('cp-fill-extra');
+    extraFill.style.left = extraStartPct + '%';
+    extraFill.style.width = Math.max(0, extraNowPct - extraStartPct) + '%';
+
+    document.getElementById('cp-tick-extra-end').style.left = extraEndPct + '%';
+    document.getElementById('cp-extra-end-hour').style.left = extraEndPct + '%';
+
+    var extraPassed = minutesNow >= dayTimes.extraEnd;
+    document.getElementById('cp-extra-end-hour').classList.toggle('hide', extraPassed);
+    document.getElementById('cp-extra-end-remaining').classList.toggle('hide', extraPassed);
+    document.getElementById('cp-extra-end-remaining').textContent = fmtRemaining(dayTimes.extraEnd - minutesNow);
+    document.getElementById('cp-tick-extra-end').classList.toggle('passed', extraPassed);
   }
 
   function renderTodayClock() {
