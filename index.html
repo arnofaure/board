@@ -1413,9 +1413,15 @@
   .modal-actions .tb-btn { border: 0.5px solid var(--border-hover); }
   .modal-actions .primary { background: var(--text); color: var(--bg); font-weight: 600; }
   .modal-actions .primary:hover { opacity: 0.85; background: var(--text); }
-  /* COMMAND PALETTE */
-  #palette-overlay { align-items: flex-start; padding-top: 12vh; }
-  #palette-modal { max-width: 560px; padding: 0; overflow: hidden; }
+  /* COMMAND PALETTE — centered like the rest of the modals (not pinned to
+     the top), with a darker backdrop and a stronger border/shadow so it
+     reads as clearly "in front" rather than blending into the page. */
+  #palette-overlay { background: rgba(0,0,0,0.72); backdrop-filter: blur(6px); }
+  #palette-modal {
+    max-width: 620px; padding: 0; overflow: hidden;
+    border-color: var(--border-hover);
+    box-shadow: 0 24px 64px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.04);
+  }
   #palette-input-wrap {
     display: flex;
     align-items: center;
