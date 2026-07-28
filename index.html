@@ -918,6 +918,26 @@
   #today-timer-pill:hover #today-timer-badge { opacity: 0.85; }
   .today-timer-box-actions { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
 
+  /* Timer as a line — Focus mode's alternative to the ring, hidden the
+     rest of the time. Same red as the ring fill, same "drains as time
+     passes" direction. */
+  #today-timer-linebar { display: none; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+  #today-timer-linebar-btn {
+    flex-shrink: 0; width: 30px; height: 30px;
+    background: #ef6b5c; color: #fff; border-radius: 50%;
+  }
+  #today-timer-linebar-btn:hover { opacity: 0.85; }
+  #today-timer-line-track {
+    position: relative; flex: 1; min-width: 0; height: 6px; border-radius: 3px;
+    background: rgba(239,107,92,0.2); overflow: hidden;
+  }
+  #today-timer-line-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: #ef6b5c; }
+  #today-timer-line-label {
+    flex-shrink: 0; min-width: 54px; text-align: right;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 16px; font-weight: 700;
+    font-variant-numeric: tabular-nums; color: var(--text);
+  }
+
   /* FOCUS HERO — the one task currently "up" gets the spotlight; the rest
      waits below in a plain queue. "Later" reorders without marking done.
      "On Air" styling: red throughout (matching the timer's tomato accent),
@@ -937,9 +957,14 @@
     text-transform: uppercase; color: #ef6b5c; text-align: center;
   }
   .today-hero-title { font-size: 30px; font-weight: 700; color: var(--text); margin-bottom: 18px; word-break: break-word; }
+  /* A textarea (not input) so a long standalone task title wraps and grows
+     the hero box, same as the plain-span title on card-linked tasks —
+     height is kept in sync with content via JS on every render/input. */
   .today-hero-title-input {
+    display: block;
     background: transparent; border: none; outline: none; padding: 0;
     font: inherit; color: inherit; text-align: center; width: 100%; cursor: text;
+    word-break: break-word; resize: none; overflow: hidden;
   }
   .today-hero-title-text { cursor: pointer; }
   .today-hero-actions { display: flex; align-items: center; justify-content: center; gap: 8px; }
@@ -953,6 +978,35 @@
     border-color: #ef6b5c; color: #ef6b5c; font-weight: 600;
   }
   .today-hero-btn.done:hover { background: rgba(239,107,92,0.15); }
+  /* FOCUS MODE — strips everything down to three things: the checkpoint
+     timeline, the timer (as a line, not a ring), and the hero task, which
+     grows to the full row width. Up-next, done, done-today, and the
+     tomorrow box all hide; the hero goes more solid/opaque to read as the
+     one thing on screen; #today-main widens so those three take up more
+     of the window. */
+  #today-view.focus-mode #today-todo-list,
+  #today-view.focus-mode #today-done-list,
+  #today-view.focus-mode #today-summary-box,
+  #today-view.focus-mode #today-empty,
+  #today-view.focus-mode #today-tomorrow-box,
+  #today-view.focus-mode #today-add-row {
+    display: none;
+  }
+  #today-view.focus-mode #today-main { max-width: 880px; }
+  #today-view.focus-mode #today-hero-row { flex-direction: column; gap: 16px; }
+  #today-view.focus-mode #today-timer-box {
+    width: 100%; order: 2; flex-direction: row; align-items: center; gap: 16px; padding: 14px 22px;
+  }
+  #today-view.focus-mode #today-hero { order: 1; }
+  #today-view.focus-mode #today-timer-pill { display: none; }
+  #today-view.focus-mode #today-timer-linebar { display: flex; }
+  #today-view.focus-mode .today-timer-box-actions { margin-top: 0; }
+  #today-view.focus-mode #today-hero {
+    padding: 44px 32px;
+    background: linear-gradient(180deg, rgba(239,107,92,0.65), rgba(239,107,92,0.42));
+    border-color: #ef6b5c;
+  }
+  #today-view.focus-mode .today-hero-title { font-size: 40px; }
 
   /* Add row — sits right under the "Up next" queue, like the Board's
      "+ New card" input at the bottom of a column, rather than up top as
@@ -1714,6 +1768,12 @@
         <span class="tb-menu-fontsize-value" id="fontsize-value">100%</span>
       </div>
       <div class="tb-sep-h"></div>
+      <button class="tb-btn" id="menu-focus" title="Strip the Today view down to the timeline, timer, and current task">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+        Focus mode
+        <span class="tb-shortcut">F</span>
+      </button>
+      <div class="tb-sep-h"></div>
       <button class="tb-btn" id="done-list-btn" title="View completed cards in this project">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Done <span id="done-count-badge">0</span>
@@ -1916,6 +1976,11 @@
           <span id="today-timer-label">25:00</span>
           <span id="today-timer-badge"></span>
         </button>
+        <div id="today-timer-linebar">
+          <button type="button" id="today-timer-linebar-btn" class="cp-mini-btn" title="Start timer"></button>
+          <div id="today-timer-line-track"><span id="today-timer-line-fill"></span></div>
+          <span id="today-timer-line-label">25:00</span>
+        </div>
         <div class="today-timer-box-actions">
           <button type="button" class="cp-mini-btn" id="today-clock-custom-reset" title="Reset timer">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 3 6.7"/><polyline points="3 21 3 15 9 15"/></svg>
@@ -3612,6 +3677,15 @@
     label.textContent = formatTimerClock(customTimerRemainingSec);
     badge.innerHTML = customTimerRunning ? svgIcon('pause') : svgIcon('play');
     pill.title = customTimerRunning ? 'Pause timer' : 'Start timer';
+
+    // Focus mode's horizontal line — same state, drawn as a bar instead of
+    // a ring; kept in sync even while hidden so it's correct the instant
+    // focus mode turns on.
+    var lineBtn = document.getElementById('today-timer-linebar-btn');
+    document.getElementById('today-timer-line-fill').style.width = (fraction * 100) + '%';
+    document.getElementById('today-timer-line-label').textContent = formatTimerClock(customTimerRemainingSec);
+    lineBtn.innerHTML = customTimerRunning ? svgIcon('pause') : svgIcon('play');
+    lineBtn.title = customTimerRunning ? 'Pause timer' : 'Start timer';
   }
 
   function stopCustomTimer() {
@@ -3660,9 +3734,11 @@
 
   function initCustomTimer() {
     renderCustomTimer();
-    document.getElementById('today-timer-pill').addEventListener('click', function() {
+    var toggleRun = function() {
       if (customTimerRunning) stopCustomTimer(); else startCustomTimer();
-    });
+    };
+    document.getElementById('today-timer-pill').addEventListener('click', toggleRun);
+    document.getElementById('today-timer-linebar-btn').addEventListener('click', toggleRun);
     document.getElementById('today-clock-custom-reset').addEventListener('click', resetCustomTimer);
     document.getElementById('today-clock-custom-edit').addEventListener('click', editCustomTimer);
   }
@@ -3717,8 +3793,9 @@
       heroEl.classList.remove('hide');
       heroTitleEl.setAttribute('data-card', hero.item.cardId || '');
       heroTitleEl.innerHTML = hero.info.standalone
-        ? '<input class="today-hero-title-input" data-action="rename-standalone" data-item="' + hero.item.id + '" value="' + esc(hero.info.title) + '" placeholder="Untitled task">'
+        ? '<textarea class="today-hero-title-input" data-action="rename-standalone" data-item="' + hero.item.id + '" rows="1" placeholder="Untitled task">' + esc(hero.info.title) + '</textarea>'
         : '<span class="today-hero-title-text">' + esc(hero.info.title || 'Untitled card') + '</span>';
+      if (hero.info.standalone) autoResizeHeroTitle(heroTitleEl.querySelector('.today-hero-title-input'));
     } else {
       heroCurrentItemId = null;
       heroEl.classList.add('hide');
@@ -3790,6 +3867,15 @@
     if (item) { item.title = el.value; save(); }
   }
 
+  // Keeps the hero's standalone-task textarea exactly as tall as its
+  // (possibly wrapped) content, so the whole hero box — and the timer/done
+  // boxes stretched to match it — grow instead of clipping long titles.
+  function autoResizeHeroTitle(el) {
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
   var todayListEls = [document.getElementById('today-todo-list'), document.getElementById('today-done-list')];
   todayListEls.forEach(function(listEl) {
     listEl.addEventListener('click', function(e) {
@@ -3817,11 +3903,14 @@
   });
   var todayHeroTitleEl = document.getElementById('today-hero-title');
   todayHeroTitleEl.addEventListener('click', function(e) {
-    if (e.target.tagName === 'INPUT') return;
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     var cardId = todayHeroTitleEl.getAttribute('data-card');
     if (cardId) openCardModal(cardId);
   });
-  todayHeroTitleEl.addEventListener('input', function(e) { commitStandaloneRename(e.target); });
+  todayHeroTitleEl.addEventListener('input', function(e) {
+    commitStandaloneRename(e.target);
+    if (e.target.classList.contains('today-hero-title-input')) autoResizeHeroTitle(e.target);
+  });
   document.getElementById('today-hero-done').addEventListener('click', function() {
     if (heroCurrentItemId) toggleTodayItemDone(heroCurrentItemId);
   });
@@ -3831,6 +3920,23 @@
   document.getElementById('today-hero-tomorrow').addEventListener('click', function() {
     if (heroCurrentItemId) postponeTodayItem(heroCurrentItemId);
   });
+
+  // ---------- FOCUS MODE (F, or Focus mode in the main menu) ----------
+  // Strips Today down to just the checkpoint line, the timer (as a line,
+  // not a ring), and the hero task — up-next, done, done-today count, and
+  // the tomorrow box all hide, and the hero grows to fill the row. Not
+  // persisted; always starts off on reload.
+  var focusModeOn = false;
+  function setFocusMode(on) {
+    focusModeOn = on;
+    document.getElementById('today-view').classList.toggle('focus-mode', on);
+    // The hero title font-size changes with focus mode; a standalone task's
+    // textarea has its height fixed as an inline style from the last
+    // render, sized for the old font — without this it stays that stale
+    // (too short) height and crops the now-larger text.
+    var titleInput = document.querySelector('#today-hero-title .today-hero-title-input');
+    if (titleInput) autoResizeHeroTitle(titleInput);
+  }
   document.getElementById('today-tomorrow-list').addEventListener('click', function(e) {
     var btn = e.target.closest('[data-action="unpostpone-today"]');
     if (btn) unpostponeTodayItem(btn.getAttribute('data-item'));
@@ -5164,8 +5270,9 @@
     }
   });
 
-  // Shortcuts: M toggles Masonry, D toggles Due date only — ignored while
-  // typing anywhere editable so they don't fire mid-title/description.
+  // Shortcuts: M toggles Masonry, D toggles Due date only, F toggles Today's
+  // Focus mode — ignored while typing anywhere editable so they don't fire
+  // mid-title/description.
   document.addEventListener('keydown', function(e) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     var tag = e.target.tagName;
@@ -5173,6 +5280,7 @@
     var key = e.key.toLowerCase();
     if (key === 'm') document.getElementById('masonry-btn').click();
     else if (key === 'd') document.getElementById('due-only-btn').click();
+    else if (key === 'f' && currentView === 'today') setFocusMode(!focusModeOn);
   });
 
   var importFile = document.getElementById('import-file');
@@ -5205,6 +5313,12 @@
     }
   });
 
+  document.getElementById('menu-focus').addEventListener('click', function() {
+    if (currentView !== 'today') document.getElementById('view-today-btn').click();
+    setFocusMode(!focusModeOn);
+    logoBtn.classList.remove('open');
+    logoDropdown.classList.remove('open');
+  });
   document.getElementById('menu-help').addEventListener('click', function() {
     document.getElementById('help-overlay').classList.add('show');
     logoBtn.classList.remove('open');
