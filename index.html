@@ -264,6 +264,7 @@
   /* MAIN */
   #main { padding: 20px 20px 60px; }
   #board-view.hide, #timeline-view.hide, #ideas-view.hide, #achievements-view.hide { display: none; }
+  .board-only.hide { display: none; }
 
   /* BOARD */
   #board-title-header {
@@ -1707,7 +1708,7 @@
       </div>
     </div>
   </div>
-  <div class="tb-menu">
+  <div class="tb-menu board-only">
     <button id="project-btn" class="tb-btn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       <span id="project-btn-label">Project 1</span>
@@ -1727,15 +1728,15 @@
     <button class="tb-btn view-btn" id="view-timeline-btn" data-view="timeline">Timeline</button>
     <button class="tb-btn view-btn" id="view-ideas-btn" data-view="ideas">Random Ideas</button>
   </div>
-  <button class="tb-btn" id="shuffle-btn" title="Shuffle card colors">
+  <button class="tb-btn board-only" id="shuffle-btn" title="Shuffle card colors">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
     Shuffle colors
   </button>
-  <button class="tb-btn" id="masonry-btn" title="Toggle masonry layout for columns (M)">
+  <button class="tb-btn board-only" id="masonry-btn" title="Toggle masonry layout for columns (M)">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
     Masonry
   </button>
-  <button class="tb-btn" id="due-only-btn" title="Only show cards that have a due date (D)">
+  <button class="tb-btn board-only" id="due-only-btn" title="Only show cards that have a due date (D)">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><circle cx="12" cy="15" r="2.2"/></svg>
     Due date only
   </button>
@@ -3484,6 +3485,7 @@
       document.getElementById('today-view').classList.toggle('hide', currentView !== 'today');
       document.getElementById('ideas-view').classList.toggle('hide', currentView !== 'ideas');
       document.getElementById('achievements-view').classList.toggle('hide', currentView !== 'achievements');
+      document.querySelectorAll('.board-only').forEach(function(el) { el.classList.toggle('hide', currentView !== 'board'); });
       if (currentView === 'today') renderToday();
       if (currentView === 'ideas') renderIdeas();
       if (currentView === 'achievements') renderAchievements();
@@ -3700,6 +3702,8 @@
     document.getElementById('timeline-view').classList.add('hide');
     document.getElementById('today-view').classList.add('hide');
     document.getElementById('ideas-view').classList.add('hide');
+    document.getElementById('achievements-view').classList.add('hide');
+    document.querySelectorAll('.board-only').forEach(function(el) { el.classList.remove('hide'); });
     render();
   }
 
