@@ -51,6 +51,12 @@
     font-size: 13px;
     min-height: 100vh;
   }
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+  #main { flex: 1 0 auto; }
+  #page-footer { flex-shrink: 0; }
 
   button, input, textarea, select { font-family: inherit; }
   body.no-select, body.no-select * {
@@ -326,6 +332,25 @@
     text-align: center;
     margin-bottom: 32px;
   }
+  .title-project-wrap { position: relative; display: inline-block; }
+  .title-project-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    border-radius: var(--radius);
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+    transition: background 0.15s;
+  }
+  .title-project-btn:hover, .title-project-btn.open { background: var(--surface2); }
+  .title-project-btn svg.tb-chevron { color: var(--text-dim); flex-shrink: 0; transition: transform 0.15s; }
+  .title-project-btn.open svg.tb-chevron { transform: rotate(180deg); }
+  .title-project-wrap #project-dropdown { left: 50%; transform: translateX(-50%); }
   #board {
     display: flex;
     align-items: flex-start;
@@ -1699,19 +1724,6 @@
       </div>
     </div>
   </div>
-  <div class="tb-menu board-only">
-    <button id="project-btn" class="tb-btn">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      <span id="project-btn-label">Project 1</span>
-      <svg class="tb-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-    </button>
-    <div class="tb-dropdown" id="project-dropdown">
-      <div class="tb-menu-heading">Projects</div>
-      <div id="project-list"></div>
-      <div class="tb-sep-h"></div>
-      <input id="new-project-input" class="text-input" placeholder="+ New project…">
-    </div>
-  </div>
   <button class="tb-btn" id="view-achievements-btn" title="View your activity history">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.3L22 9.3l-5 4.9 1.2 7-6.2-3.4-6.2 3.4 1.2-7-5-4.9 7.1-1z"/></svg>
     Achievements
@@ -1742,7 +1754,20 @@
 <div id="main">
 
   <div id="board-view">
-    <h1 id="board-title-header"></h1>
+    <h1 id="board-title-header">
+      <span class="title-project-wrap" id="title-project-wrap">
+        <button type="button" id="title-project-btn" class="title-project-btn" title="Switch project">
+          <span id="title-project-label"></span>
+          <svg class="tb-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="tb-dropdown" id="project-dropdown">
+          <div class="tb-menu-heading">Projects</div>
+          <div id="project-list"></div>
+          <div class="tb-sep-h"></div>
+          <input id="new-project-input" class="text-input" placeholder="+ New project…">
+        </div>
+      </span>
+    </h1>
     <div id="collapsed-strip" class="hide"></div>
     <div id="board"></div>
     <div id="board-empty">No columns yet.<br>Add a column below to start building your board.</div>
@@ -2433,9 +2458,9 @@
 
   function renderBoard() {
     var proj = activeProject();
-    var titleHeaderEl = document.getElementById('board-title-header');
-    titleHeaderEl.textContent = proj.name || 'Untitled project';
-    titleHeaderEl.style.color = projectColor(proj);
+    var titleProjectBtn = document.getElementById('title-project-btn');
+    document.getElementById('title-project-label').textContent = proj.name || 'Untitled project';
+    titleProjectBtn.style.color = projectColor(proj);
     var boardEl = document.getElementById('board');
     var emptyEl = document.getElementById('board-empty');
     var columns = proj.columns;
@@ -3699,22 +3724,30 @@
   });
 
   // ---------- PROJECT MENU ----------
-  var projectBtn = document.getElementById('project-btn');
   var projectDropdown = document.getElementById('project-dropdown');
-  projectBtn.addEventListener('click', function(e) {
+  var titleProjectBtn = document.getElementById('title-project-btn');
+
+  function closeProjectMenu() {
+    titleProjectBtn.classList.remove('open');
+    projectDropdown.classList.remove('open');
+  }
+
+  titleProjectBtn.addEventListener('click', function(e) {
     e.stopPropagation();
-    projectBtn.classList.toggle('open');
-    projectDropdown.classList.toggle('open');
+    var wasOpen = titleProjectBtn.classList.contains('open');
+    closeProjectMenu();
+    if (!wasOpen) {
+      titleProjectBtn.classList.add('open');
+      projectDropdown.classList.add('open');
+    }
   });
   document.addEventListener('click', function(e) {
-    if (!projectDropdown.contains(e.target) && e.target !== projectBtn && !projectBtn.contains(e.target)) {
-      projectBtn.classList.remove('open');
-      projectDropdown.classList.remove('open');
+    if (!projectDropdown.contains(e.target) && e.target !== titleProjectBtn && !titleProjectBtn.contains(e.target)) {
+      closeProjectMenu();
     }
   });
 
   function renderProjectMenu() {
-    document.getElementById('project-btn-label').textContent = activeProject().name || 'Untitled project';
     var canDelete = data.projects.length > 1;
     document.getElementById('project-list').innerHTML = data.projects.map(function(p) {
       var isActive = p.id === data.activeProjectId;
@@ -3740,8 +3773,7 @@
       checkDailyArchive(activeProject());
       save();
       render();
-      projectBtn.classList.remove('open');
-      projectDropdown.classList.remove('open');
+      closeProjectMenu();
     } else if (action === 'delete-project') {
       if (data.projects.length <= 1) return;
       var proj = data.projects.find(function(x) { return x.id === pid; });
@@ -3758,7 +3790,9 @@
     if (proj) {
       proj.name = el.value;
       save();
-      document.getElementById('project-btn-label').textContent = activeProject().name || 'Untitled project';
+      if (proj.id === data.activeProjectId) {
+        document.getElementById('title-project-label').textContent = proj.name || 'Untitled project';
+      }
     }
   });
 
@@ -3829,8 +3863,7 @@
     createProject(name);
     inputEl.value = '';
     save(); render();
-    projectBtn.classList.remove('open');
-    projectDropdown.classList.remove('open');
+    closeProjectMenu();
   }
   var newProjectInput = document.getElementById('new-project-input');
   newProjectInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') commitNewProject(this); });
