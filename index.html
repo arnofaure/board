@@ -560,6 +560,7 @@
   textarea.text-input { resize: vertical; min-height: 56px; line-height: 1.5; }
   #card-today-toggle.active-today { color: #fbbf24; border-color: rgba(251,191,36,0.4); background: rgba(251,191,36,0.08); }
   #card-today-toggle.active-today svg circle { fill: currentColor; }
+  #card-tomorrow-toggle.active-tomorrow { color: #7ea8e8; border-color: rgba(126,168,232,0.4); background: rgba(126,168,232,0.08); }
   #card-done-toggle.active-done { color: #4ade80; border-color: rgba(74,222,128,0.4); background: rgba(74,222,128,0.08); }
   #card-focus-toggle.active-focus { color: #b285f0; border-color: rgba(178,133,240,0.4); background: rgba(178,133,240,0.08); }
 
@@ -745,7 +746,7 @@
      controls (reset, start/pause, edit length). Yellow marks noon, purple
      marks 5pm; the timer keeps its own red (tomato) throughout. */
   #cp-topbar {
-    padding: 10px 14px;
+    padding: 32px 14px 30px;
     background: var(--surface);
     border: 1px solid rgba(211,211,211,0.4);
     border-radius: var(--radius-lg);
@@ -796,20 +797,29 @@
   }
   .cp-mini-btn:hover { color: var(--text); background: var(--border-hover); }
 
-  #cp-legend { display: flex; gap: 16px; padding: 8px 14px 0; }
-  .cp-legend-item {
-    display: flex; align-items: center; gap: 6px;
-    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; color: var(--text-dim);
+  /* Hour labels sit directly under their own checkpoint dot (same left%
+     the tick uses), instead of a separate legend row with no positional
+     relationship to the track above it. */
+  .cp-hour-label {
+    position: absolute; top: 100%; margin-top: 8px; transform: translateX(-50%);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; font-weight: 600;
+    white-space: nowrap;
   }
-  .cp-legend-item.hide { display: none; }
-  .cp-legend-item i { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-  .cp-legend-item.noon i { background: #e8cf7c; }
-  .cp-legend-item.pm i { background: #b285f0; }
-  .cp-legend-item .cp-hour { color: var(--text); font-weight: 600; }
-  /* Remaining time takes on its checkpoint's own color, not the default
-     dim grey, so "53m" and "5h 53m" read as clearly noon's vs. 5pm's. */
-  .cp-legend-item.noon .cp-remaining { color: #e8cf7c; }
-  .cp-legend-item.pm .cp-remaining { color: #b285f0; }
+  .cp-hour-label.hide { display: none; }
+  .cp-hour-label.noon { color: #e8cf7c; }
+  .cp-hour-label.pm { left: 100%; color: #b285f0; }
+  /* Remaining time follows the moving "now" dot (one shared wrapper,
+     positioned at the dot's own left%) rather than sitting fixed at the
+     checkpoint's location — it's a countdown from now, so it tracks now. */
+  .cp-remaining-wrap {
+    position: absolute; bottom: 100%; margin-bottom: 8px; left: 0%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 6px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; font-weight: 600;
+    white-space: nowrap;
+  }
+  .cp-remaining-label.hide { display: none; }
+  .cp-remaining-label.noon { color: #e8cf7c; }
+  .cp-remaining-label.pm { color: #b285f0; }
 
   /* Hero + timer gauge (left) + done-today count (right) sit side by
      side, all matching plates, so today's progress and pacing read at
@@ -888,6 +898,11 @@
     text-transform: uppercase; color: #b285f0; text-align: center;
   }
   .today-hero-title { font-size: 30px; font-weight: 700; color: var(--text); margin-bottom: 18px; word-break: break-word; }
+  .today-hero-title-input {
+    background: transparent; border: none; outline: none; padding: 0;
+    font: inherit; color: inherit; text-align: center; width: 100%; cursor: text;
+  }
+  .today-hero-title-text { cursor: pointer; }
   .today-hero-actions { display: flex; align-items: center; justify-content: center; gap: 8px; }
   .today-hero-btn {
     display: flex; align-items: center; gap: 4px; padding: 5px 12px; border-radius: 20px;
@@ -1424,7 +1439,7 @@
     padding: 14px;
   }
   .card-modal-side label:first-of-type { margin-top: 0; }
-  .card-modal-toggles { display: flex; flex-direction: column; gap: 8px; }
+  .card-modal-toggles { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
   .card-modal-toggles .tb-btn { justify-content: center; width: 100%; }
   #card-modal .text-input {
     background: var(--bg);
@@ -1439,6 +1454,7 @@
   .card-cover-pick {
     width: 100%;
     height: 110px;
+    margin-bottom: 14px;
     border-radius: var(--radius);
     border: 0.5px dashed var(--border-hover);
     background: var(--surface2);
@@ -1762,23 +1778,16 @@
             <span id="cp-now"></span>
             <span id="cp-tick-noon" class="cp-tick"></span>
             <span id="cp-tick-pm" class="cp-tick pm"></span>
+            <span class="cp-hour-label noon" id="cp-noon-hour"></span>
+            <span class="cp-hour-label pm" id="cp-pm-hour"></span>
+            <div class="cp-remaining-wrap" id="cp-remaining-wrap">
+              <span class="cp-remaining-label noon" id="cp-noon-remaining"></span>
+              <span class="cp-remaining-label pm" id="cp-pm-remaining"></span>
+            </div>
           </div>
           <button type="button" class="cp-mini-btn" id="today-clock-settings-btn" title="Customize day checkpoints">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           </button>
-        </div>
-        <div id="cp-legend">
-          <span class="cp-legend-item noon" id="cp-legend-noon"><i></i><span class="cp-hour" id="cp-noon-hour"></span><span class="cp-sep">·</span><span class="cp-remaining" id="cp-noon-remaining"></span></span>
-          <span class="cp-legend-item pm" id="cp-legend-pm"><i></i><span class="cp-hour" id="cp-pm-hour"></span><span class="cp-sep">·</span><span class="cp-remaining" id="cp-pm-remaining"></span></span>
-        </div>
-      </div>
-
-      <div id="today-todo-list"></div>
-
-      <div id="today-add-row">
-        <div id="today-search-wrap">
-          <input id="today-combo-input" class="text-input" placeholder="Add a task, or type # to search all boards…" autocomplete="off">
-          <div id="today-search-results"></div>
         </div>
       </div>
 
@@ -1824,6 +1833,15 @@
         <div id="today-summary-count"></div>
         <div id="today-summary-label">done today</div>
       </div>
+      </div>
+
+      <div id="today-todo-list"></div>
+
+      <div id="today-add-row">
+        <div id="today-search-wrap">
+          <input id="today-combo-input" class="text-input" placeholder="Add a task, or type # to search all boards…" autocomplete="off">
+          <div id="today-search-results"></div>
+        </div>
       </div>
 
       <div id="today-done-list"></div>
@@ -2032,6 +2050,10 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.94" y2="5.94"/><line x1="18.06" y1="18.06" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.94" y2="18.06"/><line x1="18.06" y1="5.94" x2="19.78" y2="4.22"/></svg>
             <span id="card-today-toggle-label">Add to Today</span>
           </button>
+          <button type="button" class="tb-btn" id="card-tomorrow-toggle">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 6 19 12 13 18"/><polyline points="6 6 12 12 6 18"/></svg>
+            <span id="card-tomorrow-toggle-label">Add to Tomorrow</span>
+          </button>
           <button type="button" class="tb-btn" id="card-focus-toggle">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
             <span id="card-focus-toggle-label">Focus this card</span>
@@ -2043,6 +2065,9 @@
 
         <label for="card-due-input">Due date</label>
         <input id="card-due-input" class="text-input" type="date">
+
+        <label for="card-project-select">Project</label>
+        <select id="card-project-select" class="text-input"></select>
 
         <label for="card-column-select">Column</label>
         <select id="card-column-select" class="text-input"></select>
@@ -2905,6 +2930,25 @@
     else addCardToToday(cardId);
   }
 
+  function isCardInTomorrow(cardId) {
+    var item = todayItemForCard(cardId);
+    return !!(item && item.postponedTo === tomorrowStr());
+  }
+  function toggleCardTomorrow(cardId) {
+    var item = todayItemForCard(cardId);
+    if (item && item.postponedTo === tomorrowStr()) {
+      item.postponedTo = null;
+      save();
+      render();
+    } else {
+      if (!item) {
+        item = { id: uid(), cardId: cardId };
+        ensureTodayList().items.push(item);
+      }
+      postponeTodayItem(item.id);
+    }
+  }
+
   // Personal tasks whose title mentions a quick "scroll break" read a bit
   // differently in the list (dashed row, amber icon) so they don't blend
   // in with real to-dos — but they behave exactly like any other personal
@@ -3177,6 +3221,8 @@
     var midPct = clockPct(dayTimes.mid);
     document.getElementById('cp-now').style.left = pct + '%';
     document.getElementById('cp-tick-noon').style.left = midPct + '%';
+    document.getElementById('cp-noon-hour').style.left = midPct + '%';
+    document.getElementById('cp-remaining-wrap').style.left = pct + '%';
 
     var fill = document.getElementById('cp-fill');
     fill.style.width = pct + '%';
@@ -3185,8 +3231,10 @@
       fill.style.backgroundSize = (100 / pct * 100) + '% 100%';
     }
 
-    document.querySelector('#cp-legend-noon').classList.toggle('hide', minutesNow >= dayTimes.mid);
-    document.querySelector('#cp-legend-pm').classList.toggle('hide', minutesNow >= dayTimes.end);
+    document.getElementById('cp-noon-hour').classList.toggle('hide', minutesNow >= dayTimes.mid);
+    document.getElementById('cp-pm-hour').classList.toggle('hide', minutesNow >= dayTimes.end);
+    document.getElementById('cp-noon-remaining').classList.toggle('hide', minutesNow >= dayTimes.mid);
+    document.getElementById('cp-pm-remaining').classList.toggle('hide', minutesNow >= dayTimes.end);
     document.getElementById('cp-noon-remaining').textContent = fmtRemaining(dayTimes.mid - minutesNow);
     document.getElementById('cp-pm-remaining').textContent = fmtRemaining(dayTimes.end - minutesNow);
     document.getElementById('cp-tick-noon').classList.toggle('passed', minutesNow >= dayTimes.mid);
@@ -3337,16 +3385,21 @@
     }
 
     var heroEl = document.getElementById('today-hero');
+    var heroTitleEl = document.getElementById('today-hero-title');
     var rest = todo;
     if (todo.length) {
       var hero = todo[0];
       rest = todo.slice(1);
       heroCurrentItemId = hero.item.id;
       heroEl.classList.remove('hide');
-      document.getElementById('today-hero-title').textContent = hero.info.title || 'Untitled task';
+      heroTitleEl.setAttribute('data-card', hero.item.cardId || '');
+      heroTitleEl.innerHTML = hero.info.standalone
+        ? '<input class="today-hero-title-input" data-action="rename-standalone" data-item="' + hero.item.id + '" value="' + esc(hero.info.title) + '" placeholder="Untitled task">'
+        : '<span class="today-hero-title-text">' + esc(hero.info.title || 'Untitled card') + '</span>';
     } else {
       heroCurrentItemId = null;
       heroEl.classList.add('hide');
+      heroTitleEl.innerHTML = '';
     }
 
     document.getElementById('today-todo-list').innerHTML = rest.length
@@ -3407,6 +3460,13 @@
     );
   }
 
+  function commitStandaloneRename(el) {
+    if (el.getAttribute('data-action') !== 'rename-standalone') return;
+    var list = ensureTodayList();
+    var item = list.items.find(function(i) { return i.id === el.getAttribute('data-item'); });
+    if (item) { item.title = el.value; save(); }
+  }
+
   var todayListEls = [document.getElementById('today-todo-list'), document.getElementById('today-done-list')];
   todayListEls.forEach(function(listEl) {
     listEl.addEventListener('click', function(e) {
@@ -3430,14 +3490,15 @@
         if (input) input.focus();
       }
     });
-    listEl.addEventListener('input', function(e) {
-      var el = e.target;
-      if (el.getAttribute('data-action') !== 'rename-standalone') return;
-      var list = ensureTodayList();
-      var item = list.items.find(function(i) { return i.id === el.getAttribute('data-item'); });
-      if (item) { item.title = el.value; save(); }
-    });
+    listEl.addEventListener('input', function(e) { commitStandaloneRename(e.target); });
   });
+  var todayHeroTitleEl = document.getElementById('today-hero-title');
+  todayHeroTitleEl.addEventListener('click', function(e) {
+    if (e.target.tagName === 'INPUT') return;
+    var cardId = todayHeroTitleEl.getAttribute('data-card');
+    if (cardId) openCardModal(cardId);
+  });
+  todayHeroTitleEl.addEventListener('input', function(e) { commitStandaloneRename(e.target); });
   document.getElementById('today-hero-done').addEventListener('click', function() {
     if (heroCurrentItemId) toggleTodayItemDone(heroCurrentItemId);
   });
@@ -4249,6 +4310,7 @@
 
     document.getElementById('card-title-input').value = c.title || '';
     updateCardTodayToggleUI(cardId);
+    updateCardTomorrowToggleUI(cardId);
     updateCardDoneToggleUI(cardId);
     updateCardFocusToggleUI(cardId);
     document.getElementById('card-description-input').value = c.description || '';
@@ -4256,10 +4318,11 @@
     document.getElementById('card-start-input').value = c.start || '';
     document.getElementById('card-due-input').value = c.due || '';
 
-    var select = document.getElementById('card-column-select');
-    select.innerHTML = found.project.columns.map(function(col) {
-      return '<option value="' + col.id + '"' + (col.id === found.column.id ? ' selected' : '') + '>' + esc(col.name) + '</option>';
+    var projectSelect = document.getElementById('card-project-select');
+    projectSelect.innerHTML = data.projects.map(function(p) {
+      return '<option value="' + p.id + '"' + (p.id === found.project.id ? ' selected' : '') + '>' + esc(p.name || 'Untitled project') + '</option>';
     }).join('');
+    populateCardColumnSelect(found.project, found.column.id);
 
     var coverPick = document.getElementById('cover-pick');
     coverPick.classList.toggle('has-cover', !!c.cover);
@@ -4286,6 +4349,13 @@
     }).join('');
   }
 
+  function populateCardColumnSelect(project, selectedColId) {
+    var select = document.getElementById('card-column-select');
+    select.innerHTML = project.columns.map(function(col) {
+      return '<option value="' + col.id + '"' + (col.id === selectedColId ? ' selected' : '') + '>' + esc(col.name) + '</option>';
+    }).join('');
+  }
+
   function currentCard() {
     var found = findCard(editingCardId);
     return found ? found.card : null;
@@ -4304,6 +4374,19 @@
   document.getElementById('card-today-toggle').addEventListener('click', function() {
     if (!editingCardId) return;
     toggleCardInToday(editingCardId);
+    updateCardTodayToggleUI(editingCardId);
+    updateCardTomorrowToggleUI(editingCardId);
+  });
+  function updateCardTomorrowToggleUI(cardId) {
+    var inTomorrow = isCardInTomorrow(cardId);
+    var btn = document.getElementById('card-tomorrow-toggle');
+    btn.classList.toggle('active-tomorrow', inTomorrow);
+    document.getElementById('card-tomorrow-toggle-label').textContent = inTomorrow ? 'Remove from Tomorrow' : 'Add to Tomorrow';
+  }
+  document.getElementById('card-tomorrow-toggle').addEventListener('click', function() {
+    if (!editingCardId) return;
+    toggleCardTomorrow(editingCardId);
+    updateCardTomorrowToggleUI(editingCardId);
     updateCardTodayToggleUI(editingCardId);
   });
   function updateCardDoneToggleUI(cardId) {
@@ -4362,6 +4445,18 @@
     found.column.cards = found.column.cards.filter(function(x) { return x.id !== editingCardId; });
     targetCol.cards.push(found.card);
     save();
+  });
+  document.getElementById('card-project-select').addEventListener('change', function() {
+    var targetProjectId = this.value;
+    var found = findCard(editingCardId); if (!found) return;
+    if (targetProjectId === found.project.id) return;
+    var targetProject = data.projects.find(function(p) { return p.id === targetProjectId; });
+    var targetCol = targetProject && targetProject.columns[0];
+    if (!targetCol) return;
+    found.column.cards = found.column.cards.filter(function(x) { return x.id !== editingCardId; });
+    targetCol.cards.push(found.card);
+    save();
+    populateCardColumnSelect(targetProject, targetCol.id);
   });
 
   document.getElementById('color-swatches').addEventListener('click', function(e) {
