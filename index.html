@@ -41,6 +41,7 @@
     --danger: #e0584a;
     --radius: 6px;
     --radius-lg: 10px;
+    --board-scale: 1;
   }
 
   html, body {
@@ -143,6 +144,57 @@
     padding: 6px 8px;
   }
   .tb-sep-h { height: 0.5px; background: var(--border); margin: 4px 2px; }
+  .tb-menu-fontsize {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 10px;
+  }
+  .tb-menu-fontsize label {
+    font-size: 12px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .tb-menu-fontsize input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface2);
+    outline: none;
+    cursor: pointer;
+  }
+  .tb-menu-fontsize input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--text);
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
+    cursor: pointer;
+  }
+  .tb-menu-fontsize input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--text);
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
+    cursor: pointer;
+  }
+  .tb-menu-fontsize-value {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    width: 3em;
+    flex-shrink: 0;
+    text-align: right;
+  }
 
   .tb-menu-footer {
     display: flex;
@@ -282,8 +334,8 @@
     padding-bottom: 10px;
   }
   .column {
-    flex: 0 0 272px;
-    width: 272px;
+    flex: 0 0 calc(272px * var(--board-scale));
+    width: calc(272px * var(--board-scale));
     background: var(--surface);
     border: 1px solid rgba(211,211,211,0.4);
     border-radius: var(--radius-lg);
@@ -326,7 +378,7 @@
      instead of one long horizontally-scrolling row. Toggled per project. */
   #board.masonry {
     display: block;
-    column-width: 272px;
+    column-width: calc(272px * var(--board-scale));
     column-gap: 14px;
     overflow-x: visible;
   }
@@ -346,7 +398,9 @@
     align-items: center;
     gap: 6px;
     padding: 10px 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.18);
+    background: var(--surface2);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     cursor: grab;
     -webkit-user-select: none;
     user-select: none;
@@ -354,7 +408,7 @@
   .column-header:active { cursor: grabbing; }
   .column-header input.column-name { -webkit-user-select: text; user-select: text; }
   .column-name {
-    font-size: 12.5px;
+    font-size: calc(12.5px * var(--board-scale));
     font-weight: 600;
     color: var(--text);
     background: transparent;
@@ -367,7 +421,7 @@
   }
   .column-name:focus { border-bottom-color: var(--border-hover); }
   .column-count {
-    font-size: 11px;
+    font-size: calc(11px * var(--board-scale));
     color: var(--text-dim);
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
@@ -376,102 +430,104 @@
   .column-body {
     flex: 1;
     overflow-y: auto;
-    padding: 8px;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
     min-height: 40px;
   }
 
+  /* LEDGER HOVER — dense rows instead of colored blocks. One line for a
+     simple card (title + due, in the due-slot's reserved space); a second
+     "row-meta" line only opens up when there's a checklist to show, so a
+     busy card never has to cram everything onto one line. Sizes below are
+     `base * var(--board-scale)` so the menu's text-size slider can grow or
+     shrink the whole board live — widths scale the same way so nothing
+     clips or overlaps as text gets bigger. */
   .card {
     position: relative;
-    background: var(--card-color, var(--surface2));
-    border: 1.5px solid var(--card-color, var(--text-dim));
-    border-left: 3px solid var(--card-color, var(--text-dim));
-    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    gap: calc(3px * var(--board-scale));
+    padding: calc(8px * var(--board-scale)) calc(10px * var(--board-scale));
+    border-bottom: 1px solid rgba(255,255,255,0.05);
     cursor: grab;
-    overflow: hidden;
-    transition: filter 0.15s, transform 0.1s, background 0.15s;
+    transition: background 0.12s, box-shadow 0.12s;
     -webkit-user-select: none;
     user-select: none;
     -webkit-user-drag: element;
   }
-  .card:hover { filter: brightness(1.1); }
-  .card.is-done { background: var(--surface2); }
+  .card:hover { background: rgba(255,255,255,0.05); }
   .card.dragging { opacity: 0.35; pointer-events: none; }
+  .card.is-focus { box-shadow: inset 0 0 0 1.5px var(--card-color, #b285f0); background: rgba(255,255,255,0.03); }
   .drag-ghost {
     position: fixed;
     z-index: 500;
     pointer-events: none;
-    opacity: 0.94;
+    opacity: 0.96;
     box-shadow: 0 14px 32px rgba(0,0,0,0.55);
-    transform: rotate(-1.5deg);
+    background: var(--surface2);
+    border: 1px solid var(--border-hover);
+    border-radius: var(--radius);
+    transform: rotate(-0.8deg);
   }
-  .card-cover {
-    width: 100%;
-    height: 92px;
-    background-size: cover;
-    background-position: center;
-    display: block;
-    -webkit-user-drag: none;
-    pointer-events: none;
-  }
-  /* Right padding reserves room for the corner actions (done-check + today
-     buttons), which float via position:absolute — without it, a long title
-     can run underneath them. */
-  .card-body { padding: 9px 10px; padding-right: 62px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
-  .card.is-done { opacity: 0.55; }
+  .card.is-done { opacity: 0.6; }
   .card.is-done .card-title { color: var(--text-muted); text-decoration: line-through; }
-  /* White text + shadow instead of a solid white pill: stays legible on every
-     card color without the harsher, boxed-in look of an opaque background. */
+
+  .card-row-top { display: flex; align-items: center; justify-content: space-between; gap: calc(8px * var(--board-scale)); height: calc(22px * var(--board-scale)); }
+  .card-title-wrap { display: flex; align-items: center; min-width: 0; flex: 1; }
+  .card-dot { width: calc(7px * var(--board-scale)); height: calc(7px * var(--board-scale)); border-radius: 50%; flex-shrink: 0; margin-right: calc(9px * var(--board-scale)); }
   .card-title {
-    display: inline-block;
-    font-size: 12.5px;
-    font-weight: 700;
-    color: #fff;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.55), 0 0 1px rgba(0,0,0,0.4);
-    line-height: 1.4;
-    word-break: break-word;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+    font-size: calc(13.5px * var(--board-scale)); font-weight: 500; color: var(--text);
   }
-  .card-title.untitled { display: block; color: rgba(255,255,255,0.55); text-shadow: none; font-style: italic; font-weight: 500; }
-  .card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; }
+  .card-title.untitled { color: var(--text-dim); font-style: italic; font-weight: 400; }
+  .card-cover-flag { flex-shrink: 0; margin-left: 6px; color: var(--text-dim); display: flex; }
+
+  .card-due-slot { position: relative; flex-shrink: 0; width: calc(102px * var(--board-scale)); height: calc(22px * var(--board-scale)); }
   .card-due {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 10.5px;
-    padding: 2px 6px;
-    border-radius: 4px;
-    color: var(--text-muted);
-    background: var(--surface);
-    border: 0.5px solid var(--border);
+    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: calc(12px * var(--board-scale)); font-variant-numeric: tabular-nums;
+    display: flex; align-items: center; gap: 3px; white-space: nowrap;
+    opacity: 1; transition: opacity 0.12s;
   }
-  .card-due.overdue { color: #f87171; border-color: rgba(248,113,113,0.35); background: rgba(248,113,113,0.08); }
-  .card-due.today { color: #fbbf24; border-color: rgba(251,191,36,0.35); background: rgba(251,191,36,0.08); }
-  .card-checklist-pct {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
-    padding: 2px 7px;
-    border-radius: 4px;
-    background: #0d0d0d;
-    border: 0.5px solid rgba(255,255,255,0.1);
-    margin-left: auto;
+  .card-due .none { color: var(--text-dim); }
+  .card-due .start { color: var(--text-muted); }
+  .card-due .arrow { color: var(--text-dim); }
+  .card-due .end { color: #d4d5da; }
+  .card-due .end.due-today { color: #fbbf24; }
+  .card-due .end.due-overdue { color: #f87171; }
+  .card-row-actions {
+    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    display: flex; gap: calc(6px * var(--board-scale)); opacity: 0; transition: opacity 0.12s;
   }
-  .card-checklist-pct.complete { color: #4ade80; }
-  .card-checklist-pct svg { flex-shrink: 0; }
-  .card-progress-footer {
-    display: block;
-    height: 5px;
-    width: 100%;
-    background: #0d0d0d;
-    flex-shrink: 0;
+  .card:hover .card-due, .card.drag-open .card-due { opacity: 0; }
+  .card:hover .card-row-actions, .card.drag-open .card-row-actions { opacity: 1; }
+
+  .card-row-meta { display: flex; align-items: center; padding-left: calc(16px * var(--board-scale)); }
+  .card-checklist-badge {
+    display: flex; align-items: center; gap: 4px;
+    font-family: ui-monospace, monospace; font-size: calc(12px * var(--board-scale)); color: var(--text-muted); font-variant-numeric: tabular-nums;
   }
-  .card-progress-footer-fill { display: block; height: 100%; background: var(--card-color, #4ade80); opacity: 0.8; transition: width 0.2s; }
+  .card-checklist-badge svg { flex-shrink: 0; opacity: 0.95; }
+  .card-checklist-badge.complete { color: #4ade80; }
+
+  /* Bright by design — these only ever appear on hover, so a dull default
+     reads as "disabled" rather than "ready to click". */
+  .card-icon-btn {
+    width: calc(21px * var(--board-scale)); height: calc(21px * var(--board-scale)); border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.22); color: #f5f6f8;
+    transition: background 0.12s, color 0.12s;
+  }
+  .card-icon-btn svg { width: calc(11px * var(--board-scale)); height: calc(11px * var(--board-scale)); }
+  .card-icon-btn:hover { background: rgba(255,255,255,0.34); color: #fff; }
+  .card-icon-btn.done.is-done { background: #4ade80; color: #0d0d0d; }
+  .card-icon-btn.done.is-done:hover { background: #6ee8a0; }
+  .card-icon-btn.today.is-active { background: #fbbf24; color: #17140a; }
+  .card-icon-btn.today.is-active:hover { background: #ffce4d; }
+  .card-icon-btn.today.is-active svg circle { fill: currentColor; }
+  .card-icon-btn.focus.is-focus { background: #b285f0; color: #17101f; }
+  .card-icon-btn.focus.is-focus:hover { background: #c7a3f5; }
 
   .column-add {
     padding: 6px 8px 10px;
@@ -511,32 +567,10 @@
   }
   .text-input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   textarea.text-input { resize: vertical; min-height: 56px; line-height: 1.5; }
-  .card-corner-actions {
-    position: absolute;
-    top: 6px; right: 6px;
-    z-index: 4;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .card-corner-actions button {
-    width: 22px; height: 22px;
-    flex-shrink: 0;
-    background: rgba(13,13,13,0.45);
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    color: rgba(255,255,255,0.6);
-    display: flex; align-items: center; justify-content: center;
-    transition: color 0.15s, background 0.15s;
-  }
-  .card-corner-actions button:hover { color: #fff; background: rgba(13,13,13,0.7); }
-  .card-today-btn.active { color: #fbbf24; background: rgba(13,13,13,0.6); }
-  .card-today-btn.active svg circle { fill: currentColor; }
-  .card-done-check.done { background: #4ade80; color: #0d0d0d; }
-  .card-done-check.done:hover { background: #4ade80; color: #0d0d0d; }
   #card-today-toggle.active-today { color: #fbbf24; border-color: rgba(251,191,36,0.4); background: rgba(251,191,36,0.08); }
   #card-today-toggle.active-today svg circle { fill: currentColor; }
+  #card-done-toggle.active-done { color: #4ade80; border-color: rgba(74,222,128,0.4); background: rgba(74,222,128,0.08); }
+  #card-focus-toggle.active-focus { color: #b285f0; border-color: rgba(178,133,240,0.4); background: rgba(178,133,240,0.08); }
 
   #board-empty {
     display: none;
@@ -703,263 +737,109 @@
   }
   #timeline-empty.show { display: block; }
 
-  /* TODAY VIEW */
+  /* TODAY VIEW — Focus Card: a slim checkpoint bar up top, one task shown
+     big at a time (the rest queued below), same dark ledger language as
+     the Board. */
   #today-view.hide { display: none; }
-  #today-layout {
-    display: flex;
-    align-items: flex-start;
-    gap: 24px;
-    max-width: 904px;
-    margin: 0 auto;
-  }
-  #today-main { flex: 1; min-width: 0; }
+  #today-main { max-width: 640px; margin: 0 auto; }
 
-  #today-side-panels {
-    flex: 0 0 160px;
-    width: 160px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    position: sticky;
-    top: 72px;
-  }
-
-  /* CLOCK PANEL — big current time + two ring gauges, one counting down to
-     noon and one to 5pm, so "how much time is left" reads at a glance. */
-  #today-clock-panel {
-    width: 160px;
+  /* CHECKPOINT BAR — current time, a day-line from workday start to end
+     with a tick at the midday checkpoint, and the countdown timer. Yellow
+     is reserved for the timer's own color story? No — the timer is red
+     (tomato), which frees yellow for the noon checkpoint; 5pm is purple. */
+  #cp-topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
     background: var(--surface);
     border: 1px solid rgba(211,211,211,0.4);
     border-radius: var(--radius-lg);
-    padding: 18px 14px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 18px;
-  }
-  /* A normal-flow row above the time, right-aligned — not absolutely
-     positioned over it — so the buttons can never overlap the digits
-     underneath no matter how wide the time text renders. */
-  #today-clock-panel-btns {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
-    align-self: stretch;
-    margin-bottom: -6px;
-  }
-  /* Icon buttons always sit inside a visible circle — never bare/transparent
-     — so they read as clickable at a glance instead of hiding until hover.
-     Comfortable gap + outline-offset keep the focus ring from one button
-     visually colliding with its neighbor. */
-  #today-clock-mode-btn,
-  #today-clock-settings-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    outline-offset: 3px;
-  }
-  #today-clock-settings-btn { background: var(--surface2); color: var(--text-dim); }
-  #today-clock-settings-btn:hover { color: var(--text); background: var(--border-hover); }
-  /* Mode toggle is always accent-colored (like the Timer's play button) —
-     its icon shows the display currently on screen: a partial ring for the
-     gauge view, a "T" for the timeline view — rather than a generic,
-     hard-to-parse symbol. */
-  #today-clock-mode-btn { background: #e8cf7c; color: #2c2205; }
-  #today-clock-mode-btn:hover { background: #dfc167; }
-  .today-clock-mode-icon-pie {
-    display: block;
-    width: 13px;
-    height: 13px;
-    border-radius: 50%;
-    background: conic-gradient(#2c2205 0deg 270deg, rgba(44,34,5,0.3) 270deg 360deg);
-  }
-  .today-clock-mode-icon-t { font-size: 13px; font-weight: 800; line-height: 1; }
-  #today-clock-rings.hide { display: none; }
-
-  /* TIMER — its own box below the clock panel, same visual language (ring
-     gauge, same size) but a freely-settable countdown instead of a fixed
-     checkpoint. */
-  #today-timer-panel {
-    width: 160px;
-    background: var(--surface);
-    border: 1px solid rgba(211,211,211,0.4);
-    border-radius: var(--radius-lg);
-    padding: 18px 14px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
   }
   #today-clock-time {
-    font-size: 30px;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    font-variant-numeric: tabular-nums;
-    color: var(--text);
+    font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums; color: var(--text); flex-shrink: 0;
   }
-  .today-clock-gauge { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-  .today-clock-gauge.hide { display: none; }
-  .today-clock-ring-wrap { position: relative; }
-  .today-clock-ring { transform: rotate(-90deg); }
-  .today-clock-ring-track {
-    fill: none;
-    stroke: var(--surface2);
-    stroke-width: 8;
+  #cp-track { position: relative; flex: 1; height: 16px; }
+  #cp-track::before {
+    content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 3px; transform: translateY(-50%);
+    border-radius: 2px; background: var(--surface2);
   }
-  .today-clock-ring-progress {
-    fill: none;
-    stroke: #fbbf24;
-    stroke-width: 8;
-    stroke-linecap: round;
-    transition: stroke-dashoffset 0.3s;
+  #cp-fill {
+    position: absolute; left: 0; top: 50%; height: 3px; transform: translateY(-50%);
+    border-radius: 2px; width: 0%;
+    background-repeat: no-repeat; background-position: left center;
   }
-  .today-clock-ring-5pm-color { stroke: #b285f0; }
-  .today-clock-ring-center {
-    display: none;
-    position: absolute;
-    inset: 0;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
+  #cp-now {
+    position: absolute; top: 50%; width: 8px; height: 8px; margin-left: -4px;
+    border-radius: 50%; background: #fff; transform: translateY(-50%); left: 0%;
   }
-  .today-clock-ring-center.show { display: flex; }
-  .today-clock-ring-center-noon { color: #fbbf24; }
-  .today-clock-ring-center-5pm { color: #b285f0; }
-  .today-clock-remaining {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--text);
-    text-align: center;
-    font-variant-numeric: tabular-nums;
+  .cp-tick {
+    position: absolute; top: 50%; width: 7px; height: 7px; margin-left: -3.5px;
+    border-radius: 50%; transform: translateY(-50%); border: 1.5px solid var(--surface);
+    background: #e8cf7c; left: 0%;
   }
-  .today-clock-target {
-    font-size: 10.5px;
-    color: var(--text-dim);
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+  .cp-mini-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; flex-shrink: 0;
+    border: none; border-radius: 50%; cursor: pointer;
+    background: var(--surface2); color: var(--text-dim);
   }
+  .cp-mini-btn:hover { color: var(--text); background: var(--border-hover); }
+  #today-timer-pill {
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+    padding: 5px 11px; border-radius: 20px; cursor: pointer;
+    background: rgba(239,107,92,0.14); border: 1px solid rgba(239,107,92,0.3); color: #ef6b5c;
+    font-size: 12.5px; font-variant-numeric: tabular-nums;
+  }
+  #today-timer-pill:hover { background: rgba(239,107,92,0.22); }
+  #today-timer-pill.running { background: rgba(239,107,92,0.22); border-color: rgba(239,107,92,0.45); color: #f28d80; }
+  #today-timer-pill svg { flex-shrink: 0; }
+  .cp-timer-ring { position: relative; width: 14px; height: 14px; }
+  .cp-timer-ring.hide { display: none; }
+  #today-timer-play-icon.hide { display: none; }
+  .cp-timer-ring svg { transform: rotate(-90deg); }
+  .cp-timer-ring-track { fill: none; stroke: rgba(239,107,92,0.25); stroke-width: 2.5; }
+  .cp-timer-ring-fill { fill: none; stroke: #ef6b5c; stroke-width: 2.5; stroke-linecap: round; }
 
-  /* TIMER — same ring style as the clock gauges above, but a freely-settable
-     countdown instead of a fixed checkpoint. Gauge is yellow to match the
-     sticky-note background of the Today task list; the countdown text stays
-     white like the rest of the panel's timing info. */
-  .today-clock-ring-custom-color { stroke: #e8cf7c; }
-  .today-clock-ring-center-custom { color: var(--text); }
-  .today-clock-custom-controls { display: flex; align-items: center; gap: 6px; }
-  .today-clock-custom-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    border: none;
-    border-radius: 50%;
-    background: var(--surface2);
-    color: var(--text-dim);
-    cursor: pointer;
+  #cp-legend { display: flex; gap: 16px; padding: 8px 14px 0; }
+  .cp-legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; color: var(--text-dim);
   }
-  .today-clock-custom-btn:hover { color: var(--text); background: var(--border-hover); }
-  .today-clock-custom-btn.today-clock-custom-play {
-    background: #e8cf7c;
-    color: #2c2205;
-  }
-  .today-clock-custom-btn.today-clock-custom-play:hover { background: #dfc167; color: #2c2205; }
+  .cp-legend-item.hide { display: none; }
+  .cp-legend-item i { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .cp-legend-item.noon i { background: #e8cf7c; }
+  .cp-legend-item.pm i { background: #b285f0; }
+  .cp-legend-item .cp-hour { color: var(--text); font-weight: 600; }
 
-  #today-reward {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px 20px;
-    margin-bottom: 20px;
+  #today-summary {
+    margin-top: 16px; font-size: 12.5px; color: var(--text-muted); text-align: center;
+  }
+  #today-summary.hide { display: none; }
+
+  /* FOCUS HERO — the one task currently "up" gets the spotlight; the rest
+     waits below in a plain queue. "Next" reorders without marking done. */
+  #today-hero {
+    margin-top: 16px; padding: 26px 22px; text-align: center;
+    background: linear-gradient(180deg, rgba(232,207,124,0.08), transparent);
+    border: 1px solid rgba(211,211,211,0.4);
     border-radius: var(--radius-lg);
-    border: 1px solid rgba(74,222,128,0.35);
-    background: rgba(74,222,128,0.08);
   }
-  #today-reward.hide { display: none; }
-  .today-reward-icon { color: #4ade80; flex-shrink: 0; display: flex; }
-  .today-reward-count-row { font-size: 13px; color: var(--text); }
-  #today-reward-count { font-size: 30px; font-weight: 800; color: #4ade80; font-variant-numeric: tabular-nums; }
-  #today-reward-total { font-size: 18px; font-weight: 700; color: var(--text-dim); font-variant-numeric: tabular-nums; }
-  #today-reward-label { font-size: 13px; color: var(--text-muted); }
-  .today-reward-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; font-style: italic; }
+  #today-hero.hide { display: none; }
+  .today-hero-eyebrow {
+    font-family: ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #e8cf7c; margin-bottom: 10px;
+  }
+  .today-hero-title { font-size: 21px; font-weight: 600; color: var(--text); margin-bottom: 18px; word-break: break-word; }
+  .today-hero-actions { display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .today-hero-btn {
+    display: flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 20px;
+    font-size: 12.5px; cursor: pointer; background: var(--surface2); color: var(--text); border: none;
+  }
+  .today-hero-btn:hover { background: var(--border-hover); }
+  .today-hero-btn.done { background: #4ade80; color: #0d0d0d; font-weight: 600; }
+  .today-hero-btn.done:hover { background: #6ee8a0; }
 
-  /* TIMELINE BAR — alternate horizontal display for the day gauge (toggled
-     via #today-clock-mode-btn), spanning start-of-day to end-of-day with a
-     marker at the midday checkpoint and a cursor that advances as the day
-     goes on. Sits where the ring gauges would normally be reflected, but
-     inline in the main column below the reward counter. */
-  /* Top margin reserves room for the "now" time label, which floats above
-     the track — without it, the label overlaps whatever sits above the bar
-     (the reward counter). */
-  #today-timeline-bar { margin-top: 28px; margin-bottom: 20px; }
-  #today-timeline-bar.hide { display: none; }
-  #today-timeline-track {
-    position: relative;
-    height: 8px;
-    border-radius: 4px;
-    background: var(--surface2);
-    margin: 0 6px;
-  }
-  #today-timeline-fill {
-    position: absolute;
-    top: 0; left: 0; bottom: 0;
-    border-radius: 4px;
-    background: linear-gradient(90deg, #fbbf24, #b285f0);
-    width: 0%;
-  }
-  #today-timeline-mid-marker {
-    position: absolute;
-    top: -3px;
-    width: 2px;
-    height: 14px;
-    border-radius: 1px;
-    background: var(--bg);
-    left: 50%;
-  }
-  #today-timeline-cursor {
-    position: absolute;
-    top: -5px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--text);
-    border: 2px solid var(--bg);
-    box-shadow: 0 0 0 1px rgba(0,0,0,0.25);
-    left: 0%;
-    transform: translateX(-50%);
-    transition: left 0.3s;
-  }
-  #today-timeline-labels {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 8px;
-    font-size: 11px;
-    color: var(--text-dim);
-  }
-  #today-timeline-mid-label { color: var(--text-muted); }
-  #today-timeline-now-label {
-    position: absolute;
-    top: -24px;
-    left: 0%;
-    transform: translateX(-50%);
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    transition: left 0.3s;
-  }
-
-  #today-search-wrap { position: relative; margin-bottom: 18px; }
+  #today-search-wrap { position: relative; margin: 20px 0 18px; }
   #today-search-results {
     display: none;
     position: absolute;
@@ -1065,81 +945,6 @@
   }
   #today-empty.show { display: block; }
 
-  /* TODAY VIEW — sticky-note board. Scoped to #today-view .today-row so the
-     reused .today-row class in the Done-cards modal keeps its normal dark look. */
-  #today-view #today-list {
-    background: linear-gradient(180deg, #e8cf7c, #dfc167);
-    border-radius: var(--radius-lg);
-    padding: 16px;
-  }
-  #today-view .today-group-title { color: rgba(50,38,10,0.55); }
-  #today-view .today-row {
-    background: #fdea72;
-    border: none;
-    border-radius: 3px;
-    box-shadow: 0 3px 8px rgba(40,30,0,0.28), 0 1px 0 rgba(255,255,255,0.4) inset;
-    transform: rotate(-0.6deg);
-  }
-  #today-view .today-group .today-row:nth-child(even) { transform: rotate(0.7deg); background: #fbe25e; }
-  #today-view .today-row:hover { border-color: transparent; transform: rotate(0deg) scale(1.01); }
-
-  /* The first not-yet-done task is your current top priority — make it
-     noticeably bigger (taller row, larger text) so it stands out from the rest. */
-  #today-view .today-group:first-child:not(.today-group-done) .today-row:first-child {
-    padding: 16px 14px;
-    transform: rotate(-0.4deg);
-  }
-  #today-view .today-group:first-child:not(.today-group-done) .today-row:first-child:hover { transform: rotate(0deg) scale(1.01); }
-  #today-view .today-group:first-child:not(.today-group-done) .today-row:first-child .today-row-title,
-  #today-view .today-group:first-child:not(.today-group-done) .today-row:first-child .today-row-title-input {
-    font-size: 16px;
-    font-weight: 700;
-  }
-  #today-view .today-group:first-child:not(.today-group-done) .today-row:first-child .checklist-check {
-    width: 19px;
-    height: 19px;
-  }
-  #today-view .today-group:first-child:not(.today-group-done) .today-row:first-child .today-row-color {
-    width: 10px;
-    height: 10px;
-  }
-  /* 2nd and 3rd tasks step down in size after the first — a decrescendo
-     down to the normal size for everything from the 4th task on. */
-  #today-view .today-group:first-child:not(.today-group-done) .today-row:nth-child(2) { padding: 13px 13px; }
-  #today-view .today-group:first-child:not(.today-group-done) .today-row:nth-child(2) .today-row-title,
-  #today-view .today-group:first-child:not(.today-group-done) .today-row:nth-child(2) .today-row-title-input {
-    font-size: 14.5px;
-    font-weight: 700;
-  }
-  #today-view .today-group:first-child:not(.today-group-done) .today-row:nth-child(3) { padding: 11px 12px; }
-  #today-view .today-group:first-child:not(.today-group-done) .today-row:nth-child(3) .today-row-title,
-  #today-view .today-group:first-child:not(.today-group-done) .today-row:nth-child(3) .today-row-title-input {
-    font-size: 13.5px;
-    font-weight: 600;
-  }
-  #today-view .today-row-title,
-  #today-view .today-row-title-input { color: #2c2205; }
-  #today-view .today-row-handle { color: rgba(44,34,5,0.4); }
-  #today-view .today-row-handle:hover { color: rgba(44,34,5,0.7); }
-  #today-view .today-row-tag {
-    background: rgba(0,0,0,0.08);
-    border: none;
-    color: rgba(44,34,5,0.65);
-  }
-  #today-view .today-row.done {
-    background: #cfcfc2;
-    opacity: 0.85;
-    box-shadow: 0 2px 6px rgba(40,30,0,0.18);
-  }
-  #today-view .today-row.done .today-row-title,
-  #today-view .today-row.done .today-row-title-input { color: rgba(44,34,5,0.55); }
-  /* The default checkbox border and DONE badge are tuned for the dark theme
-     (translucent white / green-on-dark) — barely visible on the yellow
-     sticky-note background, so both get high-contrast, ink-toned overrides here. */
-  #today-view .checklist-check { border-color: rgba(44,34,5,0.55); }
-  #today-view .checklist-check.done { background: #2c2205; border-color: #2c2205; color: #fdea72; }
-  #today-view .today-done-badge { background: #2c2205; border-color: #2c2205; color: #fdea72; }
-
   /* Row action buttons (postpone / remove) — always a visible circle,
      same convention as the clock panel's icon buttons, so they read as
      clickable at a glance instead of the old bare/borderless icons. */
@@ -1157,15 +962,14 @@
     color: var(--text-dim);
   }
   .today-row-action-btn:hover { background: var(--border-hover); color: var(--text); }
-  #today-view .today-row-action-btn { background: rgba(44,34,5,0.08); color: rgba(44,34,5,0.55); }
-  #today-view .today-row-action-btn:hover { background: rgba(44,34,5,0.16); color: rgba(44,34,5,0.85); }
 
   /* TOMORROW BOX — items postponed off today's list, sitting below it in
-     their own orange sticky-note so they read as "queued for tomorrow"
-     rather than mixed in with today's active tasks. */
+     its own dark plate so they read as "queued for tomorrow" rather than
+     mixed in with today's active tasks. */
   #today-tomorrow-box {
     margin-top: 14px;
-    background: linear-gradient(180deg, #f0a860, #dd8636);
+    background: var(--surface2);
+    border: 1px solid rgba(211,211,211,0.25);
     border-radius: var(--radius-lg);
     padding: 14px 16px;
   }
@@ -1175,7 +979,7 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: rgba(50,25,5,0.6);
+    color: var(--text-dim);
     margin-bottom: 10px;
   }
   #today-tomorrow-list { display: flex; flex-direction: column; gap: 6px; }
@@ -1184,14 +988,14 @@
     align-items: center;
     gap: 10px;
     padding: 8px 10px;
-    background: rgba(255,255,255,0.2);
+    background: var(--surface);
     border-radius: 6px;
   }
   .today-tomorrow-row-title {
     flex: 1;
     min-width: 0;
     font-size: 12.5px;
-    color: #2c1505;
+    color: var(--text);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1199,7 +1003,9 @@
 
   /* RANDOM IDEAS VIEW */
   #ideas-main { max-width: 720px; margin: 0 auto; }
-  #idea-add-input { margin-bottom: 18px; }
+  #idea-add-row { display: flex; gap: 8px; margin-bottom: 18px; }
+  #idea-add-row #idea-add-input { margin-bottom: 0; flex: 1; }
+  #idea-review-btn { white-space: nowrap; flex-shrink: 0; }
   #idea-tag-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
   #idea-tag-filter:empty { margin-bottom: 0; }
   .idea-tag-filter-btn {
@@ -1397,6 +1203,28 @@
   }
   #help-modal ol strong { color: var(--text); }
   .entries-modal-list { max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+
+  #idea-review-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+  .idea-review-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--surface2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .idea-review-text { font-size: 13px; color: var(--text); }
+  .idea-review-desc { margin-top: 3px; font-size: 11.5px; color: var(--text-muted); }
+  .idea-review-actions { display: flex; align-items: center; gap: 6px; }
+  .idea-review-actions select { flex: 1; min-width: 0; }
+  .idea-review-actions button {
+    background: none; border: 0.5px solid var(--border); cursor: pointer; color: var(--text-dim);
+    padding: 5px; display: flex; border-radius: 4px; flex-shrink: 0;
+  }
+  .idea-review-actions button:hover { color: var(--text); background: var(--surface); border-color: var(--border-hover); }
+  #idea-review-empty { text-align: center; color: var(--text-dim); font-size: 12.5px; padding: 20px 0; }
+  #idea-review-empty.hide { display: none; }
   .modal-close {
     position: absolute;
     top: 10px; right: 10px;
@@ -1465,8 +1293,35 @@
   #daytimes-mid-slider { --thumb-color: #fbbf24; }
   #daytimes-end-slider { --thumb-color: #b285f0; }
 
-  /* CARD MODAL */
-  #card-modal { max-width: 420px; }
+  /* CARD MODAL — horizontal two-column layout: content (cover, title,
+     description, checklist) on the left, metadata (status toggles, dates,
+     column, color) in a visually distinct sidebar on the right. The
+     sidebar's darker plate + brighter field borders are what give the
+     modal more contrast than a flat single column of transparent inputs. */
+  #card-modal { max-width: 680px; }
+  .card-modal-grid { display: flex; gap: 24px; align-items: flex-start; }
+  .card-modal-main { flex: 1.3; min-width: 0; }
+  .card-modal-side {
+    flex: 1;
+    min-width: 220px;
+    background: var(--surface2);
+    border: 0.5px solid var(--border-hover);
+    border-radius: var(--radius);
+    padding: 14px;
+  }
+  .card-modal-side label:first-of-type { margin-top: 0; }
+  .card-modal-toggles { display: flex; flex-direction: column; gap: 8px; }
+  .card-modal-toggles .tb-btn { justify-content: center; width: 100%; }
+  #card-modal .text-input {
+    background: var(--bg);
+    border-color: var(--border-hover);
+  }
+  #card-modal .text-input:hover, #card-modal .text-input:focus { border-color: rgba(255,255,255,0.32); }
+  #card-modal label { color: var(--text-muted); font-weight: 600; }
+  @media (max-width: 560px) {
+    .card-modal-grid { flex-direction: column; }
+    .card-modal-side { width: 100%; }
+  }
   .card-cover-pick {
     width: 100%;
     height: 110px;
@@ -1616,6 +1471,12 @@
     </button>
     <div class="tb-dropdown" id="logo-dropdown">
       <div class="tb-menu-heading">Board</div>
+      <div class="tb-menu-fontsize">
+        <label for="fontsize-slider">Text size</label>
+        <input type="range" id="fontsize-slider" min="85" max="160" step="5" value="100">
+        <span class="tb-menu-fontsize-value" id="fontsize-value">100%</span>
+      </div>
+      <div class="tb-sep-h"></div>
       <button class="tb-btn" id="done-list-btn" title="View completed cards in this project">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         Done <span id="done-count-badge">0</span>
@@ -1773,85 +1634,51 @@
   </div>
 
   <div id="today-view" class="hide">
-    <div id="today-layout">
-      <div id="today-side-panels">
-      <div id="today-clock-panel">
-        <div id="today-clock-panel-btns">
-          <button type="button" id="today-clock-mode-btn" title="Switch to horizontal timeline view"></button>
-          <button type="button" id="today-clock-settings-btn" title="Customize day checkpoints">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-          </button>
+    <div id="today-main">
+
+      <div id="cp-topbar">
+        <span id="today-clock-time">00:00</span>
+        <div id="cp-track">
+          <span id="cp-fill"></span>
+          <span id="cp-now"></span>
+          <span id="cp-tick-noon" class="cp-tick"></span>
         </div>
-        <div id="today-clock-time">00:00</div>
-        <div id="today-clock-rings">
-        <div class="today-clock-gauge" id="today-clock-gauge-noon">
-          <div class="today-clock-ring-wrap">
-            <svg class="today-clock-ring" width="120" height="120" viewBox="0 0 120 120">
-              <circle class="today-clock-ring-track" cx="60" cy="60" r="52"/>
-              <circle class="today-clock-ring-progress today-clock-ring-noon-color" id="today-clock-ring-noon" cx="60" cy="60" r="52"/>
-            </svg>
-            <div class="today-clock-ring-center today-clock-ring-center-noon" id="today-clock-center-noon"></div>
-          </div>
-          <div class="today-clock-remaining" id="today-clock-remaining-noon"></div>
-          <div class="today-clock-target">until noon</div>
-        </div>
-        <div class="today-clock-gauge" id="today-clock-gauge-5pm">
-          <div class="today-clock-ring-wrap">
-            <svg class="today-clock-ring" width="120" height="120" viewBox="0 0 120 120">
-              <circle class="today-clock-ring-track" cx="60" cy="60" r="52"/>
-              <circle class="today-clock-ring-progress today-clock-ring-5pm-color" id="today-clock-ring-5pm" cx="60" cy="60" r="52"/>
-            </svg>
-            <div class="today-clock-ring-center today-clock-ring-center-5pm" id="today-clock-center-5pm"></div>
-          </div>
-          <div class="today-clock-remaining" id="today-clock-remaining-5pm"></div>
-          <div class="today-clock-target">until 5pm</div>
-        </div>
-        </div>
+        <button type="button" class="cp-mini-btn" id="today-clock-custom-reset" title="Reset timer">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 3 6.7"/><polyline points="3 21 3 15 9 15"/></svg>
+        </button>
+        <button type="button" id="today-timer-pill" title="Start timer">
+          <span class="cp-timer-ring hide" id="today-timer-ring">
+            <svg width="16" height="16" viewBox="0 0 16 16"><circle class="cp-timer-ring-track" cx="8" cy="8" r="6.5"/><circle class="cp-timer-ring-fill" id="today-timer-ring-fill" cx="8" cy="8" r="6.5"/></svg>
+          </span>
+          <svg id="today-timer-play-icon" width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+          <span id="today-timer-label">25:00</span>
+        </button>
+        <button type="button" class="cp-mini-btn" id="today-clock-custom-edit" title="Set timer length">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </button>
+        <button type="button" class="cp-mini-btn" id="today-clock-settings-btn" title="Customize day checkpoints">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
       </div>
-      <div id="today-timer-panel">
-        <div class="today-clock-target">Timer</div>
-        <div class="today-clock-ring-wrap">
-          <svg class="today-clock-ring" width="120" height="120" viewBox="0 0 120 120">
-            <circle class="today-clock-ring-track" cx="60" cy="60" r="52"/>
-            <circle class="today-clock-ring-progress today-clock-ring-custom-color" id="today-clock-ring-custom" cx="60" cy="60" r="52"/>
-          </svg>
-          <div class="today-clock-ring-center today-clock-ring-center-custom show" id="today-clock-center-custom">25:00</div>
-        </div>
-        <div class="today-clock-custom-controls">
-          <button type="button" class="today-clock-custom-btn" id="today-clock-custom-reset" title="Reset timer">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 3 6.7"/><polyline points="3 21 3 15 9 15"/></svg>
-          </button>
-          <button type="button" class="today-clock-custom-btn today-clock-custom-play" id="today-clock-custom-toggle" title="Start timer">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"/></svg>
-          </button>
-          <button type="button" class="today-clock-custom-btn" id="today-clock-custom-edit" title="Set timer length">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-          </button>
-        </div>
-      </div>
-      </div>
-      <div id="today-main">
-      <div id="today-reward" class="hide">
-        <span class="today-reward-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4a2 2 0 0 0 0 4h1.5"/><path d="M17 5h3a2 2 0 0 1 0 4h-1.5"/></svg>
-        </span>
-        <div>
-          <div class="today-reward-count-row"><span id="today-reward-count">0</span><span id="today-reward-total">/0</span> <span id="today-reward-label">cards done today</span></div>
-          <div id="today-reward-sub" class="today-reward-sub"></div>
-        </div>
+      <div id="cp-legend">
+        <span class="cp-legend-item noon" id="cp-legend-noon"><i></i><span class="cp-hour" id="cp-noon-hour"></span><span class="cp-sep">·</span><span id="cp-noon-remaining"></span></span>
+        <span class="cp-legend-item pm" id="cp-legend-pm"><i></i><span class="cp-hour" id="cp-pm-hour"></span><span class="cp-sep">·</span><span id="cp-pm-remaining"></span></span>
       </div>
 
-      <div id="today-timeline-bar" class="hide">
-        <div id="today-timeline-track">
-          <div id="today-timeline-fill"></div>
-          <div id="today-timeline-mid-marker"></div>
-          <div id="today-timeline-now-label"></div>
-          <div id="today-timeline-cursor"></div>
-        </div>
-        <div id="today-timeline-labels">
-          <span id="today-timeline-start-label"></span>
-          <span id="today-timeline-mid-label"></span>
-          <span id="today-timeline-end-label"></span>
+      <div id="today-summary" class="hide"></div>
+
+      <div id="today-hero" class="hide">
+        <div class="today-hero-eyebrow">Up now</div>
+        <div id="today-hero-title" class="today-hero-title"></div>
+        <div class="today-hero-actions">
+          <button type="button" id="today-hero-done" class="today-hero-btn done">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Done
+          </button>
+          <button type="button" id="today-hero-next" class="today-hero-btn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+            Next
+          </button>
         </div>
       </div>
 
@@ -1868,13 +1695,18 @@
         <div id="today-tomorrow-box-title">Tomorrow · <span id="today-tomorrow-count">0</span></div>
         <div id="today-tomorrow-list"></div>
       </div>
-      </div>
     </div>
   </div>
 
   <div id="ideas-view" class="hide">
     <div id="ideas-main">
-      <input id="idea-add-input" class="text-input" placeholder="+ Drop an idea…" autocomplete="off">
+      <div id="idea-add-row">
+        <input id="idea-add-input" class="text-input" placeholder="+ Drop an idea…" autocomplete="off">
+        <button type="button" class="tb-btn" id="idea-review-btn" title="Pop up a few random ideas to review">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.3L22 9.3l-5 4.9 1.2 7-6.2-3.4-6.2 3.4 1.2-7-5-4.9 7.1-1z"/></svg>
+          Review some ideas
+        </button>
+      </div>
       <div id="idea-tag-filter"></div>
       <div id="idea-list"></div>
       <div id="idea-empty">No ideas yet.<br>Jot anything down here, then send it to your active board whenever you're ready to work on it.</div>
@@ -1966,6 +1798,18 @@
   </div>
 </div>
 
+<!-- IDEA REVIEW MODAL -->
+<div class="modal-overlay" id="idea-review-overlay">
+  <div class="modal" style="max-width:440px;">
+    <button class="modal-close" id="idea-review-close">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h2>A few old ideas</h2>
+    <div id="idea-review-list"></div>
+    <div id="idea-review-empty" class="hide">No ideas left to review.</div>
+  </div>
+</div>
+
 <!-- DAY TIMES MODAL -->
 <div class="modal-overlay" id="daytimes-overlay">
   <div class="modal" id="daytimes-modal" style="max-width:340px;">
@@ -2009,44 +1853,60 @@
     </button>
     <h2>Card</h2>
 
-    <div class="card-cover-pick" id="cover-pick">
-      <span class="cover-hint">Click to add a cover image</span>
-      <button class="cover-change" id="cover-change" title="Replace cover image">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      </button>
-      <button class="cover-remove" id="cover-remove" title="Remove cover">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+    <div class="card-modal-grid">
+      <div class="card-modal-main">
+        <div class="card-cover-pick" id="cover-pick">
+          <span class="cover-hint">Click to add a cover image</span>
+          <button class="cover-change" id="cover-change" title="Replace cover image">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </button>
+          <button class="cover-remove" id="cover-remove" title="Remove cover">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <input type="file" id="cover-file" accept="image/*" style="display:none">
+
+        <label for="card-title-input">Title</label>
+        <input id="card-title-input" class="text-input" placeholder="Card title">
+
+        <label for="card-description-input">Description</label>
+        <textarea id="card-description-input" class="text-input" rows="4" placeholder="Add a description…"></textarea>
+        <div class="desc-links" id="card-description-links"></div>
+
+        <label>Checklist</label>
+        <div class="checklist-list" id="checklist-list"></div>
+        <input id="checklist-add-input" class="text-input" placeholder="+ Add checklist item…">
+      </div>
+
+      <div class="card-modal-side">
+        <div class="card-modal-toggles">
+          <button type="button" class="tb-btn" id="card-done-toggle">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span id="card-done-toggle-label">Mark as done</span>
+          </button>
+          <button type="button" class="tb-btn" id="card-today-toggle">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.94" y2="5.94"/><line x1="18.06" y1="18.06" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.94" y2="18.06"/><line x1="18.06" y1="5.94" x2="19.78" y2="4.22"/></svg>
+            <span id="card-today-toggle-label">Add to Today</span>
+          </button>
+          <button type="button" class="tb-btn" id="card-focus-toggle">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
+            <span id="card-focus-toggle-label">Focus this card</span>
+          </button>
+        </div>
+
+        <label for="card-start-input">Start date</label>
+        <input id="card-start-input" class="text-input" type="date">
+
+        <label for="card-due-input">Due date</label>
+        <input id="card-due-input" class="text-input" type="date">
+
+        <label for="card-column-select">Column</label>
+        <select id="card-column-select" class="text-input"></select>
+
+        <label>Color</label>
+        <div class="color-swatches" id="color-swatches"></div>
+      </div>
     </div>
-    <input type="file" id="cover-file" accept="image/*" style="display:none">
-
-    <label for="card-title-input">Title</label>
-    <input id="card-title-input" class="text-input" placeholder="Card title">
-
-    <button type="button" class="tb-btn" id="card-today-toggle" style="margin-top:10px;width:100%;justify-content:center;">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.94" y2="5.94"/><line x1="18.06" y1="18.06" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.94" y2="18.06"/><line x1="18.06" y1="5.94" x2="19.78" y2="4.22"/></svg>
-      <span id="card-today-toggle-label">Add to Today</span>
-    </button>
-
-    <label for="card-description-input">Description</label>
-    <textarea id="card-description-input" class="text-input" rows="3" placeholder="Add a description…"></textarea>
-    <div class="desc-links" id="card-description-links"></div>
-
-    <label for="card-start-input">Start date</label>
-    <input id="card-start-input" class="text-input" type="date">
-
-    <label for="card-due-input">Due date</label>
-    <input id="card-due-input" class="text-input" type="date">
-
-    <label for="card-column-select">Column</label>
-    <select id="card-column-select" class="text-input"></select>
-
-    <label>Color</label>
-    <div class="color-swatches" id="color-swatches"></div>
-
-    <label>Checklist</label>
-    <div class="checklist-list" id="checklist-list"></div>
-    <input id="checklist-add-input" class="text-input" placeholder="+ Add checklist item…">
 
     <div class="modal-actions">
       <button class="tb-btn danger" id="card-delete">Delete card</button>
@@ -2137,7 +1997,9 @@
       projects: [{ id: pid, name: 'Project 1', columns: defaultColumns(), lastShuffleDate: todayStr(), lastArchiveDate: todayStr(), archive: [] }],
       activeProjectId: pid,
       ideas: [],
-      history: []
+      history: [],
+      lastIdeaPromptDate: todayStr(),
+      fontScale: 1
     };
   }
 
@@ -2173,6 +2035,7 @@
           if (c.description === undefined) c.description = '';
           if (c.done === undefined) c.done = false;
           if (c.doneAt === undefined) c.doneAt = null;
+          if (c.focus === undefined) c.focus = false;
         });
       });
     });
@@ -2192,6 +2055,8 @@
     });
     if (!d.ideas) d.ideas = [];
     if (!d.history) d.history = [];
+    if (!d.lastIdeaPromptDate) d.lastIdeaPromptDate = todayStr();
+    if (!d.fontScale) d.fontScale = 1;
     d.ideas.forEach(function(i) {
       if (!i.id) i.id = uid();
       if (i.text === undefined) i.text = '';
@@ -2213,6 +2078,7 @@
   }
 
   var data = load();
+  document.documentElement.style.setProperty('--board-scale', String(data.fontScale));
   function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
 
   function activeProject() {
@@ -2281,6 +2147,14 @@
         doneCol.cards.push(c);
       }
     }
+    save();
+    render();
+  }
+
+  function toggleCardFocus(cardId) {
+    var found = findCard(cardId);
+    if (!found) return;
+    found.card.focus = !found.card.focus;
     save();
     render();
   }
@@ -2457,35 +2331,53 @@
     );
   }
 
+  // The due-slot always shows *something* (a date, a range, or a dash) so it
+  // reserves the same width the hover-revealed done/today buttons need —
+  // that's what lets them swap in without any layout shift.
+  function renderDueSlot(c) {
+    var status = dueStatus(c.due);
+    var endCls = 'end' + (status === 'overdue' ? ' due-overdue' : status === 'today' ? ' due-today' : '');
+    if (c.start && c.due) {
+      return '<span class="start">' + esc(formatDue(c.start)) + '</span><span class="arrow">→</span><span class="' + endCls + '">' + esc(formatDue(c.due)) + '</span>';
+    }
+    if (c.due) return '<span class="' + endCls + '">' + esc(formatDue(c.due)) + '</span>';
+    if (c.start) return '<span class="end">' + esc(formatDue(c.start)) + '</span>';
+    return '<span class="none">—</span>';
+  }
+
   function renderCard(c) {
-    var coverHtml = c.cover ? '<span class="card-cover" style="background-image:url(' + c.cover + ')"></span>' : '';
     var titleCls = c.title ? 'card-title' : 'card-title untitled';
     var titleTxt = c.title ? esc(c.title) : 'Untitled card';
-    var metaBits = '';
-    if (c.due || c.start) {
-      var status = dueStatus(c.due);
-      metaBits += '<span class="card-due' + (status === 'overdue' ? ' overdue' : status === 'today' ? ' today' : '') + '">' + formatDateRange(c.start, c.due) + '</span>';
-    }
+    var coverFlag = c.cover ? '<span class="card-cover-flag" title="Has a cover image">' + svgIcon('image') + '</span>' : '';
     var pct = checklistPct(c);
-    if (pct) {
-      metaBits += '<span class="card-checklist-pct' + (pct.pct === 100 ? ' complete' : '') + '">' + svgIcon('checklist') + pct.done + '/' + pct.total + '</span>';
-    }
     var inToday = !!todayItemForCard(c.id);
-    var cornerActionsHtml =
-      '<div class="card-corner-actions">' +
-        '<button type="button" class="card-done-check' + (c.done ? ' done' : '') + '" data-action="toggle-card-done" data-card="' + c.id + '" title="' + (c.done ? 'Mark as not done' : 'Mark as done') + '">' + (c.done ? svgIcon('check') : '') + '</button>' +
-        '<button type="button" class="card-today-btn' + (inToday ? ' active' : '') + '" data-action="toggle-today-from-card" data-card="' + c.id + '" title="' + (inToday ? 'Remove from Today' : 'Add to Today') + '">' + svgIcon('sun') + '</button>' +
-      '</div>';
-    var footerHtml = pct ? '<span class="card-progress-footer"><span class="card-progress-footer-fill" style="width:' + pct.pct + '%"></span></span>' : '';
-    return (
-      '<div class="card' + (c.done ? ' is-done' : '') + '" data-card-id="' + c.id + '" style="--card-color:' + c.color + ';">' +
-        coverHtml +
-        cornerActionsHtml +
-        '<div class="card-body">' +
-          '<div class="' + titleCls + '">' + titleTxt + '</div>' +
-          (metaBits ? '<div class="card-meta">' + metaBits + '</div>' : '') +
+
+    var rowTop =
+      '<div class="card-row-top">' +
+        '<div class="card-title-wrap">' +
+          '<span class="card-dot" style="background:' + c.color + ';"></span>' +
+          '<span class="' + titleCls + '">' + titleTxt + '</span>' +
+          coverFlag +
         '</div>' +
-        footerHtml +
+        '<div class="card-due-slot">' +
+          '<span class="card-due">' + renderDueSlot(c) + '</span>' +
+          '<div class="card-row-actions">' +
+            '<button type="button" class="card-icon-btn done' + (c.done ? ' is-done' : '') + '" data-action="toggle-card-done" data-card="' + c.id + '" title="' + (c.done ? 'Mark as not done' : 'Mark as done') + '">' + svgIcon('check') + '</button>' +
+            '<button type="button" class="card-icon-btn today' + (inToday ? ' is-active' : '') + '" data-action="toggle-today-from-card" data-card="' + c.id + '" title="' + (inToday ? 'Remove from Today' : 'Add to Today') + '">' + svgIcon('sun') + '</button>' +
+            '<button type="button" class="card-icon-btn focus' + (c.focus ? ' is-focus' : '') + '" data-action="toggle-card-focus" data-card="' + c.id + '" title="' + (c.focus ? 'Remove focus' : 'Focus this card') + '">' + svgIcon('target') + '</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    // Second line only when there's a checklist — a lone due date (or none)
+    // already fits on the title line, so it never opens one.
+    var rowMeta = pct
+      ? '<div class="card-row-meta"><span class="card-checklist-badge' + (pct.pct === 100 ? ' complete' : '') + '">' + svgIcon('checklist') + pct.done + '/' + pct.total + '</span></div>'
+      : '';
+
+    return (
+      '<div class="card' + (c.done ? ' is-done' : '') + (c.focus ? ' is-focus' : '') + '" data-card-id="' + c.id + '" style="--card-color:' + c.color + ';">' +
+        rowTop + rowMeta +
       '</div>'
     );
   }
@@ -2507,7 +2399,9 @@
       expand: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>',
       play: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"/></svg>',
       pause: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg>',
-      reset: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 3 6.7"/><polyline points="3 21 3 15 9 15"/></svg>'
+      reset: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 3 6.7"/><polyline points="3 21 3 15 9 15"/></svg>',
+      image: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
+      target: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>'
     };
     return icons[name] || '';
   }
@@ -2934,13 +2828,10 @@
     return 'Nice work today.';
   }
 
-  // ---------- CLOCK PANEL ----------
-  // Two independent gauges, each counting down to its own checkpoint — a
-  // midday target and an end-of-day target — both always visible rather
-  // than swapping one for the other. Checkpoints default to 9am/noon/5pm
-  // but are user-customizable and remembered across sessions.
-  var CLOCK_RING_R = 52;
-  var CLOCK_RING_CIRC = 2 * Math.PI * CLOCK_RING_R;
+  // ---------- CHECKPOINT LINE ----------
+  // A single day-line from workday-start to end, with a tick at the midday
+  // checkpoint. Checkpoints default to 9am/noon/5pm but are user-customizable
+  // and remembered across sessions.
   var todayClockTimer = null;
   var DAY_TIMES_KEY = 'kanban.dayTimes';
 
@@ -3007,52 +2898,14 @@
     return h12 + (m ? ':' + String(m).padStart(2, '0') : '') + ap;
   }
   function updateDayTimeLabels() {
-    document.querySelector('#today-clock-gauge-noon .today-clock-target').textContent = 'until ' + formatTimeMinutes(dayTimes.mid);
-    document.querySelector('#today-clock-gauge-5pm .today-clock-target').textContent = 'until ' + formatTimeMinutes(dayTimes.end);
-    document.getElementById('today-timeline-start-label').textContent = formatTimeMinutes(dayTimes.start);
-    document.getElementById('today-timeline-mid-label').textContent = formatTimeMinutes(dayTimes.mid);
-    document.getElementById('today-timeline-end-label').textContent = formatTimeMinutes(dayTimes.end);
-    var midPct = clockPct(dayTimes.mid);
-    document.getElementById('today-timeline-mid-marker').style.left = midPct + '%';
+    document.getElementById('cp-noon-hour').textContent = formatTimeMinutes(dayTimes.mid);
+    document.getElementById('cp-pm-hour').textContent = formatTimeMinutes(dayTimes.end);
   }
-
-  // DAY GAUGE DISPLAY MODE — 'rings' (default) shows the two ring gauges in
-  // the side panel; 'timeline' swaps them for a horizontal bar spanning the
-  // whole day, placed in the main column below the reward counter.
-  var CLOCK_MODE_KEY = 'kanban.clockDisplayMode';
-  var clockDisplayMode = localStorage.getItem(CLOCK_MODE_KEY) === 'timeline' ? 'timeline' : 'rings';
 
   function clockPct(minutes) {
     var span = dayTimes.end - dayTimes.start;
     if (span <= 0) return 0;
     return Math.max(0, Math.min(100, (minutes - dayTimes.start) / span * 100));
-  }
-
-  function applyClockDisplayMode() {
-    var isTimeline = clockDisplayMode === 'timeline';
-    document.getElementById('today-clock-rings').classList.toggle('hide', isTimeline);
-    document.getElementById('today-timeline-bar').classList.toggle('hide', !isTimeline);
-    // Icon shows the mode a click will switch TO, not the one on screen now.
-    var btn = document.getElementById('today-clock-mode-btn');
-    btn.innerHTML = isTimeline ? '<span class="today-clock-mode-icon-pie"></span>' : '<span class="today-clock-mode-icon-t">T</span>';
-    btn.title = isTimeline ? 'Switch to ring gauges view' : 'Switch to horizontal timeline view';
-  }
-
-  function toggleClockDisplayMode() {
-    clockDisplayMode = clockDisplayMode === 'timeline' ? 'rings' : 'timeline';
-    localStorage.setItem(CLOCK_MODE_KEY, clockDisplayMode);
-    applyClockDisplayMode();
-    renderTodayClock();
-  }
-
-  function renderTimelineBar(minutesNow) {
-    if (clockDisplayMode !== 'timeline') return;
-    var pct = clockPct(minutesNow);
-    document.getElementById('today-timeline-fill').style.width = pct + '%';
-    document.getElementById('today-timeline-cursor').style.left = pct + '%';
-    var nowLabel = document.getElementById('today-timeline-now-label');
-    nowLabel.style.left = pct + '%';
-    nowLabel.textContent = formatTimeMinutes(Math.round(minutesNow));
   }
 
   // DAY TIMES MODAL — three range sliders whose min/max cascade off
@@ -3132,33 +2985,33 @@
   }
 
   // The ring drains as the deadline approaches (full at midnight, empty right
-  // at the target) — matches a countdown-timer feel, not a "time elapsed" fill.
-  // Each gauge only drains across its own segment of the workday — the noon
-  // gauge across 9am–noon, the 5pm gauge across noon–5pm — so it reads as
-  // full until that segment actually starts, not already half-drained by
-  // the time you open the app in the morning.
-  function setClockRing(gaugeId, ringId, remainingId, centerId, startMinutes, targetMinutes, minutesNow) {
-    // Once the deadline has passed, the whole gauge disappears rather than
-    // sitting there at 0% / "Passed".
-    var passed = minutesNow >= targetMinutes;
-    document.getElementById(gaugeId).classList.toggle('hide', passed);
-    if (passed) return;
+  // at the target). The line fills solid from workday-start toward noon,
+  // then keeps extending past noon while warming from yellow toward purple
+  // as it nears 5pm — one continuous slice of a fixed day-long gradient,
+  // revealed by a background-size trick rather than restarting per segment.
+  function fmtRemaining(mins) {
+    mins = Math.max(0, Math.round(mins));
+    var h = Math.floor(mins / 60), m = mins % 60;
+    return (h > 0 ? h + 'h ' : '') + m + 'm';
+  }
 
-    var remainingFraction = minutesNow <= startMinutes ? 1 : (targetMinutes - minutesNow) / (targetMinutes - startMinutes);
-    var ring = document.getElementById(ringId);
-    ring.style.strokeDasharray = CLOCK_RING_CIRC;
-    ring.style.strokeDashoffset = CLOCK_RING_CIRC * (1 - remainingFraction);
+  function renderCheckpointLine(minutesNow) {
+    var pct = clockPct(minutesNow);
+    var midPct = clockPct(dayTimes.mid);
+    document.getElementById('cp-now').style.left = pct + '%';
+    document.getElementById('cp-tick-noon').style.left = midPct + '%';
 
-    var remainingMin = Math.max(0, Math.round(targetMinutes - minutesNow));
-    var rh = Math.floor(remainingMin / 60), rm = remainingMin % 60;
-    document.getElementById(remainingId).textContent = (rh > 0 ? rh + 'h ' : '') + rm + 'm left';
+    var fill = document.getElementById('cp-fill');
+    fill.style.width = pct + '%';
+    if (pct > 0) {
+      fill.style.backgroundImage = 'linear-gradient(to right, #e8cf7c 0%, #e8cf7c ' + midPct + '%, #b285f0 100%)';
+      fill.style.backgroundSize = (100 / pct * 100) + '% 100%';
+    }
 
-    // Inside the last 30 minutes, the remaining minutes take over the center
-    // of the ring itself — hard to miss when a deadline is close.
-    var centerEl = document.getElementById(centerId);
-    var urgent = remainingMin <= 30;
-    centerEl.classList.toggle('show', urgent);
-    if (urgent) centerEl.textContent = remainingMin + 'm';
+    document.querySelector('#cp-legend-noon').classList.toggle('hide', minutesNow >= dayTimes.mid);
+    document.querySelector('#cp-legend-pm').classList.toggle('hide', minutesNow >= dayTimes.end);
+    document.getElementById('cp-noon-remaining').textContent = fmtRemaining(dayTimes.mid - minutesNow);
+    document.getElementById('cp-pm-remaining').textContent = fmtRemaining(dayTimes.end - minutesNow);
   }
 
   function renderTodayClock() {
@@ -3167,19 +3020,12 @@
     document.getElementById('today-clock-time').textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
 
     var minutesNow = h * 60 + m + now.getSeconds() / 60;
-    // Both gauges start draining from the same point — the start of the
-    // workday — just with different targets (midday vs end of day), not one
-    // handing off to the other at midday.
-    setClockRing('today-clock-gauge-noon', 'today-clock-ring-noon', 'today-clock-remaining-noon', 'today-clock-center-noon', dayTimes.start, dayTimes.mid, minutesNow);
-    setClockRing('today-clock-gauge-5pm', 'today-clock-ring-5pm', 'today-clock-remaining-5pm', 'today-clock-center-5pm', dayTimes.start, dayTimes.end, minutesNow);
-    renderTimelineBar(minutesNow);
+    renderCheckpointLine(minutesNow);
     checkDayAlarms(minutesNow);
   }
 
   function startTodayClock() {
     initDaytimesModal();
-    document.getElementById('today-clock-mode-btn').addEventListener('click', toggleClockDisplayMode);
-    applyClockDisplayMode();
     updateDayTimeLabels();
     renderTodayClock();
     if (!todayClockTimer) todayClockTimer = setInterval(renderTodayClock, 15000);
@@ -3200,15 +3046,22 @@
     return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
   }
 
+  var TIMER_RING_CIRC = 2 * Math.PI * 6.5;
   function renderCustomTimer() {
     var fraction = customTimerTotalSec > 0 ? customTimerRemainingSec / customTimerTotalSec : 0;
-    var ring = document.getElementById('today-clock-ring-custom');
-    ring.style.strokeDasharray = CLOCK_RING_CIRC;
-    ring.style.strokeDashoffset = CLOCK_RING_CIRC * (1 - fraction);
-    document.getElementById('today-clock-center-custom').textContent = formatTimerClock(customTimerRemainingSec);
-    var toggleBtn = document.getElementById('today-clock-custom-toggle');
-    toggleBtn.innerHTML = svgIcon(customTimerRunning ? 'pause' : 'play');
-    toggleBtn.title = customTimerRunning ? 'Pause timer' : 'Start timer';
+    var pill = document.getElementById('today-timer-pill');
+    var ringWrap = document.getElementById('today-timer-ring');
+    var ringFill = document.getElementById('today-timer-ring-fill');
+    var playIcon = document.getElementById('today-timer-play-icon');
+    pill.classList.toggle('running', customTimerRunning);
+    ringWrap.classList.toggle('hide', !customTimerRunning);
+    playIcon.classList.toggle('hide', customTimerRunning);
+    if (customTimerRunning) {
+      ringFill.style.strokeDasharray = TIMER_RING_CIRC;
+      ringFill.style.strokeDashoffset = TIMER_RING_CIRC * (1 - fraction);
+    }
+    document.getElementById('today-timer-label').textContent = formatTimerClock(customTimerRemainingSec);
+    pill.title = customTimerRunning ? 'Pause timer' : 'Start timer';
   }
 
   function stopCustomTimer() {
@@ -3257,11 +3110,25 @@
 
   function initCustomTimer() {
     renderCustomTimer();
-    document.getElementById('today-clock-custom-toggle').addEventListener('click', function() {
+    document.getElementById('today-timer-pill').addEventListener('click', function() {
       if (customTimerRunning) stopCustomTimer(); else startCustomTimer();
     });
     document.getElementById('today-clock-custom-reset').addEventListener('click', resetCustomTimer);
     document.getElementById('today-clock-custom-edit').addEventListener('click', editCustomTimer);
+  }
+
+  // The item currently shown in the Focus hero — tracked so the hero's
+  // Done/Next buttons know which item to act on without re-reading the DOM.
+  var heroCurrentItemId = null;
+
+  function sendTodayItemToBack(itemId) {
+    var list = ensureTodayList();
+    var idx = list.items.findIndex(function(i) { return i.id === itemId; });
+    if (idx === -1) return;
+    var item = list.items.splice(idx, 1)[0];
+    list.items.push(item);
+    save();
+    render();
   }
 
   function renderToday() {
@@ -3282,8 +3149,27 @@
 
     document.getElementById('today-empty').classList.toggle('show', entries.length === 0 && postponed.length === 0);
 
+    var summaryEl = document.getElementById('today-summary');
+    summaryEl.classList.toggle('hide', entries.length === 0);
+    if (entries.length) {
+      summaryEl.textContent = doneToday.length + '/' + entries.length + ' done today' + (doneToday.length ? ' — ' + rewardMessage(doneToday.length) : '');
+    }
+
+    var heroEl = document.getElementById('today-hero');
+    var rest = todo;
+    if (todo.length) {
+      var hero = todo[0];
+      rest = todo.slice(1);
+      heroCurrentItemId = hero.item.id;
+      heroEl.classList.remove('hide');
+      document.getElementById('today-hero-title').textContent = hero.info.title || 'Untitled task';
+    } else {
+      heroCurrentItemId = null;
+      heroEl.classList.add('hide');
+    }
+
     var html = '';
-    if (todo.length) html += '<div class="today-group">' + todo.map(renderTodayRow).join('') + '</div>';
+    if (rest.length) html += '<div class="today-group"><div class="today-group-title">Up next · ' + rest.length + '</div>' + rest.map(renderTodayRow).join('') + '</div>';
     if (done.length) html += '<div class="today-group today-group-done"><div class="today-group-title">Done · ' + done.length + '</div>' + done.map(renderTodayRow).join('') + '</div>';
     document.getElementById('today-list').innerHTML = html;
 
@@ -3292,17 +3178,6 @@
     if (postponed.length) {
       document.getElementById('today-tomorrow-count').textContent = postponed.length;
       document.getElementById('today-tomorrow-list').innerHTML = postponed.map(renderTomorrowRow).join('');
-    }
-
-    var rewardEl = document.getElementById('today-reward');
-    if (doneToday.length > 0) {
-      rewardEl.classList.remove('hide');
-      document.getElementById('today-reward-count').textContent = doneToday.length;
-      document.getElementById('today-reward-total').textContent = '/' + entries.length;
-      document.getElementById('today-reward-label').textContent = doneToday.length === 1 ? 'card done today' : 'cards done today';
-      document.getElementById('today-reward-sub').textContent = rewardMessage(doneToday.length);
-    } else {
-      rewardEl.classList.add('hide');
     }
   }
 
@@ -3358,6 +3233,12 @@
       var input = row.querySelector('.today-row-title-input');
       if (input) input.focus();
     }
+  });
+  document.getElementById('today-hero-done').addEventListener('click', function() {
+    if (heroCurrentItemId) toggleTodayItemDone(heroCurrentItemId);
+  });
+  document.getElementById('today-hero-next').addEventListener('click', function() {
+    if (heroCurrentItemId) sendTodayItemToBack(heroCurrentItemId);
   });
   document.getElementById('today-list').addEventListener('input', function(e) {
     var el = e.target;
@@ -3707,6 +3588,84 @@
     render();
   }
 
+  // Adds the idea as a card in a specific column of the active project —
+  // used by the idea review popup, where the user picks the column
+  // themselves rather than always landing in the first one.
+  function sendIdeaToColumn(id, columnId) {
+    var idea = findIdea(id);
+    if (!idea) return;
+    var proj = activeProject();
+    if (!proj.columns.length) proj.columns = defaultColumns();
+    var col = proj.columns.find(function(c) { return c.id === columnId; }) || proj.columns[0];
+    col.cards.push({ id: uid(), title: idea.text, description: idea.description || '', due: null, start: null, done: false, doneAt: null, checklist: [], cover: null, color: randomColor() });
+    data.ideas = data.ideas.filter(function(i) { return i.id !== id; });
+    save();
+  }
+
+  // ---------- IDEA REVIEW POPUP ----------
+  // Once a day (and any time on demand via "Review some ideas"), surfaces a
+  // handful of random ideas from the capture list so old ones don't just
+  // pile up unseen — the user decides right there to keep, discard, or send
+  // each one to a column on the active board.
+  var ideaReviewBatch = [];
+
+  function pickRandomIdeas(n) {
+    var pool = data.ideas.slice();
+    var picked = [];
+    while (pool.length && picked.length < n) {
+      var idx = Math.floor(Math.random() * pool.length);
+      picked.push(pool.splice(idx, 1)[0]);
+    }
+    return picked;
+  }
+
+  function renderIdeaReviewModal() {
+    ideaReviewBatch = ideaReviewBatch.filter(function(id) { return !!findIdea(id); });
+    if (!ideaReviewBatch.length) {
+      document.getElementById('idea-review-overlay').classList.remove('show');
+      return;
+    }
+    var proj = activeProject();
+    var colOptions = proj.columns.map(function(c) {
+      return '<option value="' + c.id + '">' + esc(c.name || 'Untitled') + '</option>';
+    }).join('');
+    document.getElementById('idea-review-list').innerHTML = ideaReviewBatch.map(function(id) {
+      var idea = findIdea(id);
+      return (
+        '<div class="idea-review-row" data-idea="' + idea.id + '">' +
+          '<div class="idea-review-text">' + esc(idea.text || 'Untitled idea') +
+            (idea.description ? '<div class="idea-review-desc">' + esc(idea.description) + '</div>' : '') +
+          '</div>' +
+          '<div class="idea-review-actions">' +
+            '<select class="text-input idea-review-column" data-idea="' + idea.id + '">' + colOptions + '</select>' +
+            '<button type="button" data-action="review-send" data-idea="' + idea.id + '" title="Send to this column">' + svgIcon('board') + '</button>' +
+            '<button type="button" data-action="review-keep" data-idea="' + idea.id + '" title="Keep in Random Ideas">' + svgIcon('check') + '</button>' +
+            '<button type="button" data-action="review-discard" data-idea="' + idea.id + '" title="Discard">' + svgIcon('trash') + '</button>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join('');
+  }
+
+  function openIdeaReviewModal() {
+    ideaReviewBatch = pickRandomIdeas(3).map(function(i) { return i.id; });
+    document.getElementById('idea-review-empty').classList.toggle('hide', !!ideaReviewBatch.length);
+    if (!ideaReviewBatch.length) {
+      document.getElementById('idea-review-list').innerHTML = '';
+    } else {
+      renderIdeaReviewModal();
+    }
+    document.getElementById('idea-review-overlay').classList.add('show');
+  }
+
+  function checkDailyIdeaPrompt() {
+    var today = todayStr();
+    if (data.lastIdeaPromptDate === today) return;
+    data.lastIdeaPromptDate = today;
+    save();
+    if (data.ideas.length) openIdeaReviewModal();
+  }
+
   // Tags are case-insensitive: normalized to lowercase so "Movie" and "movie"
   // are treated as the same tag (same color, same filter, no duplicates).
   function addIdeaTag(id, tag) {
@@ -3925,6 +3884,35 @@
     }
   });
 
+  document.getElementById('idea-review-btn').addEventListener('click', openIdeaReviewModal);
+  document.getElementById('idea-review-close').addEventListener('click', function() {
+    document.getElementById('idea-review-overlay').classList.remove('show');
+  });
+  document.getElementById('idea-review-overlay').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('show');
+  });
+  document.getElementById('idea-review-list').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    var action = btn.getAttribute('data-action');
+    var id = btn.getAttribute('data-idea');
+    if (action === 'review-send') {
+      var select = document.querySelector('.idea-review-column[data-idea="' + id + '"]');
+      sendIdeaToColumn(id, select ? select.value : null);
+      ideaReviewBatch = ideaReviewBatch.filter(function(i) { return i !== id; });
+      renderIdeaReviewModal();
+      renderIdeas();
+      render();
+    } else if (action === 'review-discard') {
+      deleteIdea(id);
+      ideaReviewBatch = ideaReviewBatch.filter(function(i) { return i !== id; });
+      renderIdeaReviewModal();
+    } else if (action === 'review-keep') {
+      ideaReviewBatch = ideaReviewBatch.filter(function(i) { return i !== id; });
+      renderIdeaReviewModal();
+    }
+  });
+
   // ---------- COLUMNS ----------
   function commitNewColumn(inputEl) {
     var name = inputEl.value.trim();
@@ -3964,6 +3952,8 @@
       toggleCardDone(btn.getAttribute('data-card'));
     } else if (action === 'toggle-today-from-card') {
       toggleCardInToday(btn.getAttribute('data-card'));
+    } else if (action === 'toggle-card-focus') {
+      toggleCardFocus(btn.getAttribute('data-card'));
     } else if (action === 'collapse-column' || action === 'expand-column') {
       var col2 = findColumn(btn.getAttribute('data-column'));
       if (col2) { col2.collapsed = !col2.collapsed; save(); renderBoard(); }
@@ -3999,6 +3989,8 @@
 
     document.getElementById('card-title-input').value = c.title || '';
     updateCardTodayToggleUI(cardId);
+    updateCardDoneToggleUI(cardId);
+    updateCardFocusToggleUI(cardId);
     document.getElementById('card-description-input').value = c.description || '';
     document.getElementById('card-description-links').innerHTML = renderLinksPreview(c.description || '');
     document.getElementById('card-start-input').value = c.start || '';
@@ -4053,6 +4045,35 @@
     if (!editingCardId) return;
     toggleCardInToday(editingCardId);
     updateCardTodayToggleUI(editingCardId);
+  });
+  function updateCardDoneToggleUI(cardId) {
+    var c = findCard(cardId);
+    var done = !!(c && c.card.done);
+    var btn = document.getElementById('card-done-toggle');
+    btn.classList.toggle('active-done', done);
+    document.getElementById('card-done-toggle-label').textContent = done ? 'Mark as not done' : 'Mark as done';
+  }
+  document.getElementById('card-done-toggle').addEventListener('click', function() {
+    if (!editingCardId) return;
+    toggleCardDone(editingCardId);
+    updateCardDoneToggleUI(editingCardId);
+    var found = findCard(editingCardId);
+    if (found) {
+      var select = document.getElementById('card-column-select');
+      Array.prototype.forEach.call(select.options, function(opt) { opt.selected = opt.value === found.column.id; });
+    }
+  });
+  function updateCardFocusToggleUI(cardId) {
+    var found = findCard(cardId);
+    var focused = !!(found && found.card.focus);
+    var btn = document.getElementById('card-focus-toggle');
+    btn.classList.toggle('active-focus', focused);
+    document.getElementById('card-focus-toggle-label').textContent = focused ? 'Remove focus' : 'Focus this card';
+  }
+  document.getElementById('card-focus-toggle').addEventListener('click', function() {
+    if (!editingCardId) return;
+    toggleCardFocus(editingCardId);
+    updateCardFocusToggleUI(editingCardId);
   });
   document.getElementById('card-description-input').addEventListener('input', function() {
     var c = currentCard(); if (!c) return;
@@ -4510,10 +4531,23 @@
     if (e.target === this) this.classList.remove('show');
   });
 
+  // ---------- TEXT SIZE ----------
+  var fontsizeSlider = document.getElementById('fontsize-slider');
+  var fontsizeValue = document.getElementById('fontsize-value');
+  fontsizeSlider.value = Math.round(data.fontScale * 100);
+  fontsizeValue.textContent = fontsizeSlider.value + '%';
+  fontsizeSlider.addEventListener('input', function() {
+    data.fontScale = this.value / 100;
+    document.documentElement.style.setProperty('--board-scale', String(data.fontScale));
+    fontsizeValue.textContent = this.value + '%';
+    save();
+  });
+
   // ---------- INIT ----------
   checkDailyShuffle(activeProject());
   data.projects.forEach(checkDailyArchive);
   render();
+  checkDailyIdeaPrompt();
   startTodayClock();
   initCustomTimer();
 
