@@ -743,17 +743,18 @@
   #today-view.hide { display: none; }
   #today-main { max-width: 640px; margin: 0 auto; }
 
-  /* CHECKPOINT BAR — current time, a day-line from workday start to end
-     with a tick at the midday checkpoint, and the countdown timer. Yellow
-     is reserved for the timer's own color story? No — the timer is red
-     (tomato), which frees yellow for the noon checkpoint; 5pm is purple. */
+  /* CHECKPOINT BAR — two clearly separate rows so the day's checkpoints
+     (noon/5pm, settings gear) never visually blur into the timer's own
+     controls (reset, start/pause, edit length). Yellow marks noon, purple
+     marks 5pm; the timer keeps its own red (tomato) throughout. */
   #cp-topbar {
-    display: flex; align-items: center; gap: 12px;
     padding: 10px 14px;
     background: var(--surface);
     border: 1px solid rgba(211,211,211,0.4);
     border-radius: var(--radius-lg);
   }
+  .cp-row { display: flex; align-items: center; gap: 12px; }
+  .cp-row-timer { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06); }
   #today-clock-time {
     font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums; color: var(--text); flex-shrink: 0;
@@ -777,6 +778,7 @@
     border-radius: 50%; transform: translateY(-50%); border: 1.5px solid var(--surface);
     background: #e8cf7c; left: 0%;
   }
+  .cp-tick.pm { background: #b285f0; left: 100%; }
   .cp-mini-btn {
     display: flex; align-items: center; justify-content: center;
     width: 24px; height: 24px; flex-shrink: 0;
@@ -784,21 +786,31 @@
     background: var(--surface2); color: var(--text-dim);
   }
   .cp-mini-btn:hover { color: var(--text); background: var(--border-hover); }
+
+  /* Timer row: play/pause toggle, its own progress line (drains as the
+     countdown runs down, same "remaining fraction" idea as the checkpoint
+     line), the mm:ss readout, then reset/edit grouped at the end. */
   #today-timer-pill {
-    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
-    padding: 5px 11px; border-radius: 20px; cursor: pointer;
-    background: rgba(239,107,92,0.14); border: 1px solid rgba(239,107,92,0.3); color: #ef6b5c;
-    font-size: 12.5px; font-variant-numeric: tabular-nums;
+    display: flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; flex-shrink: 0;
+    border: none; border-radius: 50%; cursor: pointer;
+    background: rgba(239,107,92,0.18); color: #ef6b5c;
   }
-  #today-timer-pill:hover { background: rgba(239,107,92,0.22); }
-  #today-timer-pill.running { background: rgba(239,107,92,0.22); border-color: rgba(239,107,92,0.45); color: #f28d80; }
-  #today-timer-pill svg { flex-shrink: 0; }
-  .cp-timer-ring { position: relative; width: 14px; height: 14px; }
-  .cp-timer-ring.hide { display: none; }
-  #today-timer-play-icon.hide { display: none; }
-  .cp-timer-ring svg { transform: rotate(-90deg); }
-  .cp-timer-ring-track { fill: none; stroke: rgba(239,107,92,0.25); stroke-width: 2.5; }
-  .cp-timer-ring-fill { fill: none; stroke: #ef6b5c; stroke-width: 2.5; stroke-linecap: round; }
+  #today-timer-pill:hover { background: rgba(239,107,92,0.28); }
+  #today-timer-pill.running { background: #ef6b5c; color: #17100f; }
+  #timer-track { position: relative; flex: 1; height: 16px; }
+  #timer-track::before {
+    content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 3px; transform: translateY(-50%);
+    border-radius: 2px; background: var(--surface2);
+  }
+  #timer-fill {
+    position: absolute; left: 0; top: 50%; height: 3px; transform: translateY(-50%);
+    border-radius: 2px; background: #ef6b5c; width: 100%; transition: width 0.3s;
+  }
+  #today-timer-label {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; font-weight: 600;
+    color: #ef6b5c; flex-shrink: 0; min-width: 40px; text-align: right;
+  }
 
   #cp-legend { display: flex; gap: 16px; padding: 8px 14px 0; }
   .cp-legend-item {
@@ -839,7 +851,13 @@
   .today-hero-btn.done { background: #4ade80; color: #0d0d0d; font-weight: 600; }
   .today-hero-btn.done:hover { background: #6ee8a0; }
 
-  #today-search-wrap { position: relative; margin: 20px 0 18px; }
+  /* Add row — sits right under the "Up next" queue, like the Board's
+     "+ New card" input at the bottom of a column, rather than up top as
+     its own prominent block. */
+  #today-add-row { display: flex; gap: 8px; margin: 10px 0 18px; }
+  #today-add-row .text-input { font-size: 12.5px; padding: 7px 10px; }
+  #today-search-wrap { position: relative; flex: 1; min-width: 0; }
+  #today-add-task-input { flex: 1; min-width: 0; }
   #today-search-results {
     display: none;
     position: absolute;
@@ -1637,32 +1655,37 @@
     <div id="today-main">
 
       <div id="cp-topbar">
-        <span id="today-clock-time">00:00</span>
-        <div id="cp-track">
-          <span id="cp-fill"></span>
-          <span id="cp-now"></span>
-          <span id="cp-tick-noon" class="cp-tick"></span>
+        <div class="cp-row cp-row-checkpoints">
+          <span id="today-clock-time">00:00</span>
+          <div id="cp-track">
+            <span id="cp-fill"></span>
+            <span id="cp-now"></span>
+            <span id="cp-tick-noon" class="cp-tick"></span>
+            <span id="cp-tick-pm" class="cp-tick pm"></span>
+          </div>
+          <button type="button" class="cp-mini-btn" id="today-clock-settings-btn" title="Customize day checkpoints">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
         </div>
-        <button type="button" class="cp-mini-btn" id="today-clock-custom-reset" title="Reset timer">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 3 6.7"/><polyline points="3 21 3 15 9 15"/></svg>
-        </button>
-        <button type="button" id="today-timer-pill" title="Start timer">
-          <span class="cp-timer-ring hide" id="today-timer-ring">
-            <svg width="16" height="16" viewBox="0 0 16 16"><circle class="cp-timer-ring-track" cx="8" cy="8" r="6.5"/><circle class="cp-timer-ring-fill" id="today-timer-ring-fill" cx="8" cy="8" r="6.5"/></svg>
-          </span>
-          <svg id="today-timer-play-icon" width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+        <div id="cp-legend">
+          <span class="cp-legend-item noon" id="cp-legend-noon"><i></i><span class="cp-hour" id="cp-noon-hour"></span><span class="cp-sep">·</span><span id="cp-noon-remaining"></span></span>
+          <span class="cp-legend-item pm" id="cp-legend-pm"><i></i><span class="cp-hour" id="cp-pm-hour"></span><span class="cp-sep">·</span><span id="cp-pm-remaining"></span></span>
+        </div>
+        <div class="cp-row cp-row-timer">
+          <button type="button" id="today-timer-pill" title="Start timer">
+            <span id="today-timer-play-icon" style="display:flex;">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+            </span>
+          </button>
+          <div id="timer-track"><span id="timer-fill"></span></div>
           <span id="today-timer-label">25:00</span>
-        </button>
-        <button type="button" class="cp-mini-btn" id="today-clock-custom-edit" title="Set timer length">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-        </button>
-        <button type="button" class="cp-mini-btn" id="today-clock-settings-btn" title="Customize day checkpoints">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        </button>
-      </div>
-      <div id="cp-legend">
-        <span class="cp-legend-item noon" id="cp-legend-noon"><i></i><span class="cp-hour" id="cp-noon-hour"></span><span class="cp-sep">·</span><span id="cp-noon-remaining"></span></span>
-        <span class="cp-legend-item pm" id="cp-legend-pm"><i></i><span class="cp-hour" id="cp-pm-hour"></span><span class="cp-sep">·</span><span id="cp-pm-remaining"></span></span>
+          <button type="button" class="cp-mini-btn" id="today-clock-custom-reset" title="Reset timer">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 3 6.7"/><polyline points="3 21 3 15 9 15"/></svg>
+          </button>
+          <button type="button" class="cp-mini-btn" id="today-clock-custom-edit" title="Set timer length">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          </button>
+        </div>
       </div>
 
       <div id="today-summary" class="hide"></div>
@@ -1675,20 +1698,28 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             Done
           </button>
-          <button type="button" id="today-hero-next" class="today-hero-btn">
+          <button type="button" id="today-hero-next" class="today-hero-btn" title="Move to the back of today's queue">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
-            Next
+            Later
+          </button>
+          <button type="button" id="today-hero-tomorrow" class="today-hero-btn" title="Postpone to tomorrow">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 6 19 12 13 18"/><polyline points="6 6 12 12 6 18"/></svg>
+            Tomorrow
           </button>
         </div>
       </div>
 
-      <div id="today-search-wrap">
-        <input id="today-search-input" class="text-input" placeholder="Search cards from any project to add to today…" autocomplete="off">
-        <div id="today-search-results"></div>
-      </div>
-      <input id="today-add-task-input" class="text-input" placeholder="+ Add a task that isn't on any board…" style="margin-bottom:18px;">
+      <div id="today-todo-list"></div>
 
-      <div id="today-list"></div>
+      <div id="today-add-row">
+        <div id="today-search-wrap">
+          <input id="today-search-input" class="text-input" placeholder="Search cards from any project…" autocomplete="off">
+          <div id="today-search-results"></div>
+        </div>
+        <input id="today-add-task-input" class="text-input" placeholder="+ Add a task that isn't on any board…">
+      </div>
+
+      <div id="today-done-list"></div>
       <div id="today-empty">Nothing on today's list yet.<br>Search above to pull in cards from any project and board, or add a standalone task.</div>
 
       <div id="today-tomorrow-box" class="hide">
@@ -3046,22 +3077,14 @@
     return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
   }
 
-  var TIMER_RING_CIRC = 2 * Math.PI * 6.5;
   function renderCustomTimer() {
     var fraction = customTimerTotalSec > 0 ? customTimerRemainingSec / customTimerTotalSec : 0;
     var pill = document.getElementById('today-timer-pill');
-    var ringWrap = document.getElementById('today-timer-ring');
-    var ringFill = document.getElementById('today-timer-ring-fill');
-    var playIcon = document.getElementById('today-timer-play-icon');
     pill.classList.toggle('running', customTimerRunning);
-    ringWrap.classList.toggle('hide', !customTimerRunning);
-    playIcon.classList.toggle('hide', customTimerRunning);
-    if (customTimerRunning) {
-      ringFill.style.strokeDasharray = TIMER_RING_CIRC;
-      ringFill.style.strokeDashoffset = TIMER_RING_CIRC * (1 - fraction);
-    }
-    document.getElementById('today-timer-label').textContent = formatTimerClock(customTimerRemainingSec);
     pill.title = customTimerRunning ? 'Pause timer' : 'Start timer';
+    document.getElementById('today-timer-play-icon').innerHTML = svgIcon(customTimerRunning ? 'pause' : 'play');
+    document.getElementById('timer-fill').style.width = (fraction * 100) + '%';
+    document.getElementById('today-timer-label').textContent = formatTimerClock(customTimerRemainingSec);
   }
 
   function stopCustomTimer() {
@@ -3168,10 +3191,12 @@
       heroEl.classList.add('hide');
     }
 
-    var html = '';
-    if (rest.length) html += '<div class="today-group"><div class="today-group-title">Up next · ' + rest.length + '</div>' + rest.map(renderTodayRow).join('') + '</div>';
-    if (done.length) html += '<div class="today-group today-group-done"><div class="today-group-title">Done · ' + done.length + '</div>' + done.map(renderTodayRow).join('') + '</div>';
-    document.getElementById('today-list').innerHTML = html;
+    document.getElementById('today-todo-list').innerHTML = rest.length
+      ? '<div class="today-group"><div class="today-group-title">Up next · ' + rest.length + '</div>' + rest.map(renderTodayRow).join('') + '</div>'
+      : '';
+    document.getElementById('today-done-list').innerHTML = done.length
+      ? '<div class="today-group today-group-done"><div class="today-group-title">Done · ' + done.length + '</div>' + done.map(renderTodayRow).join('') + '</div>'
+      : '';
 
     var tomorrowBox = document.getElementById('today-tomorrow-box');
     tomorrowBox.classList.toggle('hide', postponed.length === 0);
@@ -3214,25 +3239,35 @@
     );
   }
 
-  document.getElementById('today-list').addEventListener('click', function(e) {
-    var btn = e.target.closest('[data-action]');
-    if (btn) {
-      var action = btn.getAttribute('data-action');
-      if (action === 'toggle-today-done') toggleTodayItemDone(btn.getAttribute('data-item'));
-      else if (action === 'remove-today') removeFromToday(btn.getAttribute('data-item'));
-      else if (action === 'postpone-today') postponeTodayItem(btn.getAttribute('data-item'));
-      return;
-    }
-    if (e.target.tagName === 'INPUT') return;
-    var row = e.target.closest('.today-row');
-    if (!row) return;
-    var cardId = row.getAttribute('data-card');
-    if (cardId) {
-      openCardModal(cardId);
-    } else {
-      var input = row.querySelector('.today-row-title-input');
-      if (input) input.focus();
-    }
+  var todayListEls = [document.getElementById('today-todo-list'), document.getElementById('today-done-list')];
+  todayListEls.forEach(function(listEl) {
+    listEl.addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-action]');
+      if (btn) {
+        var action = btn.getAttribute('data-action');
+        if (action === 'toggle-today-done') toggleTodayItemDone(btn.getAttribute('data-item'));
+        else if (action === 'remove-today') removeFromToday(btn.getAttribute('data-item'));
+        else if (action === 'postpone-today') postponeTodayItem(btn.getAttribute('data-item'));
+        return;
+      }
+      if (e.target.tagName === 'INPUT') return;
+      var row = e.target.closest('.today-row');
+      if (!row) return;
+      var cardId = row.getAttribute('data-card');
+      if (cardId) {
+        openCardModal(cardId);
+      } else {
+        var input = row.querySelector('.today-row-title-input');
+        if (input) input.focus();
+      }
+    });
+    listEl.addEventListener('input', function(e) {
+      var el = e.target;
+      if (el.getAttribute('data-action') !== 'rename-standalone') return;
+      var list = ensureTodayList();
+      var item = list.items.find(function(i) { return i.id === el.getAttribute('data-item'); });
+      if (item) { item.title = el.value; save(); }
+    });
   });
   document.getElementById('today-hero-done').addEventListener('click', function() {
     if (heroCurrentItemId) toggleTodayItemDone(heroCurrentItemId);
@@ -3240,12 +3275,8 @@
   document.getElementById('today-hero-next').addEventListener('click', function() {
     if (heroCurrentItemId) sendTodayItemToBack(heroCurrentItemId);
   });
-  document.getElementById('today-list').addEventListener('input', function(e) {
-    var el = e.target;
-    if (el.getAttribute('data-action') !== 'rename-standalone') return;
-    var list = ensureTodayList();
-    var item = list.items.find(function(i) { return i.id === el.getAttribute('data-item'); });
-    if (item) { item.title = el.value; save(); }
+  document.getElementById('today-hero-tomorrow').addEventListener('click', function() {
+    if (heroCurrentItemId) postponeTodayItem(heroCurrentItemId);
   });
   document.getElementById('today-tomorrow-list').addEventListener('click', function(e) {
     var btn = e.target.closest('[data-action="unpostpone-today"]');
@@ -3254,18 +3285,20 @@
 
   // ---------- DRAG & DROP: reorder the Today list (within its group) ----------
   var todayDrag = null;
-  document.getElementById('today-list').addEventListener('pointerdown', function(e) {
-    if (e.button !== 0) return;
-    if (!e.target.closest('.today-row-handle')) return;
-    var row = e.target.closest('.today-row');
-    if (!row) return;
-    e.preventDefault();
-    todayDrag = {
-      itemId: row.getAttribute('data-item'), el: row, group: row.closest('.today-group'),
-      startX: e.clientX, startY: e.clientY, active: false
-    };
-    window.addEventListener('pointermove', onTodayDragMove, { passive: false });
-    window.addEventListener('pointerup', onTodayDragEnd);
+  todayListEls.forEach(function(listEl) {
+    listEl.addEventListener('pointerdown', function(e) {
+      if (e.button !== 0) return;
+      if (!e.target.closest('.today-row-handle')) return;
+      var row = e.target.closest('.today-row');
+      if (!row) return;
+      e.preventDefault();
+      todayDrag = {
+        itemId: row.getAttribute('data-item'), el: row, group: row.closest('.today-group'),
+        startX: e.clientX, startY: e.clientY, active: false
+      };
+      window.addEventListener('pointermove', onTodayDragMove, { passive: false });
+      window.addEventListener('pointerup', onTodayDragEnd);
+    });
   });
 
   function onTodayDragMove(e) {
