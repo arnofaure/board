@@ -892,7 +892,6 @@
   /* The task pile: a slim "done today" readout above Up now, which sits
      above the descending Up-next queue — one column, biggest thing first. */
   #today-stack { display: flex; flex-direction: column; gap: 10px; }
-  #today-stack #today-hero { margin: 0; }
 
   #today-summary-box {
     display: flex; align-items: baseline; justify-content: flex-end; gap: 5px;
@@ -937,6 +936,34 @@
     overflow: hidden;
   }
   #today-hero.hide { display: none; }
+  /* Distraction tally sits beside Up Now rather than in its own row — capped
+     to roughly a tenth of the width so it reads as a small side counter,
+     not a competing box. */
+  .today-hero-row { display: flex; align-items: stretch; gap: 8px; }
+  .today-hero-row #today-hero { flex: 1; min-width: 0; margin: 0; }
+  #today-distract-box {
+    flex: 0 0 10%;
+    min-width: 46px;
+    max-width: 72px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 8px 4px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  #today-distract-box:hover { border-color: var(--border-hover); color: var(--text); }
+  .today-distract-count {
+    font-size: 18px; font-weight: 800; line-height: 1;
+    color: var(--danger); font-variant-numeric: tabular-nums;
+  }
+  .today-distract-count.zero { color: var(--text-dim); }
   .today-hero-top { position: relative; margin-bottom: 10px; }
   .today-hero-top .today-row-time { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
   /* Optional HH:MM scheduling, shared by the hero and every list row —
@@ -1264,6 +1291,10 @@
   .achievements-stat div { display: flex; flex-direction: column; }
   .achievements-stat span { font-size: 22px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1.1; }
   .achievements-stat label { font-size: 11px; color: var(--text-dim); }
+  /* Distraction count stays red regardless of theme — it's meant to read as
+     an alert, not just another accent-colored stat. */
+  .achievements-stat.stat-distract,
+  .achievements-stat.stat-distract span { color: var(--danger) !important; }
   #achievements-calendar-wrap {
     display: flex; flex-direction: column; align-items: center;
     overflow-x: auto; padding-bottom: 4px;
@@ -2108,26 +2139,32 @@
           <span id="today-summary-count"></span>
           <span id="today-summary-label">done today</span>
         </div>
-        <div id="today-hero" class="hide">
-          <div class="today-hero-top">
-            <div class="today-hero-eyebrow">Up now</div>
-            <input type="time" id="today-hero-time" class="today-row-time" data-action="set-time" title="Schedule this task">
+        <div class="today-hero-row">
+          <div id="today-hero" class="hide">
+            <div class="today-hero-top">
+              <div class="today-hero-eyebrow">Up now</div>
+              <input type="time" id="today-hero-time" class="today-row-time" data-action="set-time" title="Schedule this task">
+            </div>
+            <div id="today-hero-title" class="today-hero-title"></div>
+            <div class="today-hero-actions">
+              <button type="button" id="today-hero-done" class="today-hero-btn done">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Done
+              </button>
+              <button type="button" id="today-hero-next" class="today-hero-btn" title="Move to the back of today's queue">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+                Later
+              </button>
+              <button type="button" id="today-hero-tomorrow" class="today-hero-btn" title="Postpone to tomorrow">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 6 19 12 13 18"/><polyline points="6 6 12 12 6 18"/></svg>
+                Tomorrow
+              </button>
+            </div>
           </div>
-          <div id="today-hero-title" class="today-hero-title"></div>
-          <div class="today-hero-actions">
-            <button type="button" id="today-hero-done" class="today-hero-btn done">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              Done
-            </button>
-            <button type="button" id="today-hero-next" class="today-hero-btn" title="Move to the back of today's queue">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
-              Later
-            </button>
-            <button type="button" id="today-hero-tomorrow" class="today-hero-btn" title="Postpone to tomorrow">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 6 19 12 13 18"/><polyline points="6 6 12 12 6 18"/></svg>
-              Tomorrow
-            </button>
-          </div>
+          <button type="button" id="today-distract-box" title="Log a distraction (Shift+D)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h8" stroke-dasharray="2 3"/><path d="M11 12l7-7"/><polyline points="13 5 18 5 18 10"/></svg>
+            <span id="today-distract-count" class="today-distract-count zero">0</span>
+          </button>
         </div>
 
         <div id="today-timer-box">
@@ -2196,6 +2233,10 @@
       <div class="achievements-stat">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         <div><span id="achievements-today-ratio">0/0</span><label>today</label></div>
+      </div>
+      <div class="achievements-stat stat-distract">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h8" stroke-dasharray="2 3"/><path d="M11 12l7-7"/><polyline points="13 5 18 5 18 10"/></svg>
+        <div><span id="achievements-distract-today">0</span><label>distracted today</label></div>
       </div>
     </div>
     <div id="achievements-calendar-wrap">
@@ -2519,7 +2560,8 @@
       history: [],
       lastIdeaPromptDate: todayStr(),
       fontScale: 1,
-      monoTheme: false
+      monoTheme: false,
+      distractionsByDate: {}
     };
   }
 
@@ -2578,6 +2620,7 @@
     if (!d.lastIdeaPromptDate) d.lastIdeaPromptDate = todayStr();
     if (!d.fontScale) d.fontScale = 1;
     if (d.monoTheme === undefined) d.monoTheme = false;
+    if (!d.distractionsByDate) d.distractionsByDate = {};
     d.ideas.forEach(function(i) {
       if (!i.id) i.id = uid();
       if (i.text === undefined) i.text = '';
@@ -3199,6 +3242,29 @@
     renderTimeline();
   });
 
+  // ---------- DISTRACTIONS ----------
+  // A simple tally of how many times the user notices they've drifted off
+  // task, logged manually (button or Shift+D) rather than inferred — keyed
+  // by date so it resets each day like the rest of Today.
+  function todayDistractionCount() {
+    return (data.distractionsByDate && data.distractionsByDate[todayStr()]) || 0;
+  }
+
+  function renderDistractionCount() {
+    var n = todayDistractionCount();
+    var badge = document.getElementById('today-distract-count');
+    if (badge) { badge.textContent = n; badge.classList.toggle('zero', n === 0); }
+    var achEl = document.getElementById('achievements-distract-today');
+    if (achEl) achEl.textContent = n;
+  }
+
+  function logDistraction() {
+    var key = todayStr();
+    data.distractionsByDate[key] = (data.distractionsByDate[key] || 0) + 1;
+    save();
+    renderDistractionCount();
+  }
+
   // ---------- RENDER: TODAY ----------
   // A personal daily checklist, separate from the boards: cards get pulled
   // in by reference (cardId) from any project, and resets itself each day —
@@ -3751,6 +3817,8 @@
       document.getElementById('daytimes-extra-fields').classList.toggle('hide', !this.checked);
     });
     document.getElementById('today-clock-settings-btn').addEventListener('click', openDaytimesModal);
+    document.getElementById('today-distract-box').addEventListener('click', logDistraction);
+    renderDistractionCount();
     document.getElementById('daytimes-save').addEventListener('click', saveDaytimesModal);
     var close = function() { document.getElementById('daytimes-overlay').classList.remove('show'); };
     document.getElementById('daytimes-cancel').addEventListener('click', close);
@@ -4747,6 +4815,7 @@
   // recordHistoryDay), plus a streak and a level that only rewards
   // consistency (days at/above a 70% completion ratio), not raw volume.
   function renderAchievements() {
+    renderDistractionCount();
     var historyMap = {};
     data.history.forEach(function(h) { historyMap[h.date] = { done: h.done, total: h.total }; });
 
@@ -5525,13 +5594,15 @@
   });
 
   // Shortcuts: M toggles Masonry, B toggles Monochrome, D toggles Due date
-  // only, F toggles Today's Focus mode — ignored while typing anywhere
-  // editable so they don't fire mid-title/description.
+  // only, Shift+D logs a distraction (every view, not just Today), F toggles
+  // Today's Focus mode — ignored while typing anywhere editable so they
+  // don't fire mid-title/description.
   document.addEventListener('keydown', function(e) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     var tag = e.target.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
     var key = e.key.toLowerCase();
+    if (e.shiftKey && key === 'd') { e.preventDefault(); logDistraction(); return; }
     if (key === 'm') document.getElementById('masonry-btn').click();
     else if (key === 'b') document.getElementById('menu-mono').click();
     else if (key === 'd') document.getElementById('due-only-btn').click();
