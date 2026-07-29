@@ -1903,10 +1903,10 @@
         Focus mode
         <span class="tb-shortcut">F</span>
       </button>
-      <button class="tb-btn" id="menu-mono" title="Grayscale everything except a single red accent (M)">
+      <button class="tb-btn" id="menu-mono" title="Grayscale everything except a single red accent (B)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor" stroke="none"/></svg>
         Monochrome
-        <span class="tb-shortcut">M</span>
+        <span class="tb-shortcut">B</span>
       </button>
       <div class="tb-sep-h"></div>
       <button class="tb-btn" id="done-list-btn" title="View completed cards in this project">
@@ -5524,19 +5524,16 @@
     }
   });
 
-  // Shortcuts: M toggles Masonry (Board view only, where it applies) or
-  // Monochrome (everywhere else), D toggles Due date only, F toggles
-  // Today's Focus mode — ignored while typing anywhere editable so they
-  // don't fire mid-title/description.
+  // Shortcuts: M toggles Masonry, B toggles Monochrome, D toggles Due date
+  // only, F toggles Today's Focus mode — ignored while typing anywhere
+  // editable so they don't fire mid-title/description.
   document.addEventListener('keydown', function(e) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     var tag = e.target.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
     var key = e.key.toLowerCase();
-    if (key === 'm') {
-      if (currentView === 'board') document.getElementById('masonry-btn').click();
-      else document.getElementById('menu-mono').click();
-    }
+    if (key === 'm') document.getElementById('masonry-btn').click();
+    else if (key === 'b') document.getElementById('menu-mono').click();
     else if (key === 'd') document.getElementById('due-only-btn').click();
     else if (key === 'f' && currentView === 'today') setFocusMode(!focusModeOn);
   });
