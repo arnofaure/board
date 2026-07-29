@@ -773,7 +773,7 @@
      controls (reset, start/pause, edit length). Yellow marks noon, purple
      marks 5pm; the timer keeps its own red (tomato) throughout. */
   #cp-topbar {
-    padding: 32px 14px 30px;
+    padding: 32px 14px 42px;
     background: var(--surface);
     border: 1px solid rgba(211,211,211,0.4);
     border-radius: var(--radius-lg);
@@ -834,7 +834,7 @@
      per timed task; the browser's native title tooltip on hover names it. */
   #cp-task-dots { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
   .cp-task-dot {
-    position: absolute; top: 50%; margin-top: 44px; width: 7px; height: 7px;
+    position: absolute; top: 50%; margin-top: 18px; width: 7px; height: 7px;
     margin-left: -3.5px; border-radius: 50%;
     background: #fff; cursor: default; pointer-events: auto;
     transition: transform 0.15s;
@@ -842,7 +842,7 @@
   .cp-task-dot:hover { transform: scale(1.6); }
   /* Instant custom tooltip (no native ~1s hover delay) naming the task. */
   #cp-task-tooltip {
-    position: absolute; top: 100%; margin-top: 52px; transform: translateX(-50%);
+    position: absolute; top: 100%; margin-top: 46px; transform: translateX(-50%);
     background: #1a1a1a; color: var(--text); font-size: 11px; font-weight: 600;
     padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border-hover);
     white-space: nowrap; pointer-events: none; z-index: 20;
@@ -866,7 +866,7 @@
      the tick uses), instead of a separate legend row with no positional
      relationship to the track above it. */
   .cp-hour-label {
-    position: absolute; top: 100%; margin-top: 15px; transform: translateX(-50%);
+    position: absolute; top: 100%; margin-top: 24px; transform: translateX(-50%);
     font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; font-weight: 600;
     white-space: nowrap;
   }
