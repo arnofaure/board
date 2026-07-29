@@ -1761,6 +1761,118 @@
   #page-footer a { color: var(--text-dim); text-decoration: none; }
   #page-footer a:hover { color: var(--text-muted); text-decoration: underline; }
   #page-footer .footer-credit { display: block; margin-top: 4px; }
+
+  /* MONOCHROME THEME — an opt-in toggle (menu-mono) that strips every
+     hue-coded accent down to a single red, reused at varying opacity to
+     keep hierarchy (e.g. the streak heatmap) instead of adding new hues.
+     Arbitrary user-picked colors (card/tag swatches) can't be swapped for
+     a value, so those get desaturated with a filter instead. Nothing here
+     is deleted — it's a pure override layer, off by default. */
+  html.mono-theme {
+    --mono-accent: #ef6b5c;
+    --mono-accent-rgb: 239, 107, 92;
+  }
+  /* Arbitrary swatch colors (project/card picks) — desaturate in place
+     rather than trying to map infinite hues onto one accent. */
+  html.mono-theme .card-dot,
+  html.mono-theme .today-row-color,
+  html.mono-theme .palette-row-color,
+  html.mono-theme .gantt-bar,
+  html.mono-theme .color-swatch,
+  html.mono-theme .idea-tag,
+  html.mono-theme .idea-tag-filter-btn,
+  html.mono-theme #title-project-btn,
+  html.mono-theme .tl-row,
+  html.mono-theme .card.is-focus,
+  html.mono-theme .gantt-row-tag { filter: grayscale(1); }
+
+  /* Checkpoint timeline */
+  html.mono-theme .cp-fill { background-image: none !important; background: var(--mono-accent); }
+  html.mono-theme .cp-fill-extra { background: rgba(var(--mono-accent-rgb), 0.45); }
+  html.mono-theme .cp-tick { border-color: var(--text-muted); }
+  html.mono-theme .cp-tick.passed { background: var(--mono-accent); border-color: var(--mono-accent); }
+  html.mono-theme .cp-tick.extra { border-color: var(--text-dim); }
+  html.mono-theme .cp-tick.extra.passed { background: rgba(var(--mono-accent-rgb), 0.45); }
+  html.mono-theme .cp-hour-label.noon,
+  html.mono-theme .cp-hour-label.pm,
+  html.mono-theme .cp-hour-label.extra,
+  html.mono-theme .cp-remaining-label.noon,
+  html.mono-theme .cp-remaining-label.pm,
+  html.mono-theme .cp-remaining-label.extra { color: var(--text-muted); }
+
+  /* Timer + Up Now hero (already coral by design — pinned to the same accent) */
+  html.mono-theme #today-timer-linebar-btn,
+  html.mono-theme #today-timer-line-fill { background: var(--mono-accent); color: #fff; }
+  html.mono-theme .today-hero-eyebrow,
+  html.mono-theme #today-summary-count,
+  html.mono-theme #today-summary-label { color: var(--mono-accent); }
+  html.mono-theme #today-timer-line-track { background: rgba(var(--mono-accent-rgb), 0.2); }
+  html.mono-theme #today-timer-line-label { color: var(--mono-accent); }
+  html.mono-theme #today-hero { border-color: rgba(var(--mono-accent-rgb), 0.55); }
+  html.mono-theme .today-hero-btn.done { border-color: var(--mono-accent); color: var(--mono-accent); }
+  html.mono-theme .today-hero-btn.done:hover { background: rgba(var(--mono-accent-rgb), 0.15); }
+
+  /* Card status toggles (done/today/tomorrow/focus) — same accent, text tells them apart */
+  html.mono-theme .card-icon-btn.done.is-done,
+  html.mono-theme .card-icon-btn.today.is-active,
+  html.mono-theme .card-icon-btn.focus.is-focus { background: var(--mono-accent); color: #fff; }
+  html.mono-theme .card-icon-btn.done.is-done:hover,
+  html.mono-theme .card-icon-btn.today.is-active:hover,
+  html.mono-theme .card-icon-btn.focus.is-focus:hover { background: var(--mono-accent); opacity: 0.85; }
+  html.mono-theme #card-today-toggle.active-today,
+  html.mono-theme #card-tomorrow-toggle.active-tomorrow,
+  html.mono-theme #card-done-toggle.active-done,
+  html.mono-theme #card-focus-toggle.active-focus {
+    color: var(--mono-accent); border-color: rgba(var(--mono-accent-rgb), 0.4); background: rgba(var(--mono-accent-rgb), 0.08);
+  }
+  html.mono-theme .card-checklist-badge.complete { color: var(--mono-accent); }
+
+  /* Due dates, overdue only (today's due date stays neutral) */
+  html.mono-theme .card-due .end.due-today { color: var(--text); }
+  html.mono-theme .card-due .end.due-overdue { color: var(--mono-accent); }
+  html.mono-theme .tl-group-title.overdue { color: var(--mono-accent); }
+  html.mono-theme .tl-group-title.today { color: var(--text-dim); }
+
+  /* Gantt "today" marker */
+  html.mono-theme .gantt-day.today,
+  html.mono-theme .gantt-day.today .gantt-day-num { color: var(--mono-accent); }
+  html.mono-theme .gantt-today-line { border-left-color: var(--mono-accent); }
+
+  /* Achievements — the green heatmap becomes a red one, intensity by level */
+  html.mono-theme .achievements-stat { color: var(--mono-accent); }
+  html.mono-theme .ach-day[data-level="1"],
+  html.mono-theme .achievements-legend-sq[data-level="1"] { background: rgba(var(--mono-accent-rgb), 0.25); border-color: rgba(var(--mono-accent-rgb), 0.25); }
+  html.mono-theme .ach-day[data-level="2"],
+  html.mono-theme .achievements-legend-sq[data-level="2"] { background: rgba(var(--mono-accent-rgb), 0.45); border-color: rgba(var(--mono-accent-rgb), 0.45); }
+  html.mono-theme .ach-day[data-level="3"],
+  html.mono-theme .achievements-legend-sq[data-level="3"] { background: rgba(var(--mono-accent-rgb), 0.7); border-color: rgba(var(--mono-accent-rgb), 0.7); }
+  html.mono-theme .ach-day[data-level="4"],
+  html.mono-theme .achievements-legend-sq[data-level="4"] { background: var(--mono-accent); border-color: var(--mono-accent); }
+
+  /* Hover states on the status toggles — bases were covered, hover swaps
+     to a brighter tint of the same colors and needs its own override. */
+  html.mono-theme .card-icon-btn.done.is-done:hover,
+  html.mono-theme .card-icon-btn.today.is-active:hover,
+  html.mono-theme .card-icon-btn.focus.is-focus:hover { background: var(--mono-accent); }
+
+  /* Toolbar overdue count, break-task icon, "done today" queue badge */
+  html.mono-theme #card-total .overdue { color: var(--mono-accent); }
+  html.mono-theme .today-row-break-icon { color: var(--text-muted); }
+  html.mono-theme .today-done-badge {
+    color: var(--mono-accent); border-color: rgba(var(--mono-accent-rgb), 0.4); background: rgba(var(--mono-accent-rgb), 0.1);
+  }
+  html.mono-theme #today-combo-input:focus { border-color: var(--mono-accent); }
+
+  /* Idea description links */
+  html.mono-theme .desc-links a { color: var(--text-muted); }
+
+  /* Day-checkpoints settings modal — slider thumbs and the extra-block checkbox */
+  html.mono-theme #daytimes-mid-slider,
+  html.mono-theme #daytimes-end-slider,
+  html.mono-theme #daytimes-extra-end-slider { --thumb-color: var(--mono-accent); }
+  html.mono-theme #daytimes-start-slider,
+  html.mono-theme #daytimes-extra-start-slider { --thumb-color: var(--text-muted); }
+  html.mono-theme .daytimes-toggle-row input[type="checkbox"] { accent-color: var(--mono-accent); }
 </style>
 </head>
 <body>
@@ -1790,6 +1902,11 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
         Focus mode
         <span class="tb-shortcut">F</span>
+      </button>
+      <button class="tb-btn" id="menu-mono" title="Grayscale everything except a single red accent (M)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor" stroke="none"/></svg>
+        Monochrome
+        <span class="tb-shortcut">M</span>
       </button>
       <div class="tb-sep-h"></div>
       <button class="tb-btn" id="done-list-btn" title="View completed cards in this project">
@@ -2401,7 +2518,8 @@
       ideas: [],
       history: [],
       lastIdeaPromptDate: todayStr(),
-      fontScale: 1
+      fontScale: 1,
+      monoTheme: false
     };
   }
 
@@ -2459,6 +2577,7 @@
     if (!d.history) d.history = [];
     if (!d.lastIdeaPromptDate) d.lastIdeaPromptDate = todayStr();
     if (!d.fontScale) d.fontScale = 1;
+    if (d.monoTheme === undefined) d.monoTheme = false;
     d.ideas.forEach(function(i) {
       if (!i.id) i.id = uid();
       if (i.text === undefined) i.text = '';
@@ -2481,6 +2600,7 @@
 
   var data = load();
   document.documentElement.style.setProperty('--board-scale', String(data.fontScale));
+  document.documentElement.classList.toggle('mono-theme', !!data.monoTheme);
   function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
 
   function activeProject() {
@@ -5404,15 +5524,19 @@
     }
   });
 
-  // Shortcuts: M toggles Masonry, D toggles Due date only, F toggles Today's
-  // Focus mode — ignored while typing anywhere editable so they don't fire
-  // mid-title/description.
+  // Shortcuts: M toggles Masonry (Board view only, where it applies) or
+  // Monochrome (everywhere else), D toggles Due date only, F toggles
+  // Today's Focus mode — ignored while typing anywhere editable so they
+  // don't fire mid-title/description.
   document.addEventListener('keydown', function(e) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     var tag = e.target.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target.isContentEditable) return;
     var key = e.key.toLowerCase();
-    if (key === 'm') document.getElementById('masonry-btn').click();
+    if (key === 'm') {
+      if (currentView === 'board') document.getElementById('masonry-btn').click();
+      else document.getElementById('menu-mono').click();
+    }
     else if (key === 'd') document.getElementById('due-only-btn').click();
     else if (key === 'f' && currentView === 'today') setFocusMode(!focusModeOn);
   });
@@ -5452,6 +5576,14 @@
     setFocusMode(!focusModeOn);
     logoBtn.classList.remove('open');
     logoDropdown.classList.remove('open');
+  });
+  var menuMonoBtn = document.getElementById('menu-mono');
+  menuMonoBtn.classList.toggle('active', !!data.monoTheme);
+  menuMonoBtn.addEventListener('click', function() {
+    data.monoTheme = !data.monoTheme;
+    document.documentElement.classList.toggle('mono-theme', data.monoTheme);
+    menuMonoBtn.classList.toggle('active', data.monoTheme);
+    save();
   });
   document.getElementById('menu-help').addEventListener('click', function() {
     document.getElementById('help-overlay').classList.add('show');
