@@ -1304,6 +1304,7 @@
   #achievements-calendar { display: flex; gap: 5px; width: max-content; }
   .ach-week { display: flex; flex-direction: column; gap: 5px; }
   .ach-day {
+    position: relative;
     width: 22px;
     height: 22px;
     border-radius: 5px;
@@ -1320,6 +1321,21 @@
   .ach-day[data-level="3"] { background: #22a55e; border-color: #22a55e; }
   .ach-day[data-level="4"] { background: #4ade80; border-color: #4ade80; }
   .ach-day.ach-future { background: transparent; border-color: transparent; cursor: default; }
+  /* Distraction tally gets a corner of the cube rather than its own square —
+     a bottom-right red wedge, darker/lighter with how many were logged that
+     day, layered over whatever the completion-ratio color underneath is. */
+  .ach-day[data-distract-level]:not([data-distract-level="0"])::after {
+    content: '';
+    position: absolute; right: 0; bottom: 0;
+    width: 0; height: 0;
+    border-style: solid;
+    border-width: 0 0 10px 10px;
+    border-color: transparent transparent var(--danger) transparent;
+    border-bottom-right-radius: 5px;
+  }
+  .ach-day[data-distract-level="1"]::after { opacity: 0.45; }
+  .ach-day[data-distract-level="2"]::after { opacity: 0.75; }
+  .ach-day[data-distract-level="3"]::after { opacity: 1; }
 
   #ach-tooltip {
     position: fixed; pointer-events: none; z-index: 400;
@@ -1330,6 +1346,7 @@
   }
   #ach-tooltip.show { opacity: 1; }
   #achievements-legend { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 12px; font-size: 11px; color: var(--text-dim); }
+  #achievements-legend-distract { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; font-size: 11px; color: var(--text-dim); }
   .achievements-legend-sq { width: 13px; height: 13px; border-radius: 3px; background: var(--surface2); border: 0.5px solid var(--border); }
   .achievements-legend-sq[data-level="1"] { background: #14532d; border-color: #14532d; }
   .achievements-legend-sq[data-level="2"] { background: #166534; border-color: #166534; }
@@ -2251,6 +2268,10 @@
       <span class="achievements-legend-sq" data-level="3"></span>
       <span class="achievements-legend-sq" data-level="4"></span>
       <span>More</span>
+    </div>
+    <div id="achievements-legend-distract">
+      <span class="ach-day" data-distract-level="3" style="width:13px;height:13px;cursor:default;"></span>
+      <span>= distractions logged that day (darker corner, more of them)</span>
     </div>
     <div id="achievements-empty" class="hide">No history yet.<br>Come back tomorrow — each day you use the Today list gets logged here.</div>
    </div>
@@ -4871,9 +4892,11 @@
           var ratio = entry2.done / entry2.total;
           lvl = ratio >= 1 ? 4 : ratio >= 0.7 ? 3 : ratio >= 0.4 ? 2 : 1;
         }
+        var distractCount = data.distractionsByDate[key2] || 0;
+        var distractLevel = distractCount === 0 ? 0 : distractCount <= 2 ? 1 : distractCount <= 5 ? 2 : 3;
         var niceDate = MONTH_NAMES[cursorDate.getMonth()] + ' ' + cursorDate.getDate();
-        var tooltip = isFuture ? '' : (niceDate + ' — ' + (entry2 ? entry2.done + '/' + entry2.total + ' done' : 'no data'));
-        daysHtml += '<div class="ach-day' + (isFuture ? ' ach-future' : '') + '" data-level="' + lvl + '" data-tooltip="' + esc(tooltip) + '"></div>';
+        var tooltip = isFuture ? '' : (niceDate + ' — ' + (entry2 ? entry2.done + '/' + entry2.total + ' done' : 'no data') + (distractCount ? ' · ' + distractCount + ' distraction' + (distractCount === 1 ? '' : 's') : ''));
+        daysHtml += '<div class="ach-day' + (isFuture ? ' ach-future' : '') + '" data-level="' + lvl + '" data-distract-level="' + (isFuture ? 0 : distractLevel) + '" data-tooltip="' + esc(tooltip) + '"></div>';
         cursorDate.setDate(cursorDate.getDate() + 1);
       }
       weeksHtml.push('<div class="ach-week">' + daysHtml + '</div>');
