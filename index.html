@@ -834,7 +834,7 @@
      per timed task; the browser's native title tooltip on hover names it. */
   #cp-task-dots { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
   .cp-task-dot {
-    position: absolute; top: 50%; margin-top: 9px; width: 7px; height: 7px;
+    position: absolute; top: 50%; margin-top: 16px; width: 7px; height: 7px;
     margin-left: -3.5px; border-radius: 50%;
     background: #fff; cursor: default; pointer-events: auto;
     transition: transform 0.15s;
@@ -866,7 +866,7 @@
      the tick uses), instead of a separate legend row with no positional
      relationship to the track above it. */
   .cp-hour-label {
-    position: absolute; top: 100%; margin-top: 8px; transform: translateX(-50%);
+    position: absolute; top: 100%; margin-top: 15px; transform: translateX(-50%);
     font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; font-weight: 600;
     white-space: nowrap;
   }
@@ -948,6 +948,10 @@
   }
   .today-row-time:hover, .today-row-time:focus { color: var(--text); border-color: var(--border-hover); }
   .today-row-time::-webkit-calendar-picker-indicator { opacity: 0.5; filter: invert(1); }
+  /* Safari renders an empty <input type="time"> with visible placeholder
+     digits (e.g. "12:30 PM") instead of dashes like Chromium — indistinguishable
+     from a real value. Hide the text (not the picker icon) until one is set. */
+  .today-row-time.time-unset { color: transparent; -webkit-text-fill-color: transparent; }
   .today-hero-eyebrow {
     font-family: ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.08em;
     text-transform: uppercase; color: #ef6b5c; text-align: center;
@@ -3093,11 +3097,12 @@
   // drop out (that's Today's own "archiving"), unfinished items carry over
   // to the new day instead of being wiped.
   function ensureTodayList() {
-    if (!data.today || !data.today.items) data.today = { date: todayStr(), items: [] };
+    if (!data.today || !data.today.items) data.today = { date: todayStr(), items: [], heroId: null };
     var today = todayStr();
     if (data.today.date !== today) {
       recordHistoryDay(data.today.date, data.today.items);
       data.today.date = today;
+      data.today.heroId = null;
       data.today.items = data.today.items.filter(function(i) {
         var info = todayEntryInfo(i);
         return !info || !info.done;
@@ -3808,6 +3813,20 @@
     if (idx === -1) return;
     var item = list.items.splice(idx, 1)[0];
     list.items.push(item);
+    // The item itself stays valid (not done, not postponed) so it wouldn't
+    // otherwise lose its pin — "Later" is the explicit signal to hand
+    // Up Now to whatever's next, same as Done does implicitly.
+    if (list.heroId === itemId) list.heroId = null;
+    save();
+    render();
+  }
+
+  // Explicit user pick, e.g. a row's "Make Up Now" button — pins that task
+  // as Up Now regardless of schedule time, until the user moves on again.
+  function makeTodayItemHero(itemId) {
+    var list = ensureTodayList();
+    if (!list.items.some(function(i) { return i.id === itemId; })) return;
+    list.heroId = itemId;
     save();
     render();
   }
@@ -3849,13 +3868,20 @@
     var heroTitleEl = document.getElementById('today-hero-title');
     var rest = todo;
     if (todo.length) {
-      var hero = todo[0];
-      rest = todo.slice(1);
+      // Up Now is pinned by id, not recomputed from the time sort — setting
+      // or changing a task's time should never yank focus away mid-task.
+      // The pin only falls back to the top of the pile when it's missing,
+      // done, postponed, or removed (i.e. no longer in `todo` at all).
+      var hero = list.heroId ? todo.find(function(e) { return e.item.id === list.heroId; }) : null;
+      if (!hero) hero = todo[0];
+      if (list.heroId !== hero.item.id) { list.heroId = hero.item.id; save(); }
+      rest = todo.filter(function(e) { return e !== hero; });
       heroCurrentItemId = hero.item.id;
       heroEl.classList.remove('hide');
       heroTitleEl.setAttribute('data-card', hero.item.cardId || '');
       var heroTimeEl = document.getElementById('today-hero-time');
       heroTimeEl.value = hero.info.time || '';
+      heroTimeEl.classList.toggle('time-unset', !hero.info.time);
       heroTimeEl.setAttribute('data-item', hero.item.id);
       heroTitleEl.innerHTML = hero.info.standalone
         ? '<textarea class="today-hero-title-input" data-action="rename-standalone" data-item="' + hero.item.id + '" rows="1" placeholder="Untitled task">' + esc(hero.info.title) + '</textarea>'
@@ -3906,8 +3932,9 @@
         titleHtml +
         (info.done ? '<span class="today-done-badge">DONE</span>' : '') +
         (pct ? '<span class="card-checklist-pct' + (pct.pct === 100 ? ' complete' : '') + '">' + svgIcon('checklist') + pct.done + '/' + pct.total + '</span>' : '') +
-        '<input type="time" class="today-row-time" data-action="set-time" data-item="' + item.id + '" value="' + (info.time || '') + '" title="Schedule this task">' +
+        '<input type="time" class="today-row-time' + (info.time ? '' : ' time-unset') + '" data-action="set-time" data-item="' + item.id + '" value="' + (info.time || '') + '" title="Schedule this task">' +
         '<span class="today-row-tag">' + esc(info.tag) + '</span>' +
+        (info.done ? '' : '<button type="button" class="today-row-action-btn" data-action="make-hero" data-item="' + item.id + '" title="Make this Up Now">' + svgIcon('target') + '</button>') +
         '<button type="button" class="today-row-action-btn" data-action="postpone-today" data-item="' + item.id + '" title="Postpone to tomorrow">' + svgIcon('tomorrow') + '</button>' +
         '<button type="button" class="today-row-action-btn" data-action="remove-today" data-item="' + item.id + '" title="Remove from today">' + svgIcon('trash') + '</button>' +
       '</div>'
@@ -3951,6 +3978,7 @@
         if (action === 'toggle-today-done') toggleTodayItemDone(btn.getAttribute('data-item'));
         else if (action === 'remove-today') removeFromToday(btn.getAttribute('data-item'));
         else if (action === 'postpone-today') postponeTodayItem(btn.getAttribute('data-item'));
+        else if (action === 'make-hero') makeTodayItemHero(btn.getAttribute('data-item'));
         else if (action === 'toggle-done-collapse') { todayDoneCollapsed = !todayDoneCollapsed; renderToday(); }
         return;
       }
