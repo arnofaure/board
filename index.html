@@ -834,7 +834,7 @@
      per timed task; the browser's native title tooltip on hover names it. */
   #cp-task-dots { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
   .cp-task-dot {
-    position: absolute; top: 50%; margin-top: 16px; width: 7px; height: 7px;
+    position: absolute; top: 50%; margin-top: 26px; width: 7px; height: 7px;
     margin-left: -3.5px; border-radius: 50%;
     background: #fff; cursor: default; pointer-events: auto;
     transition: transform 0.15s;
@@ -842,7 +842,7 @@
   .cp-task-dot:hover { transform: scale(1.6); }
   /* Instant custom tooltip (no native ~1s hover delay) naming the task. */
   #cp-task-tooltip {
-    position: absolute; top: 100%; margin-top: 24px; transform: translateX(-50%);
+    position: absolute; top: 100%; margin-top: 34px; transform: translateX(-50%);
     background: #1a1a1a; color: var(--text); font-size: 11px; font-weight: 600;
     padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border-hover);
     white-space: nowrap; pointer-events: none; z-index: 20;
@@ -885,6 +885,9 @@
   .cp-remaining-label.hide { display: none; }
   .cp-remaining-label.noon { color: #e8cf7c; }
   .cp-remaining-label.pm { color: #b285f0; }
+  /* Time until the next scheduled task, appended in white so it reads as
+     distinct from the checkpoint's own (colored) countdown. */
+  .cp-remaining-next { color: #fff; }
 
   /* The task pile: a slim "done today" readout above Up now, which sits
      above the descending Up-next queue — one column, biggest thing first. */
@@ -952,11 +955,15 @@
      digits (e.g. "12:30 PM") instead of dashes like Chromium — indistinguishable
      from a real value. Hide the text (not the picker icon) until one is set. */
   .today-row-time.time-unset { color: transparent; -webkit-text-fill-color: transparent; }
+  /* ...but once it's focused for editing, the digits must be visible again —
+     otherwise the segment being typed/selected is invisible until a full
+     value is committed. */
+  .today-row-time.time-unset:focus { color: var(--text); -webkit-text-fill-color: var(--text); }
   .today-hero-eyebrow {
     font-family: ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.08em;
     text-transform: uppercase; color: #ef6b5c; text-align: center;
   }
-  .today-hero-title { font-size: 30px; font-weight: 700; color: #ef6b5c; margin-bottom: 18px; word-break: break-word; }
+  .today-hero-title { font-size: 30px; font-weight: 700; color: #fff; margin-bottom: 18px; word-break: break-word; }
   /* A textarea (not input) so a long standalone task title wraps and grows
      the hero box, same as the plain-span title on card-linked tasks —
      height is kept in sync with content via JS on every render/input. */
@@ -3644,8 +3651,28 @@
     return (h > 0 ? h + 'h ' : '') + m + 'm';
   }
 
+  // Soonest not-yet-done timed task still ahead of "now" — its countdown
+  // rides alongside whichever checkpoint's own remaining-time label is
+  // currently showing, so the user sees both at a glance.
+  function nextTimedTask(minutesNow) {
+    var next = null;
+    todayTimeDots.forEach(function(d) {
+      var parts = d.time.split(':');
+      var mins = (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+      if (mins > minutesNow && (!next || mins < next.mins)) next = { mins: mins, title: d.title };
+    });
+    return next;
+  }
+  function remainingLabelHtml(mainMins, nextTaskText) {
+    var html = fmtRemaining(mainMins);
+    if (nextTaskText) html += ' <span class="cp-remaining-next">(' + esc(nextTaskText) + ')</span>';
+    return html;
+  }
+
   function renderCheckpointLine(minutesNow) {
     var nowPct = unifiedPct(minutesNow);
+    var nextTask = nextTimedTask(minutesNow);
+    var nextTaskText = nextTask ? fmtRemaining(nextTask.mins - minutesNow) : '';
     var midPct = unifiedPct(dayTimes.mid);
     var endPct = unifiedPct(dayTimes.end);
     document.getElementById('cp-now').style.left = nowPct + '%';
@@ -3675,8 +3702,8 @@
     // together for the whole morning.
     document.getElementById('cp-noon-remaining').classList.toggle('hide', minutesNow >= dayTimes.mid);
     document.getElementById('cp-pm-remaining').classList.toggle('hide', minutesNow < dayTimes.mid || minutesNow >= dayTimes.end);
-    document.getElementById('cp-noon-remaining').textContent = fmtRemaining(dayTimes.mid - minutesNow);
-    document.getElementById('cp-pm-remaining').textContent = fmtRemaining(dayTimes.end - minutesNow);
+    document.getElementById('cp-noon-remaining').innerHTML = remainingLabelHtml(dayTimes.mid - minutesNow, nextTaskText);
+    document.getElementById('cp-pm-remaining').innerHTML = remainingLabelHtml(dayTimes.end - minutesNow, nextTaskText);
     document.getElementById('cp-tick-noon').classList.toggle('passed', minutesNow >= dayTimes.mid);
     document.getElementById('cp-tick-pm').classList.toggle('passed', minutesNow >= dayTimes.end);
 
@@ -3698,7 +3725,7 @@
     var extraPassed = minutesNow >= dayTimes.extraEnd;
     document.getElementById('cp-extra-end-hour').classList.toggle('hide', extraPassed);
     document.getElementById('cp-extra-end-remaining').classList.toggle('hide', extraPassed || minutesNow < dayTimes.extraStart);
-    document.getElementById('cp-extra-end-remaining').textContent = fmtRemaining(dayTimes.extraEnd - minutesNow);
+    document.getElementById('cp-extra-end-remaining').innerHTML = remainingLabelHtml(dayTimes.extraEnd - minutesNow, nextTaskText);
     document.getElementById('cp-tick-extra-end').classList.toggle('passed', extraPassed);
   }
 
