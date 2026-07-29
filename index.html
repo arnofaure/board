@@ -575,13 +575,15 @@
   }
   .text-input:hover, .text-input:focus { border-color: var(--border-hover); }
   .text-input::placeholder { color: var(--text-dim); }
-  .text-input[type="date"] { cursor: pointer; color-scheme: dark; }
-  .text-input[type="date"]::-webkit-calendar-picker-indicator {
+  .text-input[type="date"], .text-input[type="time"] { cursor: pointer; color-scheme: dark; }
+  .text-input[type="date"]::-webkit-calendar-picker-indicator,
+  .text-input[type="time"]::-webkit-calendar-picker-indicator {
     filter: invert(0.85);
     cursor: pointer;
     opacity: 0.8;
   }
-  .text-input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+  .text-input[type="date"]::-webkit-calendar-picker-indicator:hover,
+  .text-input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   textarea.text-input { resize: vertical; min-height: 56px; line-height: 1.5; }
   #card-today-toggle.active-today { color: #fbbf24; border-color: rgba(251,191,36,0.4); background: rgba(251,191,36,0.08); }
   #card-today-toggle.active-today svg circle { fill: currentColor; }
@@ -828,6 +830,30 @@
     background: rgba(255,255,255,0.55); transform: translate(-50%, -50%);
     pointer-events: none; z-index: 1;
   }
+  /* Scheduled-task markers — small dots sitting below the main line, one
+     per timed task; the browser's native title tooltip on hover names it. */
+  #cp-task-dots { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+  .cp-task-dot {
+    position: absolute; top: 50%; margin-top: 9px; width: 7px; height: 7px;
+    margin-left: -3.5px; border-radius: 50%;
+    background: #fff; cursor: default; pointer-events: auto;
+    transition: transform 0.15s;
+  }
+  .cp-task-dot:hover { transform: scale(1.6); }
+  /* Instant custom tooltip (no native ~1s hover delay) naming the task. */
+  #cp-task-tooltip {
+    position: absolute; top: 100%; margin-top: 24px; transform: translateX(-50%);
+    background: #1a1a1a; color: var(--text); font-size: 11px; font-weight: 600;
+    padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border-hover);
+    white-space: nowrap; pointer-events: none; z-index: 20;
+    opacity: 0; visibility: hidden; transition: opacity 0.1s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  #cp-task-tooltip.show { opacity: 1; visibility: visible; }
+  #cp-task-tooltip::after {
+    content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+    border: 4px solid transparent; border-bottom-color: #1a1a1a;
+  }
   .cp-mini-btn {
     display: flex; align-items: center; justify-content: center;
     width: 24px; height: 24px; flex-shrink: 0;
@@ -860,82 +886,39 @@
   .cp-remaining-label.noon { color: #e8cf7c; }
   .cp-remaining-label.pm { color: #b285f0; }
 
-  /* Hero + timer gauge (left) + done-today count (right) sit side by
-     side, all matching plates, so today's progress and pacing read at
-     a glance without any of them fighting the centered "Up now" title. */
-  #today-hero-row { display: flex; align-items: stretch; gap: 12px; }
-  #today-hero-row #today-hero { margin: 0; flex: 1; min-width: 0; }
-  #today-summary-box, #today-timer-box {
-    flex-shrink: 0; width: 132px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 8px; padding: 14px 10px; text-align: center;
-    border-radius: var(--radius-lg);
-  }
+  /* The task pile: a slim "done today" readout above Up now, which sits
+     above the descending Up-next queue — one column, biggest thing first. */
+  #today-stack { display: flex; flex-direction: column; gap: 10px; }
+  #today-stack #today-hero { margin: 0; }
+
   #today-summary-box {
-    background: rgba(74,222,128,0.12);
-    border: 1px solid rgba(74,222,128,0.4);
+    display: flex; align-items: baseline; justify-content: flex-end; gap: 5px;
   }
   #today-summary-box.hide { display: none; }
-  #today-summary-count { font-size: 26px; font-weight: 700; color: #4ade80; line-height: 1.1; }
-  #today-summary-label { margin-top: 4px; font-size: 11px; color: #4ade80; opacity: 0.85; }
+  #today-summary-count { font-size: 13px; font-weight: 700; color: #4ade80; }
+  #today-summary-label { font-size: 11px; color: #4ade80; opacity: 0.75; }
 
-  /* Timer box — neutral chrome, with color reserved for the gauge (ring)
-     itself; reset/edit tucked underneath as plain icon buttons. */
+  /* Timer — a single thin line under Up now, sized to match the checkpoint
+     bar's own countdown text rather than standing out as its own gauge. */
   #today-timer-box {
-    background: var(--surface2);
-    border: 1px solid var(--border-hover);
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 2px;
   }
-  #today-timer-pill {
-    display: flex; align-items: center; justify-content: center;
-    position: relative; width: 88px; height: 88px;
-    padding: 0; border-radius: 50%; cursor: pointer;
-    background: transparent; border: none; color: var(--text);
-  }
-  #today-timer-label {
-    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text);
-  }
-  .cp-timer-ring { position: absolute; inset: 0; width: 88px; height: 88px; }
-  /* Start/end the ring's draw at the bottom (where the play badge sits)
-     rather than the top: the ring's one seam only sits there at the
-     full/empty extremes (no visible cut either way), so the moving
-     boundary during an actual countdown sweeps the visible top instead
-     of hiding behind the badge. */
-  .cp-timer-ring svg { width: 100%; height: 100%; transform: rotate(90deg); }
-  .cp-timer-ring-track { fill: none; stroke: rgba(239,107,92,0.2); stroke-width: 4; }
-  .cp-timer-ring-fill { fill: none; stroke: #ef6b5c; stroke-width: 4; stroke-linecap: round; }
-  /* Play/pause is its own solid, high-contrast badge overlapping the ring's
-     bottom edge — a dim icon centered inside the ring got lost next to the
-     countdown text, so it needed to be a distinct, clearly clickable control. */
-  #today-timer-badge {
-    position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%);
-    display: flex; align-items: center; justify-content: center;
-    width: 28px; height: 28px; border-radius: 50%;
-    background: var(--text); color: var(--bg);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.35);
-  }
-  #today-timer-badge svg { flex-shrink: 0; }
-  #today-timer-pill:hover #today-timer-badge { opacity: 0.85; }
-  .today-timer-box-actions { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
-
-  /* Timer as a line — Focus mode's alternative to the ring, hidden the
-     rest of the time. Same red as the ring fill, same "drains as time
-     passes" direction. */
-  #today-timer-linebar { display: none; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+  .today-timer-box-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
   #today-timer-linebar-btn {
-    flex-shrink: 0; width: 30px; height: 30px;
+    flex-shrink: 0; width: 22px; height: 22px;
     background: #ef6b5c; color: #fff; border-radius: 50%;
   }
   #today-timer-linebar-btn:hover { opacity: 0.85; }
   #today-timer-line-track {
-    position: relative; flex: 1; min-width: 0; height: 6px; border-radius: 3px;
+    position: relative; flex: 1; min-width: 0; height: 3px; border-radius: 2px;
     background: rgba(239,107,92,0.2); overflow: hidden;
   }
   #today-timer-line-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: #ef6b5c; }
   #today-timer-line-label {
-    flex-shrink: 0; min-width: 54px; text-align: right;
-    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 16px; font-weight: 700;
-    font-variant-numeric: tabular-nums; color: var(--text);
+    flex-shrink: 0; min-width: 40px; text-align: right;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; font-weight: 600;
+    font-variant-numeric: tabular-nums; color: #ef6b5c;
   }
 
   /* FOCUS HERO — the one task currently "up" gets the spotlight; the rest
@@ -945,18 +928,31 @@
   #today-hero {
     position: relative;
     padding: 26px 22px; text-align: center;
-    background: linear-gradient(180deg, rgba(239,107,92,0.4), rgba(239,107,92,0.18));
+    background: var(--surface2);
     border: 1px solid rgba(239,107,92,0.55);
     border-radius: var(--radius-lg);
     overflow: hidden;
   }
   #today-hero.hide { display: none; }
   .today-hero-top { position: relative; margin-bottom: 10px; }
+  .today-hero-top .today-row-time { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
+  /* Optional HH:MM scheduling, shared by the hero and every list row —
+     same visual weight as the project tag next to it (badge, not a bare
+     form field), so it reads as metadata whether set or not. */
+  .today-row-time {
+    flex-shrink: 0;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; font-weight: 600;
+    color: var(--text-dim); background: var(--surface2); border: 0.5px solid var(--border);
+    border-radius: 4px; padding: 2px 6px; cursor: pointer;
+    color-scheme: dark;
+  }
+  .today-row-time:hover, .today-row-time:focus { color: var(--text); border-color: var(--border-hover); }
+  .today-row-time::-webkit-calendar-picker-indicator { opacity: 0.5; filter: invert(1); }
   .today-hero-eyebrow {
     font-family: ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.08em;
     text-transform: uppercase; color: #ef6b5c; text-align: center;
   }
-  .today-hero-title { font-size: 30px; font-weight: 700; color: var(--text); margin-bottom: 18px; word-break: break-word; }
+  .today-hero-title { font-size: 30px; font-weight: 700; color: #ef6b5c; margin-bottom: 18px; word-break: break-word; }
   /* A textarea (not input) so a long standalone task title wraps and grows
      the hero box, same as the plain-span title on card-linked tasks —
      height is kept in sync with content via JS on every render/input. */
@@ -993,17 +989,8 @@
     display: none;
   }
   #today-view.focus-mode #today-main { max-width: 880px; }
-  #today-view.focus-mode #today-hero-row { flex-direction: column; gap: 16px; }
-  #today-view.focus-mode #today-timer-box {
-    width: 100%; order: 2; flex-direction: row; align-items: center; gap: 16px; padding: 14px 22px;
-  }
-  #today-view.focus-mode #today-hero { order: 1; }
-  #today-view.focus-mode #today-timer-pill { display: none; }
-  #today-view.focus-mode #today-timer-linebar { display: flex; }
-  #today-view.focus-mode .today-timer-box-actions { margin-top: 0; }
   #today-view.focus-mode #today-hero {
     padding: 44px 32px;
-    background: linear-gradient(180deg, rgba(239,107,92,0.65), rgba(239,107,92,0.42));
     border-color: #ef6b5c;
   }
   #today-view.focus-mode .today-hero-title { font-size: 40px; }
@@ -1101,6 +1088,20 @@
     border: 1px solid rgba(211,211,211,0.2);
     border-radius: var(--radius);
     transition: border-color 0.15s;
+  }
+  /* Descending pile: Up now (hero) is biggest, the very next task steps
+     down a size, everything after settles at the plain list size — a
+     visual rank instead of a flat queue. The group title div renders
+     before the rows, so the first row is targeted via the adjacent
+     sibling combinator rather than :first-child (which would match the
+     title). */
+  #today-todo-list .today-group-title + .today-row {
+    padding: 13px 14px;
+  }
+  #today-todo-list .today-group-title + .today-row .today-row-title,
+  #today-todo-list .today-group-title + .today-row .today-row-title-input {
+    font-size: 16px;
+    font-weight: 600;
   }
   .today-row-handle {
     display: flex;
@@ -1966,6 +1967,7 @@
               <span class="cp-remaining-label pm" id="cp-pm-remaining"></span>
               <span class="cp-remaining-label extra" id="cp-extra-end-remaining"></span>
             </div>
+            <div id="cp-task-dots"></div>
           </div>
           <button type="button" class="cp-mini-btn" id="today-clock-settings-btn" title="Customize day checkpoints">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -1973,56 +1975,49 @@
         </div>
       </div>
 
-      <div id="today-hero-row">
-      <div id="today-timer-box">
-        <button type="button" id="today-timer-pill" title="Start timer">
-          <span class="cp-timer-ring" id="today-timer-ring">
-            <svg viewBox="0 0 88 88"><circle class="cp-timer-ring-track" cx="44" cy="44" r="38"/><circle class="cp-timer-ring-fill" id="today-timer-ring-fill" cx="44" cy="44" r="38"/></svg>
-          </span>
-          <span id="today-timer-label">25:00</span>
-          <span id="today-timer-badge"></span>
-        </button>
-        <div id="today-timer-linebar">
+      <div id="today-stack">
+        <div id="today-summary-box" class="hide">
+          <span id="today-summary-count"></span>
+          <span id="today-summary-label">done today</span>
+        </div>
+        <div id="today-hero" class="hide">
+          <div class="today-hero-top">
+            <div class="today-hero-eyebrow">Up now</div>
+            <input type="time" id="today-hero-time" class="today-row-time" data-action="set-time" title="Schedule this task">
+          </div>
+          <div id="today-hero-title" class="today-hero-title"></div>
+          <div class="today-hero-actions">
+            <button type="button" id="today-hero-done" class="today-hero-btn done">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Done
+            </button>
+            <button type="button" id="today-hero-next" class="today-hero-btn" title="Move to the back of today's queue">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+              Later
+            </button>
+            <button type="button" id="today-hero-tomorrow" class="today-hero-btn" title="Postpone to tomorrow">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 6 19 12 13 18"/><polyline points="6 6 12 12 6 18"/></svg>
+              Tomorrow
+            </button>
+          </div>
+        </div>
+
+        <div id="today-timer-box">
           <button type="button" id="today-timer-linebar-btn" class="cp-mini-btn" title="Start timer"></button>
           <div id="today-timer-line-track"><span id="today-timer-line-fill"></span></div>
           <span id="today-timer-line-label">25:00</span>
+          <div class="today-timer-box-actions">
+            <button type="button" class="cp-mini-btn" id="today-clock-custom-reset" title="Reset timer">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 3 6.7"/><polyline points="3 21 3 15 9 15"/></svg>
+            </button>
+            <button type="button" class="cp-mini-btn" id="today-clock-custom-edit" title="Set timer length">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            </button>
+          </div>
         </div>
-        <div class="today-timer-box-actions">
-          <button type="button" class="cp-mini-btn" id="today-clock-custom-reset" title="Reset timer">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 3 6.7"/><polyline points="3 21 3 15 9 15"/></svg>
-          </button>
-          <button type="button" class="cp-mini-btn" id="today-clock-custom-edit" title="Set timer length">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-          </button>
-        </div>
-      </div>
-      <div id="today-hero" class="hide">
-        <div class="today-hero-top">
-          <div class="today-hero-eyebrow">Up now</div>
-        </div>
-        <div id="today-hero-title" class="today-hero-title"></div>
-        <div class="today-hero-actions">
-          <button type="button" id="today-hero-done" class="today-hero-btn done">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            Done
-          </button>
-          <button type="button" id="today-hero-next" class="today-hero-btn" title="Move to the back of today's queue">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
-            Later
-          </button>
-          <button type="button" id="today-hero-tomorrow" class="today-hero-btn" title="Postpone to tomorrow">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 6 19 12 13 18"/><polyline points="6 6 12 12 6 18"/></svg>
-            Tomorrow
-          </button>
-        </div>
-      </div>
-      <div id="today-summary-box" class="hide">
-        <div id="today-summary-count"></div>
-        <div id="today-summary-label">done today</div>
-      </div>
-      </div>
 
-      <div id="today-todo-list"></div>
+        <div id="today-todo-list"></div>
+      </div>
 
       <div id="today-add-row">
         <div id="today-search-wrap">
@@ -2289,6 +2284,9 @@
 
         <label for="card-due-input">Due date</label>
         <input id="card-due-input" class="text-input" type="date">
+
+        <label for="card-time-input">Time</label>
+        <input id="card-time-input" class="text-input" type="time">
 
         <label for="card-project-select">Project</label>
         <select id="card-project-select" class="text-input"></select>
@@ -3200,7 +3198,8 @@
         tag: (found.project.name || 'Untitled') + ' · ' + found.column.name,
         checklistPct: checklistPct(found.card),
         standalone: false,
-        isBreak: false
+        isBreak: false,
+        time: found.card.time || null
       };
     }
     return {
@@ -3211,8 +3210,27 @@
       tag: 'Personal task',
       checklistPct: null,
       standalone: true,
-      isBreak: isBreakTitle(item.title)
+      isBreak: isBreakTitle(item.title),
+      time: item.time || null
     };
+  }
+
+  // Card-linked tasks store their time on the card itself (so it's the same
+  // "regular board task" field editable from the card modal); standalone
+  // tasks have no card, so it lives on the today-list item instead.
+  function setTodayItemTime(itemId, time) {
+    var list = ensureTodayList();
+    var item = list.items.find(function(i) { return i.id === itemId; });
+    if (!item) return;
+    if (item.cardId) {
+      var found = findCard(item.cardId);
+      if (!found) return;
+      found.card.time = time || null;
+    } else {
+      item.time = time || null;
+    }
+    save();
+    renderToday();
   }
 
   function toggleTodayItemDone(itemId) {
@@ -3421,7 +3439,48 @@
     document.getElementById('cp-extra-end-hour').classList.toggle('hide', !dayTimes.extraEnabled);
     document.getElementById('cp-extra-end-remaining').classList.toggle('hide', !dayTimes.extraEnabled);
     renderCpGraduations();
+    renderTaskDots();
   }
+
+  // One dot per scheduled (HH:MM) task on the timeline; renderToday keeps
+  // this list current, updateDayTimeLabels re-positions it when the
+  // checkpoints themselves change. Hover shows the task title (native
+  // title tooltip — no custom tooltip machinery needed for one word).
+  var todayTimeDots = [];
+  function renderTaskDots() {
+    var wrap = document.getElementById('cp-task-dots');
+    wrap.innerHTML = todayTimeDots.map(function(d) {
+      var parts = d.time.split(':');
+      var minutes = (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+      return '<span class="cp-task-dot" style="left:' + unifiedPct(minutes) + '%" data-label="' + esc(d.time + ' — ' + (d.title || 'Untitled')) + '"></span>';
+    }).join('');
+  }
+
+  // A custom tooltip instead of the native title attribute — the browser's
+  // own tooltip has a ~1s hover delay, this shows instantly. Delegated on
+  // #cp-track (never replaced) since the dots themselves are rebuilt on
+  // every renderTaskDots() call.
+  var cpTaskTooltipEl = null;
+  function showCpTaskTooltip(dot) {
+    if (!cpTaskTooltipEl) {
+      cpTaskTooltipEl = document.createElement('div');
+      cpTaskTooltipEl.id = 'cp-task-tooltip';
+      document.getElementById('cp-track').appendChild(cpTaskTooltipEl);
+    }
+    cpTaskTooltipEl.textContent = dot.getAttribute('data-label');
+    cpTaskTooltipEl.style.left = dot.style.left;
+    cpTaskTooltipEl.classList.add('show');
+  }
+  function hideCpTaskTooltip() {
+    if (cpTaskTooltipEl) cpTaskTooltipEl.classList.remove('show');
+  }
+  document.getElementById('cp-track').addEventListener('mouseover', function(e) {
+    var dot = e.target.closest('.cp-task-dot');
+    if (dot) showCpTaskTooltip(dot);
+  });
+  document.getElementById('cp-track').addEventListener('mouseout', function(e) {
+    if (e.target.closest('.cp-task-dot')) hideCpTaskTooltip();
+  });
 
   // One shared line, scaled to the real span from day-start to the last
   // active checkpoint (day-end, or the extra block's end when it's on) —
@@ -3606,8 +3665,11 @@
 
     document.getElementById('cp-noon-hour').classList.toggle('hide', minutesNow >= dayTimes.mid);
     document.getElementById('cp-pm-hour').classList.toggle('hide', minutesNow >= dayTimes.end);
+    // Only the current segment's countdown shows at a time — noon's remaining
+    // until noon is reached, then end-of-day's — rather than both stacked
+    // together for the whole morning.
     document.getElementById('cp-noon-remaining').classList.toggle('hide', minutesNow >= dayTimes.mid);
-    document.getElementById('cp-pm-remaining').classList.toggle('hide', minutesNow >= dayTimes.end);
+    document.getElementById('cp-pm-remaining').classList.toggle('hide', minutesNow < dayTimes.mid || minutesNow >= dayTimes.end);
     document.getElementById('cp-noon-remaining').textContent = fmtRemaining(dayTimes.mid - minutesNow);
     document.getElementById('cp-pm-remaining').textContent = fmtRemaining(dayTimes.end - minutesNow);
     document.getElementById('cp-tick-noon').classList.toggle('passed', minutesNow >= dayTimes.mid);
@@ -3630,7 +3692,7 @@
 
     var extraPassed = minutesNow >= dayTimes.extraEnd;
     document.getElementById('cp-extra-end-hour').classList.toggle('hide', extraPassed);
-    document.getElementById('cp-extra-end-remaining').classList.toggle('hide', extraPassed);
+    document.getElementById('cp-extra-end-remaining').classList.toggle('hide', extraPassed || minutesNow < dayTimes.extraStart);
     document.getElementById('cp-extra-end-remaining').textContent = fmtRemaining(dayTimes.extraEnd - minutesNow);
     document.getElementById('cp-tick-extra-end').classList.toggle('passed', extraPassed);
   }
@@ -3667,29 +3729,15 @@
     return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
   }
 
-  var TIMER_RING_CIRC = 2 * Math.PI * 38;
   function renderCustomTimer() {
     var fraction = customTimerTotalSec > 0 ? customTimerRemainingSec / customTimerTotalSec : 1;
-    var pill = document.getElementById('today-timer-pill');
-    var ringFill = document.getElementById('today-timer-ring-fill');
-    var badge = document.getElementById('today-timer-badge');
-    var label = document.getElementById('today-timer-label');
-    pill.classList.toggle('running', customTimerRunning);
-    ringFill.style.strokeDasharray = TIMER_RING_CIRC;
-    ringFill.style.strokeDashoffset = TIMER_RING_CIRC * (1 - fraction);
     // Always the actual remaining time — equal to the set length before a
     // run ever starts (never diverged yet), but must stay the paused-at
     // value once a run has been started and stopped partway through.
-    label.textContent = formatTimerClock(customTimerRemainingSec);
-    badge.innerHTML = customTimerRunning ? svgIcon('pause') : svgIcon('play');
-    pill.title = customTimerRunning ? 'Pause timer' : 'Start timer';
-
-    // Focus mode's horizontal line — same state, drawn as a bar instead of
-    // a ring; kept in sync even while hidden so it's correct the instant
-    // focus mode turns on.
     var lineBtn = document.getElementById('today-timer-linebar-btn');
     document.getElementById('today-timer-line-fill').style.width = (fraction * 100) + '%';
     document.getElementById('today-timer-line-label').textContent = formatTimerClock(customTimerRemainingSec);
+    lineBtn.classList.toggle('running', customTimerRunning);
     lineBtn.innerHTML = customTimerRunning ? svgIcon('pause') : svgIcon('play');
     lineBtn.title = customTimerRunning ? 'Pause timer' : 'Start timer';
   }
@@ -3743,7 +3791,6 @@
     var toggleRun = function() {
       if (customTimerRunning) stopCustomTimer(); else startCustomTimer();
     };
-    document.getElementById('today-timer-pill').addEventListener('click', toggleRun);
     document.getElementById('today-timer-linebar-btn').addEventListener('click', toggleRun);
     document.getElementById('today-clock-custom-reset').addEventListener('click', resetCustomTimer);
     document.getElementById('today-clock-custom-edit').addEventListener('click', editCustomTimer);
@@ -3781,6 +3828,15 @@
     var done = entries.filter(function(e) { return e.info.done; });
     var doneToday = entries.filter(function(e) { return e.info.done && e.info.doneAt === todayStr(); });
 
+    // Scheduled tasks lead the pile, earliest first; unscheduled ones keep
+    // their existing (drag-ordered) relative order, appended after.
+    var todoTimed = todo.filter(function(e) { return e.info.time; })
+      .sort(function(a, b) { return a.info.time < b.info.time ? -1 : a.info.time > b.info.time ? 1 : 0; });
+    var todoUntimed = todo.filter(function(e) { return !e.info.time; });
+    todo = todoTimed.concat(todoUntimed);
+    todayTimeDots = todoTimed.map(function(e) { return { time: e.info.time, title: e.info.title }; });
+    renderTaskDots();
+
     document.getElementById('today-empty').classList.toggle('show', entries.length === 0 && postponed.length === 0);
 
     var summaryBoxEl = document.getElementById('today-summary-box');
@@ -3798,6 +3854,9 @@
       heroCurrentItemId = hero.item.id;
       heroEl.classList.remove('hide');
       heroTitleEl.setAttribute('data-card', hero.item.cardId || '');
+      var heroTimeEl = document.getElementById('today-hero-time');
+      heroTimeEl.value = hero.info.time || '';
+      heroTimeEl.setAttribute('data-item', hero.item.id);
       heroTitleEl.innerHTML = hero.info.standalone
         ? '<textarea class="today-hero-title-input" data-action="rename-standalone" data-item="' + hero.item.id + '" rows="1" placeholder="Untitled task">' + esc(hero.info.title) + '</textarea>'
         : '<span class="today-hero-title-text">' + esc(hero.info.title || 'Untitled card') + '</span>';
@@ -3847,6 +3906,7 @@
         titleHtml +
         (info.done ? '<span class="today-done-badge">DONE</span>' : '') +
         (pct ? '<span class="card-checklist-pct' + (pct.pct === 100 ? ' complete' : '') + '">' + svgIcon('checklist') + pct.done + '/' + pct.total + '</span>' : '') +
+        '<input type="time" class="today-row-time" data-action="set-time" data-item="' + item.id + '" value="' + (info.time || '') + '" title="Schedule this task">' +
         '<span class="today-row-tag">' + esc(info.tag) + '</span>' +
         '<button type="button" class="today-row-action-btn" data-action="postpone-today" data-item="' + item.id + '" title="Postpone to tomorrow">' + svgIcon('tomorrow') + '</button>' +
         '<button type="button" class="today-row-action-btn" data-action="remove-today" data-item="' + item.id + '" title="Remove from today">' + svgIcon('trash') + '</button>' +
@@ -3906,6 +3966,14 @@
       }
     });
     listEl.addEventListener('input', function(e) { commitStandaloneRename(e.target); });
+    listEl.addEventListener('change', function(e) {
+      if (e.target.getAttribute('data-action') === 'set-time') {
+        setTodayItemTime(e.target.getAttribute('data-item'), e.target.value);
+      }
+    });
+  });
+  document.getElementById('today-hero-time').addEventListener('change', function(e) {
+    if (heroCurrentItemId) setTodayItemTime(heroCurrentItemId, e.target.value);
   });
   var todayHeroTitleEl = document.getElementById('today-hero-title');
   todayHeroTitleEl.addEventListener('click', function(e) {
@@ -4760,6 +4828,7 @@
     document.getElementById('card-description-links').innerHTML = renderLinksPreview(c.description || '');
     document.getElementById('card-start-input').value = c.start || '';
     document.getElementById('card-due-input').value = c.due || '';
+    document.getElementById('card-time-input').value = c.time || '';
 
     var projectSelect = document.getElementById('card-project-select');
     projectSelect.innerHTML = data.projects.map(function(p) {
@@ -4874,9 +4943,13 @@
     var c = currentCard(); if (!c) return;
     c.due = this.value || null; save();
   });
-  // Clicking anywhere in a date field opens the native calendar picker,
-  // not just the small icon — easier to hit and more discoverable.
-  [document.getElementById('card-start-input'), document.getElementById('card-due-input')].forEach(function(input) {
+  document.getElementById('card-time-input').addEventListener('input', function() {
+    var c = currentCard(); if (!c) return;
+    c.time = this.value || null; save(); renderToday();
+  });
+  // Clicking anywhere in a date/time field opens the native picker, not
+  // just the small icon — easier to hit and more discoverable.
+  [document.getElementById('card-start-input'), document.getElementById('card-due-input'), document.getElementById('card-time-input')].forEach(function(input) {
     input.addEventListener('click', function() { if (this.showPicker) { try { this.showPicker(); } catch (e) {} } });
   });
   document.getElementById('card-column-select').addEventListener('change', function() {
