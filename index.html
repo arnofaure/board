@@ -1171,7 +1171,10 @@
   }
   .today-distract-count.zero { color: var(--text-dim); }
   .today-hero-top { position: relative; margin-bottom: 10px; }
-  .today-hero-top .today-row-time { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
+  .today-hero-time-wrap { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 4px; }
+  .today-hero-time-wrap .today-row-action-btn { width: 16px; height: 16px; }
+  .today-hero-time-wrap .today-row-action-btn svg { width: 8px; height: 8px; }
+  #today-hero-time-clear.hide { display: none; }
   /* Optional HH:MM scheduling, shared by the hero and every list row —
      same visual weight as the project tag next to it (badge, not a bare
      form field), so it reads as metadata whether set or not. */
@@ -2528,7 +2531,12 @@
           <div id="today-hero" class="hide">
             <div class="today-hero-top">
               <div class="today-hero-eyebrow">Up now</div>
-              <input type="time" id="today-hero-time" class="today-row-time" data-action="set-time" title="Schedule this task">
+              <span class="today-hero-time-wrap">
+                <input type="time" id="today-hero-time" class="today-row-time" data-action="set-time" title="Schedule this task">
+                <button type="button" id="today-hero-time-clear" class="today-row-action-btn hide" title="Clear time" data-action="clear-time">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </span>
             </div>
             <div id="today-hero-title" class="today-hero-title"></div>
             <div class="today-hero-actions">
@@ -5346,6 +5354,9 @@
       heroTimeEl.value = hero.info.time || '';
       heroTimeEl.classList.toggle('time-unset', !hero.info.time);
       heroTimeEl.setAttribute('data-item', hero.item.id);
+      var heroTimeClearEl = document.getElementById('today-hero-time-clear');
+      heroTimeClearEl.classList.toggle('hide', !hero.info.time);
+      heroTimeClearEl.setAttribute('data-item', hero.item.id);
       heroTitleEl.innerHTML = hero.info.standalone
         ? '<textarea class="today-hero-title-input" data-action="rename-standalone" data-item="' + hero.item.id + '" rows="1" placeholder="Untitled task">' + esc(hero.info.title) + '</textarea>'
         : '<span class="today-hero-title-text">' + esc(hero.info.title || 'Untitled card') + '</span>';
@@ -5396,6 +5407,7 @@
         (info.done ? '<span class="today-done-badge">DONE</span>' : '') +
         (pct ? '<span class="card-checklist-pct' + (pct.pct === 100 ? ' complete' : '') + '">' + svgIcon('checklist') + pct.done + '/' + pct.total + '</span>' : '') +
         '<input type="time" class="today-row-time' + (info.time ? '' : ' time-unset') + '" data-action="set-time" data-item="' + item.id + '" value="' + (info.time || '') + '" title="Schedule this task">' +
+        (info.time ? '<button type="button" class="today-row-action-btn" data-action="clear-time" data-item="' + item.id + '" title="Clear time">' + svgIcon('close') + '</button>' : '') +
         '<span class="today-row-tag">' + esc(info.tag) + '</span>' +
         (info.done ? '' : '<button type="button" class="today-row-action-btn" data-action="make-hero" data-item="' + item.id + '" title="Make this Up Now">' + svgIcon('arrowUp') + '</button>') +
         '<button type="button" class="today-row-action-btn" data-action="postpone-today" data-item="' + item.id + '" title="Postpone to tomorrow">' + svgIcon('tomorrow') + '</button>' +
@@ -5442,6 +5454,7 @@
         else if (action === 'remove-today') removeFromToday(btn.getAttribute('data-item'));
         else if (action === 'postpone-today') postponeTodayItem(btn.getAttribute('data-item'));
         else if (action === 'make-hero') makeTodayItemHero(btn.getAttribute('data-item'));
+        else if (action === 'clear-time') setTodayItemTime(btn.getAttribute('data-item'), '');
         else if (action === 'toggle-done-collapse') { todayDoneCollapsed = !todayDoneCollapsed; renderToday(); }
         return;
       }
@@ -5465,6 +5478,9 @@
   });
   document.getElementById('today-hero-time').addEventListener('change', function(e) {
     if (heroCurrentItemId) setTodayItemTime(heroCurrentItemId, e.target.value);
+  });
+  document.getElementById('today-hero-time-clear').addEventListener('click', function() {
+    if (heroCurrentItemId) setTodayItemTime(heroCurrentItemId, '');
   });
   var todayHeroTitleEl = document.getElementById('today-hero-title');
   todayHeroTitleEl.addEventListener('click', function(e) {
