@@ -1175,6 +1175,9 @@
   .today-hero-time-wrap .today-row-action-btn { width: 16px; height: 16px; }
   .today-hero-time-wrap .today-row-action-btn svg { width: 8px; height: 8px; }
   #today-hero-time-clear.hide { display: none; }
+  .card-field-with-clear { display: flex; align-items: center; gap: 6px; }
+  .card-field-with-clear .text-input { flex: 1; min-width: 0; }
+  #card-time-clear.hide { display: none; }
   /* Optional HH:MM scheduling, shared by the hero and every list row —
      same visual weight as the project tag next to it (badge, not a bare
      form field), so it reads as metadata whether set or not. */
@@ -2940,7 +2943,12 @@
         <input id="card-due-input" class="text-input" type="date">
 
         <label for="card-time-input">Time</label>
-        <input id="card-time-input" class="text-input" type="time">
+        <div class="card-field-with-clear">
+          <input id="card-time-input" class="text-input" type="time">
+          <button type="button" id="card-time-clear" class="today-row-action-btn hide" title="Clear time">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
 
         <label for="card-project-select">Project</label>
         <select id="card-project-select" class="text-input"></select>
@@ -6347,6 +6355,7 @@
     document.getElementById('card-start-input').value = c.start || '';
     document.getElementById('card-due-input').value = c.due || '';
     document.getElementById('card-time-input').value = c.time || '';
+    document.getElementById('card-time-clear').classList.toggle('hide', !c.time);
 
     var projectSelect = document.getElementById('card-project-select');
     projectSelect.innerHTML = data.projects.map(function(p) {
@@ -6665,6 +6674,13 @@
   document.getElementById('card-time-input').addEventListener('input', function() {
     var c = currentCard(); if (!c) return;
     c.time = this.value || null; save(); renderToday();
+    document.getElementById('card-time-clear').classList.toggle('hide', !c.time);
+  });
+  document.getElementById('card-time-clear').addEventListener('click', function() {
+    var c = currentCard(); if (!c) return;
+    c.time = null; save(); renderToday();
+    document.getElementById('card-time-input').value = '';
+    this.classList.add('hide');
   });
   // Clicking anywhere in a date/time field opens the native picker, not
   // just the small icon — easier to hit and more discoverable.
