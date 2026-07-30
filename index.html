@@ -258,9 +258,15 @@
   }
 
   /* PROJECT MENU */
+  #project-dropdown { min-width: 300px; }
+  .project-row-group { border-radius: 4px; }
   .project-row { display: flex; align-items: center; gap: 4px; padding: 1px; border-radius: 4px; transition: background 0.1s; }
   .project-row.dragging { opacity: 0.4; }
   .project-row.drag-over { background: var(--surface2); }
+  .project-row-meta { display: flex; gap: 4px; padding: 0 0 3px 34px; }
+  .project-row-meta .text-input { font-size: 11px; padding: 3px 6px; }
+  .project-client-input { flex: 1.3; min-width: 0; }
+  .project-rate-input { flex: 1; min-width: 0; }
   .project-row-handle { display: flex; align-items: center; flex-shrink: 0; color: var(--text-dim); cursor: grab; }
   .project-row-handle:hover { color: var(--text-muted); }
   .project-dot {
@@ -321,7 +327,7 @@
 
   /* MAIN */
   #main { padding: 20px 20px 60px; }
-  #board-view.hide, #timeline-view.hide, #ideas-view.hide { display: none; }
+  #board-view.hide, #timeline-view.hide, #ideas-view.hide, #calendar-view.hide { display: none; }
   .board-only.hide { display: none; }
 
   /* BOARD */
@@ -475,6 +481,8 @@
   .card:hover { background: rgba(255,255,255,0.05); }
   .card.dragging { opacity: 0.35; pointer-events: none; }
   .card.is-focus { box-shadow: inset 0 0 0 1.5px var(--card-color, #b285f0); background: rgba(255,255,255,0.03); }
+  .card.is-timing { box-shadow: inset 0 0 0 1.5px #f87171; }
+  .card.is-focus.is-timing { box-shadow: inset 0 0 0 1.5px var(--card-color, #b285f0), inset 0 0 0 3px #f87171; }
   .drag-ghost {
     position: fixed;
     z-index: 500;
@@ -519,13 +527,19 @@
   .card:hover .card-due, .card.drag-open .card-due { opacity: 0; }
   .card:hover .card-row-actions, .card.drag-open .card-row-actions { opacity: 1; }
 
-  .card-row-meta { display: flex; align-items: center; padding-left: calc(16px * var(--board-scale)); }
+  .card-row-meta { display: flex; align-items: center; gap: 10px; padding-left: calc(16px * var(--board-scale)); }
   .card-checklist-badge {
     display: flex; align-items: center; gap: 4px;
     font-family: ui-monospace, monospace; font-size: calc(12px * var(--board-scale)); color: var(--text-muted); font-variant-numeric: tabular-nums;
   }
   .card-checklist-badge svg { flex-shrink: 0; opacity: 0.95; }
   .card-checklist-badge.complete { color: #4ade80; }
+  .card-time-badge {
+    display: flex; align-items: center; gap: 4px;
+    font-family: ui-monospace, monospace; font-size: calc(12px * var(--board-scale)); color: var(--text-muted); font-variant-numeric: tabular-nums;
+  }
+  .card-time-badge svg { flex-shrink: 0; opacity: 0.95; }
+  .card-time-badge.is-running { color: #f87171; }
 
   /* Bright by design — these only ever appear on hover, so a dull default
      reads as "disabled" rather than "ready to click". */
@@ -544,6 +558,8 @@
   .card-icon-btn.today.is-active svg circle { fill: currentColor; }
   .card-icon-btn.focus.is-focus { background: #b285f0; color: #17101f; }
   .card-icon-btn.focus.is-focus:hover { background: #c7a3f5; }
+  .card-icon-btn.timer.is-running { background: #f87171; color: #17101f; }
+  .card-icon-btn.timer.is-running:hover { background: #fb9494; }
 
   .column-add {
     padding: 6px 8px 10px;
@@ -590,6 +606,34 @@
   #card-tomorrow-toggle.active-tomorrow { color: #7ea8e8; border-color: rgba(126,168,232,0.4); background: rgba(126,168,232,0.08); }
   #card-done-toggle.active-done { color: #4ade80; border-color: rgba(74,222,128,0.4); background: rgba(74,222,128,0.08); }
   #card-focus-toggle.active-focus { color: #b285f0; border-color: rgba(178,133,240,0.4); background: rgba(178,133,240,0.08); }
+  #card-billable-toggle.active-billable { color: #4ade80; border-color: rgba(74,222,128,0.4); background: rgba(74,222,128,0.08); }
+  #card-billable-toggle:not(.active-billable) { color: var(--text-dim); }
+  .card-time-summary {
+    display: flex; align-items: center; gap: 10px;
+    font-family: ui-monospace, monospace; font-size: 13px; font-variant-numeric: tabular-nums;
+    color: var(--text); margin-bottom: 8px;
+  }
+  .card-time-cost { color: var(--text-dim); font-size: 12px; }
+  #card-add-time-btn { width: auto; padding: 5px 10px; font-size: 12px; }
+  .card-entries-empty { text-align: center; color: var(--text-dim); font-size: 11.5px; padding: 8px 0 4px; }
+  .entry-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 9px;
+    background: var(--surface2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .entry-row-info { flex: 1; min-width: 0; font-size: 12px; }
+  .entry-row-date { color: var(--text-muted); font-size: 11px; }
+  .entry-row-time { color: var(--text); display: block; }
+  .entry-row-dur { color: var(--text-dim); font-size: 11px; }
+  .entry-row-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .entry-row .icon-btn {
+    width: 22px; height: 22px; border-radius: 50%; border: 0.5px solid var(--border);
+    background: none; color: var(--text-muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .entry-row .icon-btn:hover { border-color: var(--border-hover); color: var(--text); }
 
   #board-empty {
     display: none;
@@ -630,6 +674,120 @@
     cursor: pointer;
   }
   #timeline-zoom button:hover { background: var(--surface2); color: var(--text); }
+
+  /* CALENDAR VIEW — a week grid of tracked-time blocks, ported from Time Tracker */
+  #calendar-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    max-width: 960px;
+    margin: 0 auto 16px;
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  #calendar-project-filter-wrap { display: flex; align-items: center; gap: 10px; }
+  #calendar-project-filter-wrap.hide { display: none; }
+  #calendar-project-filter { max-width: 220px; padding: 6px 8px; font-size: 12.5px; }
+  .cal-nav { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; row-gap: 8px; }
+  .cal-nav button.cal-icon-btn {
+    background: transparent; border: 0.5px solid var(--border); border-radius: var(--radius);
+    color: var(--text-muted); padding: 5px 7px; display: flex; cursor: pointer;
+  }
+  .cal-nav button.cal-icon-btn:hover { background: var(--surface2); color: var(--text); }
+  .cal-range-label { font-size: 13px; font-weight: 600; min-width: 170px; }
+  .cal-week-total { margin-left: auto; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .cal-week-total .cost { color: var(--text-dim); margin-left: 8px; }
+
+  #calendar-view { max-width: 960px; margin: 0 auto; }
+  .cal-grid-wrap {
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .cal-header-row {
+    display: grid;
+    grid-template-columns: 52px repeat(7, 1fr);
+    border-bottom: 0.5px solid var(--border);
+  }
+  .cal-header-cell {
+    padding: 8px 4px;
+    text-align: center;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-left: 0.5px solid var(--border);
+  }
+  .cal-header-cell:first-child { border-left: none; }
+  .cal-header-cell.today { color: #4ade80; }
+  .cal-date-num { display: block; font-size: 14px; margin-top: 2px; color: var(--text); font-weight: 600; }
+  .cal-header-cell.today .cal-date-num { color: #4ade80; }
+
+  .cal-body {
+    position: relative;
+    display: grid;
+    grid-template-columns: 52px repeat(7, 1fr);
+    max-height: 560px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.15) transparent;
+  }
+  .cal-body::-webkit-scrollbar { width: 8px; }
+  .cal-body::-webkit-scrollbar-track { background: transparent; }
+  .cal-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+  .cal-body::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+  .cal-time-col { display: flex; flex-direction: column; }
+  .cal-hour-label {
+    height: 48px;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-align: right;
+    padding-right: 6px;
+    transform: translateY(-6px);
+    flex-shrink: 0;
+  }
+  .cal-day-col {
+    position: relative;
+    border-left: 0.5px solid var(--border);
+    height: 1152px;
+    background-image: repeating-linear-gradient(to bottom, var(--border), var(--border) 0.5px, transparent 0.5px, transparent 48px);
+  }
+  .cal-day-col.today { background-color: rgba(74,222,128,0.03); }
+
+  .cal-block {
+    position: absolute;
+    left: 2px;
+    right: 2px;
+    border-radius: 4px;
+    padding: 2px 5px;
+    font-size: 10px;
+    color: #0d0d0d;
+    overflow: hidden;
+    line-height: 1.3;
+    cursor: pointer;
+  }
+  .cal-block.non-billable { opacity: 0.5; }
+  .cal-block-title { font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cal-block-time { display: block; opacity: 0.85; font-size: 9px; white-space: nowrap; overflow: hidden; }
+
+  .cal-now-line {
+    position: absolute;
+    left: 0; right: 0; height: 0;
+    border-top: 1.5px solid #ef4444;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  #calendar-empty {
+    display: none;
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  #calendar-empty.show { display: block; }
   .gantt-row-tag {
     font-size: 9px;
     color: var(--text-dim);
@@ -1448,6 +1606,9 @@
     overflow-y: auto;
   }
   .modal-overlay.show { display: flex; }
+  /* Opened from inside the card modal, so it needs to stack above it
+     regardless of DOM order (both share the base modal-overlay z-index). */
+  #manual-time-overlay { z-index: 310; }
   .modal {
     position: relative;
     background: var(--surface);
@@ -1921,6 +2082,7 @@
   html.mono-theme #title-project-btn,
   html.mono-theme .tl-row,
   html.mono-theme .card.is-focus,
+  html.mono-theme .card.is-timing,
   html.mono-theme .gantt-row-tag { filter: grayscale(1); }
 
   /* Checkpoint timeline */
@@ -1949,13 +2111,15 @@
   html.mono-theme .today-hero-btn.done { border-color: var(--mono-accent); color: var(--mono-accent); }
   html.mono-theme .today-hero-btn.done:hover { background: rgba(var(--mono-accent-rgb), 0.15); }
 
-  /* Card status toggles (done/today/tomorrow/focus) — same accent, text tells them apart */
+  /* Card status toggles (done/today/tomorrow/focus/timer) — same accent, text tells them apart */
   html.mono-theme .card-icon-btn.done.is-done,
   html.mono-theme .card-icon-btn.today.is-active,
-  html.mono-theme .card-icon-btn.focus.is-focus { background: var(--mono-accent); color: #fff; }
+  html.mono-theme .card-icon-btn.focus.is-focus,
+  html.mono-theme .card-icon-btn.timer.is-running { background: var(--mono-accent); color: #fff; }
   html.mono-theme .card-icon-btn.done.is-done:hover,
   html.mono-theme .card-icon-btn.today.is-active:hover,
-  html.mono-theme .card-icon-btn.focus.is-focus:hover { background: var(--mono-accent); opacity: 0.85; }
+  html.mono-theme .card-icon-btn.focus.is-focus:hover,
+  html.mono-theme .card-icon-btn.timer.is-running:hover { background: var(--mono-accent); opacity: 0.85; }
   html.mono-theme #card-today-toggle.active-today,
   html.mono-theme #card-tomorrow-toggle.active-tomorrow,
   html.mono-theme #card-done-toggle.active-done,
@@ -1963,6 +2127,7 @@
     color: var(--mono-accent); border-color: rgba(var(--mono-accent-rgb), 0.4); background: rgba(var(--mono-accent-rgb), 0.08);
   }
   html.mono-theme .card-checklist-badge.complete { color: var(--mono-accent); }
+  html.mono-theme .card-time-badge.is-running { color: var(--mono-accent); }
 
   /* Due dates, overdue only (today's due date stays neutral) */
   html.mono-theme .card-due .end.due-today { color: var(--text); }
@@ -1990,7 +2155,8 @@
      to a brighter tint of the same colors and needs its own override. */
   html.mono-theme .card-icon-btn.done.is-done:hover,
   html.mono-theme .card-icon-btn.today.is-active:hover,
-  html.mono-theme .card-icon-btn.focus.is-focus:hover { background: var(--mono-accent); }
+  html.mono-theme .card-icon-btn.focus.is-focus:hover,
+  html.mono-theme .card-icon-btn.timer.is-running:hover { background: var(--mono-accent); }
 
   /* Toolbar overdue count, break-task icon, "done today" queue badge */
   html.mono-theme #card-total .overdue { color: var(--mono-accent); }
@@ -2063,6 +2229,11 @@
       <button class="tb-btn" id="menu-import">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         Import (JSON)
+      </button>
+      <div class="tb-sep-h"></div>
+      <button class="tb-btn" id="menu-time-settings" title="Set a default hourly rate and currency for time tracking">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Time settings…
       </button>
       <div class="tb-sep-h"></div>
       <button class="tb-btn hide" id="menu-backup-folder" title="Silently write a timestamped backup to a folder on disk after every change — Chrome/Edge only">
@@ -2160,6 +2331,7 @@
     <button class="tb-btn view-btn" id="view-today-btn" data-view="today">Today</button>
     <button class="tb-btn view-btn active" id="view-board-btn" data-view="board">Board</button>
     <button class="tb-btn view-btn" id="view-timeline-btn" data-view="timeline">Timeline</button>
+    <button class="tb-btn view-btn" id="view-calendar-btn" data-view="calendar">Calendar</button>
     <button class="tb-btn view-btn" id="view-ideas-btn" data-view="ideas">Random Ideas</button>
   </div>
   <button class="tb-btn board-only" id="shuffle-btn" title="Shuffle card colors">
@@ -2218,6 +2390,33 @@
     </div>
     <div id="timeline-main"></div>
     <div id="timeline-empty">No cards yet.<br>Add cards to your board to see them here, sorted by due date.</div>
+  </div>
+
+  <div id="calendar-view" class="hide">
+    <div id="calendar-toolbar">
+      <div id="calendar-project-filter-wrap" class="hide">
+        <label for="calendar-project-filter" class="timeline-filter-label">Project</label>
+        <select id="calendar-project-filter" class="text-input"></select>
+      </div>
+      <div class="cal-nav">
+        <button type="button" class="cal-icon-btn" id="cal-prev" title="Previous week">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button type="button" class="cal-icon-btn" id="cal-next" title="Next week">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <button type="button" class="tb-btn" id="cal-today">Today</button>
+        <span class="cal-range-label" id="cal-range-label"></span>
+        <span class="cal-week-total" id="cal-week-total"></span>
+      </div>
+    </div>
+    <div class="cal-grid-wrap">
+      <div class="cal-header-row" id="cal-header-row"></div>
+      <div class="cal-body" id="cal-body">
+        <div class="cal-time-col" id="cal-time-col"></div>
+      </div>
+    </div>
+    <div id="calendar-empty">No tracked time this week yet.</div>
   </div>
 
   <div id="today-view" class="hide">
@@ -2305,8 +2504,8 @@
           <div id="today-search-results"></div>
         </div>
         <button type="button" class="tb-btn" id="repeat-btn" title="Manage repeating personal tasks">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-          Repeat
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          Add a repeat task
         </button>
       </div>
 
@@ -2435,6 +2634,58 @@
     <h2>Version history</h2>
     <p style="font-size:11px;color:var(--text-dim);line-height:1.6;margin-bottom:12px;">Snapshots saved automatically as you work, kept in this browser only (not a substitute for Export/Auto-backup).</p>
     <div id="history-list"></div>
+  </div>
+</div>
+
+<!-- TIME SETTINGS MODAL -->
+<div class="modal-overlay" id="time-settings-overlay">
+  <div class="modal">
+    <button class="modal-close" id="time-settings-close">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h2>Time settings</h2>
+    <label for="time-rate-input">Default hourly rate</label>
+    <input id="time-rate-input" class="text-input" type="number" step="0.01" min="0" placeholder="50">
+    <label for="time-currency-input">Currency</label>
+    <input id="time-currency-input" class="text-input" maxlength="3" placeholder="$">
+    <p style="font-size:11px;color:var(--text-dim);line-height:1.6;margin-top:6px;">Used for any project that doesn't have its own rate set (see the Rate field under each project in the project switcher).</p>
+    <div class="modal-actions">
+      <button class="tb-btn primary" id="time-settings-save" style="width:auto;">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- MANUAL TIME ENTRY MODAL -->
+<div class="modal-overlay" id="manual-time-overlay">
+  <div class="modal">
+    <button class="modal-close" id="manual-time-close">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h2 id="manual-time-title">Add time</h2>
+    <label for="manual-date">Date</label>
+    <input id="manual-date" class="text-input" type="date">
+    <label for="manual-start">Start time</label>
+    <input id="manual-start" class="text-input" type="time">
+    <label for="manual-duration">Duration <span style="text-transform:none;opacity:.7;">(e.g. 1h30, 45m — or set an end time instead)</span></label>
+    <input id="manual-duration" class="text-input" type="text" placeholder="1h30">
+    <label for="manual-end">End time</label>
+    <input id="manual-end" class="text-input" type="time">
+    <div class="modal-actions">
+      <button class="tb-btn danger" id="manual-time-delete" style="width:auto;display:none;">Delete</button>
+      <button class="tb-btn primary" id="manual-time-save" style="width:auto;margin-left:auto;">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- STALE TIMER MODAL -->
+<div class="modal-overlay" id="stale-timer-overlay">
+  <div class="modal">
+    <h2>Timer left running</h2>
+    <p id="stale-timer-desc" style="font-size:12.5px;line-height:1.5;color:var(--text-muted);"></p>
+    <div class="modal-actions">
+      <button class="tb-btn danger" id="stale-cut-btn" style="width:auto;">Stop it back then</button>
+      <button class="tb-btn primary" id="stale-keep-btn" style="width:auto;margin-left:auto;">Keep the time</button>
+    </div>
   </div>
 </div>
 
@@ -2606,7 +2857,20 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
             <span id="card-focus-toggle-label">Focus this card</span>
           </button>
+          <button type="button" class="tb-btn" id="card-billable-toggle">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span id="card-billable-toggle-label">Billable</span>
+          </button>
         </div>
+
+        <label>Time tracked</label>
+        <div id="card-time-summary" class="card-time-summary">
+          <span id="card-time-total">0:00:00</span>
+          <span id="card-time-cost" class="card-time-cost"></span>
+          <button type="button" class="tb-btn" id="card-add-time-btn" style="margin-left:auto;">+ Add time</button>
+        </div>
+        <div class="entries-modal-list" id="card-entries-list" style="max-height:160px;"></div>
+        <div id="card-entries-empty" class="card-entries-empty">No time logged yet.</div>
 
         <label for="card-start-input">Start date</label>
         <input id="card-start-input" class="text-input" type="date">
@@ -2722,7 +2986,8 @@
       fontScale: 1,
       monoTheme: false,
       distractionsByDate: {},
-      recurringTasks: []
+      recurringTasks: [],
+      settings: { rate: 0, currency: '$' }
     };
   }
 
@@ -2744,6 +3009,8 @@
       if (!p.archive) p.archive = [];
       if (p.masonryLayout === undefined) p.masonryLayout = false;
       if (p.dueOnlyFilter === undefined) p.dueOnlyFilter = false;
+      if (p.client === undefined) p.client = '';
+      if (p.rate === undefined) p.rate = null;
       p.columns.forEach(function(col) {
         if (!col.id) col.id = uid();
         if (!col.cards) col.cards = [];
@@ -2759,6 +3026,8 @@
           if (c.done === undefined) c.done = false;
           if (c.doneAt === undefined) c.doneAt = null;
           if (c.focus === undefined) c.focus = false;
+          if (!c.entries) c.entries = [];
+          if (c.billable === undefined) c.billable = true;
         });
       });
     });
@@ -2782,6 +3051,9 @@
     if (!d.fontScale) d.fontScale = 1;
     if (d.monoTheme === undefined) d.monoTheme = false;
     if (!d.distractionsByDate) d.distractionsByDate = {};
+    if (!d.settings) d.settings = { rate: 0, currency: '$' };
+    if (d.settings.rate === undefined) d.settings.rate = 0;
+    if (!d.settings.currency) d.settings.currency = '$';
     if (!d.recurringTasks) d.recurringTasks = [];
     d.recurringTasks.forEach(function(rt) {
       if (!rt.id) rt.id = uid();
@@ -3143,6 +3415,156 @@
     return out;
   }
 
+  // ---------- TIME TRACKING: timer engine ----------
+  // Cards double as Time Tracker's "tasks": a card accumulates time in
+  // card.entries[] ({id, start, end}), with at most one entry open (end:
+  // null) across the whole board at once — starting a timer on any card
+  // stops whatever else was running, mirroring Time Tracker's own
+  // single-running-timer model so the stale-timer recovery flow below
+  // can assume there's ever only one entry to reconcile.
+  function isCardRunning(c) { return c.entries.some(function(e) { return e.end === null; }); }
+  function runningCardEntry(c) { return c.entries.find(function(e) { return e.end === null; }); }
+  function cardSeconds(c) {
+    return c.entries.reduce(function(sum, e) {
+      var end = e.end === null ? Date.now() : e.end;
+      return sum + Math.max(0, (end - e.start) / 1000);
+    }, 0);
+  }
+  function findRunningCard() {
+    var found = null;
+    data.projects.some(function(p) {
+      return p.columns.some(function(col) {
+        return col.cards.some(function(c) {
+          if (isCardRunning(c)) { found = { card: c, column: col, project: p }; return true; }
+          return false;
+        });
+      });
+    });
+    return found;
+  }
+  function stopAllRunningCards(exceptCardId) {
+    data.projects.forEach(function(p) {
+      p.columns.forEach(function(col) {
+        col.cards.forEach(function(c) {
+          if (c.id === exceptCardId) return;
+          var e = runningCardEntry(c);
+          if (e) e.end = Date.now();
+        });
+      });
+    });
+  }
+  function toggleCardTimer(cardId) {
+    var found = findCard(cardId);
+    if (!found) return;
+    var c = found.card;
+    if (isCardRunning(c)) {
+      runningCardEntry(c).end = Date.now();
+    } else {
+      stopAllRunningCards(cardId);
+      c.entries.push({ id: uid(), start: Date.now(), end: null });
+      data.lastHeartbeat = Date.now();
+    }
+    save(); render();
+  }
+  function cardRate(project) {
+    var r = (project.rate !== null && project.rate !== undefined && project.rate !== '') ? Number(project.rate) : NaN;
+    return !isNaN(r) ? r : (Number(data.settings.rate) || 0);
+  }
+  function cardCost(c, project) {
+    if (c.billable === false) return 0;
+    return (cardSeconds(c) / 3600) * cardRate(project);
+  }
+  function formatHMS(totalSec) {
+    totalSec = Math.max(0, Math.round(totalSec));
+    var h = Math.floor(totalSec / 3600);
+    var m = Math.floor((totalSec % 3600) / 60);
+    var s = totalSec % 60;
+    return h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+  function formatMoney(amount) {
+    return (data.settings.currency || '$') + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function formatMinutesAsDuration(mins) {
+    mins = Math.round(mins);
+    var h = Math.floor(mins / 60), m = mins % 60;
+    if (h && m) return h + 'h' + String(m).padStart(2, '0');
+    if (h) return h + 'h';
+    return m + 'm';
+  }
+
+  // Records a "last known active" timestamp while a timer runs, so that if
+  // the app gets closed/backgrounded, checkStaleTimer() can later tell how
+  // long it was actually gone for instead of trusting Date.now() at reopen.
+  function recordHeartbeat() {
+    if (findRunningCard()) {
+      data.lastHeartbeat = Date.now();
+      save();
+    }
+  }
+  document.addEventListener('visibilitychange', function() { if (document.hidden) recordHeartbeat(); });
+  window.addEventListener('pagehide', recordHeartbeat);
+  window.addEventListener('beforeunload', recordHeartbeat);
+
+  var STALE_TIMER_THRESHOLD_MS = 3 * 60 * 1000;
+  var pendingStaleEntry = null;
+  var pendingStaleReference = null;
+
+  function checkStaleTimer() {
+    var found = findRunningCard();
+    if (!found) return;
+    var entry = runningCardEntry(found.card);
+    var reference = data.lastHeartbeat && data.lastHeartbeat > entry.start ? data.lastHeartbeat : entry.start;
+    var gapMs = Date.now() - reference;
+    if (gapMs < STALE_TIMER_THRESHOLD_MS) return;
+
+    var gapMins = Math.round(gapMs / 60000);
+    var gapLabel = gapMins < 60 ? gapMins + ' min' : formatMinutesAsDuration(gapMins);
+    document.getElementById('stale-timer-desc').textContent =
+      'The timer for "' + (found.card.title || 'Untitled card') + '" (' + (found.project.name || 'Untitled project') +
+      ') looks like it kept running while this app was closed or inactive, for about ' + gapLabel + '. Do you want to count that time, or stop the timer back at when it was last seen active?';
+    pendingStaleEntry = entry;
+    pendingStaleReference = reference;
+    document.getElementById('stale-timer-overlay').classList.add('show');
+  }
+
+  function initStaleTimerModal() {
+    document.getElementById('stale-keep-btn').addEventListener('click', function() {
+      document.getElementById('stale-timer-overlay').classList.remove('show');
+      pendingStaleEntry = null;
+    });
+    document.getElementById('stale-cut-btn').addEventListener('click', function() {
+      if (pendingStaleEntry) {
+        pendingStaleEntry.end = pendingStaleReference;
+        save(); render();
+      }
+      document.getElementById('stale-timer-overlay').classList.remove('show');
+      pendingStaleEntry = null;
+    });
+  }
+
+  // Live tick: while a card is running, keep its on-screen elapsed-time
+  // text current without paying for a full render() every second (which
+  // would interrupt drag state elsewhere on the board).
+  var cardTimerTickCount = 0;
+  function tickCardTimers() {
+    var running = findRunningCard();
+    if (!running) return;
+    var seconds = cardSeconds(running.card);
+    document.querySelectorAll('[data-role="card-timer"][data-card="' + running.card.id + '"]').forEach(function(el) {
+      el.textContent = formatHMS(seconds);
+    });
+    var heroTimerEl = document.querySelector('[data-role="card-timer-hero"][data-card="' + running.card.id + '"]');
+    if (heroTimerEl) heroTimerEl.textContent = formatHMS(seconds);
+    if (currentView === 'calendar') renderCalendar();
+    cardTimerTickCount++;
+    if (cardTimerTickCount % 10 === 0) recordHeartbeat();
+  }
+  function initCardTimerEngine() {
+    initStaleTimerModal();
+    checkStaleTimer();
+    setInterval(tickCardTimers, 1000);
+  }
+
   function checklistPct(card) {
     if (!card.checklist.length) return null;
     var done = card.checklist.filter(function(i) { return i.done; }).length;
@@ -3380,6 +3802,8 @@
     var coverFlag = c.cover ? '<span class="card-cover-flag" title="Has a cover image">' + svgIcon('image') + '</span>' : '';
     var pct = checklistPct(c);
     var inToday = !!todayItemForCard(c.id);
+    var running = isCardRunning(c);
+    var secs = cardSeconds(c);
 
     var rowTop =
       '<div class="card-row-top">' +
@@ -3391,6 +3815,7 @@
         '<div class="card-due-slot">' +
           '<span class="card-due">' + renderDueSlot(c) + '</span>' +
           '<div class="card-row-actions">' +
+            '<button type="button" class="card-icon-btn timer' + (running ? ' is-running' : '') + '" data-action="toggle-card-timer" data-card="' + c.id + '" title="' + (running ? 'Stop timer' : 'Start timer') + '">' + svgIcon(running ? 'pause' : 'play') + '</button>' +
             '<button type="button" class="card-icon-btn done' + (c.done ? ' is-done' : '') + '" data-action="toggle-card-done" data-card="' + c.id + '" title="' + (c.done ? 'Mark as not done' : 'Mark as done') + '">' + svgIcon('check') + '</button>' +
             '<button type="button" class="card-icon-btn today' + (inToday ? ' is-active' : '') + '" data-action="toggle-today-from-card" data-card="' + c.id + '" title="' + (inToday ? 'Remove from Today' : 'Add to Today') + '">' + svgIcon('sun') + '</button>' +
             '<button type="button" class="card-icon-btn focus' + (c.focus ? ' is-focus' : '') + '" data-action="toggle-card-focus" data-card="' + c.id + '" title="' + (c.focus ? 'Remove focus' : 'Focus this card') + '">' + svgIcon('target') + '</button>' +
@@ -3398,14 +3823,15 @@
         '</div>' +
       '</div>';
 
-    // Second line only when there's a checklist — a lone due date (or none)
-    // already fits on the title line, so it never opens one.
-    var rowMeta = pct
-      ? '<div class="card-row-meta"><span class="card-checklist-badge' + (pct.pct === 100 ? ' complete' : '') + '">' + svgIcon('checklist') + pct.done + '/' + pct.total + '</span></div>'
-      : '';
+    // Second line only when there's a checklist and/or tracked time — a
+    // lone due date (or none) already fits on the title line.
+    var metaParts = [];
+    if (pct) metaParts.push('<span class="card-checklist-badge' + (pct.pct === 100 ? ' complete' : '') + '">' + svgIcon('checklist') + pct.done + '/' + pct.total + '</span>');
+    if (secs > 0 || running) metaParts.push('<span class="card-time-badge' + (running ? ' is-running' : '') + '" data-role="card-timer" data-card="' + c.id + '">' + svgIcon('clock') + formatHMS(secs) + '</span>');
+    var rowMeta = metaParts.length ? '<div class="card-row-meta">' + metaParts.join('') + '</div>' : '';
 
     return (
-      '<div class="card' + (c.done ? ' is-done' : '') + (c.focus ? ' is-focus' : '') + '" data-card-id="' + c.id + '" style="--card-color:' + c.color + ';">' +
+      '<div class="card' + (c.done ? ' is-done' : '') + (c.focus ? ' is-focus' : '') + (running ? ' is-timing' : '') + '" data-card-id="' + c.id + '" style="--card-color:' + c.color + ';">' +
         rowTop + rowMeta +
       '</div>'
     );
@@ -3431,7 +3857,11 @@
       reset: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 3 6.7"/><polyline points="3 21 3 15 9 15"/></svg>',
       image: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
       target: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>',
-      repeat: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>'
+      repeat: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>',
+      dollar: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+      dollarOff: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/><line x1="3" y1="3" x2="21" y2="21" stroke="#e0584a"/></svg>',
+      clock: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>',
+      arrowUp: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>'
     };
     return icons[name] || '';
   }
@@ -3807,6 +4237,180 @@
     save();
     renderDistractionCount();
   }
+
+  // ---------- RENDER: CALENDAR ----------
+  // A week grid of tracked-time blocks — cards double as Time Tracker's
+  // "tasks" here too, so this reuses allCardsFiltered() (project scoping,
+  // same as Timeline) instead of a separate client/project/task traversal.
+  var DAY_MS = 24 * 60 * 60 * 1000;
+  var HOUR_PX = 48;
+  var weekStart = getWeekStart(new Date());
+  var calendarFilter = 'all';
+
+  function getWeekStart(d) {
+    var date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    var day = date.getDay(); // 0 = Sun
+    var diff = (day === 0 ? -6 : 1 - day); // shift to Monday
+    date.setDate(date.getDate() + diff);
+    return date;
+  }
+  function sameDay(a, b) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+
+  function collectBoardEntries(filter) {
+    var out = [];
+    allCardsFiltered(filter).forEach(function(item) {
+      var c = item.card, p = item.project;
+      c.entries.forEach(function(e) {
+        out.push({
+          cardId: c.id,
+          start: e.start,
+          end: e.end === null ? Date.now() : e.end,
+          running: e.end === null,
+          billable: c.billable !== false,
+          title: c.title || 'Untitled card',
+          subLabel: (p.name || 'Untitled project') + (p.client ? ' — ' + p.client : ''),
+          color: c.color
+        });
+      });
+    });
+    return out;
+  }
+
+  function renderCalendarFilterOptions() {
+    var toolbar = document.getElementById('calendar-project-filter-wrap');
+    var select = document.getElementById('calendar-project-filter');
+    toolbar.classList.toggle('hide', data.projects.length <= 1);
+    if (!select.options.length || select.getAttribute('data-count') != data.projects.length) {
+      var options = '<option value="all">All projects</option>' + data.projects.map(function(p) {
+        return '<option value="' + p.id + '">' + esc(p.name || 'Untitled project') + '</option>';
+      }).join('');
+      select.innerHTML = options;
+      select.setAttribute('data-count', data.projects.length);
+    } else {
+      Array.prototype.forEach.call(select.options, function(opt) {
+        if (opt.value === 'all') return;
+        var p = data.projects.find(function(x) { return x.id === opt.value; });
+        if (p) opt.textContent = p.name || 'Untitled project';
+      });
+    }
+    select.value = calendarFilter;
+  }
+
+  function initCalendarSkeleton() {
+    var timeCol = document.getElementById('cal-time-col');
+    var html = '';
+    for (var h = 0; h < 24; h++) {
+      var label = (h === 0 ? '12 AM' : h < 12 ? h + ' AM' : h === 12 ? '12 PM' : (h - 12) + ' PM');
+      html += '<div class="cal-hour-label">' + label + '</div>';
+    }
+    timeCol.innerHTML = html;
+  }
+
+  function renderCalendar() {
+    renderCalendarFilterOptions();
+    var today = new Date();
+    var days = [];
+    for (var i = 0; i < 7; i++) days.push(new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i));
+
+    var monthFmt = { month: 'short', day: 'numeric' };
+    var rangeLabel = days[0].toLocaleDateString('en-US', monthFmt) + ' – ' + days[6].toLocaleDateString('en-US', monthFmt) + ', ' + days[6].getFullYear();
+    document.getElementById('cal-range-label').textContent = rangeLabel;
+
+    var dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    var headerHtml = '<div class="cal-header-cell"></div>';
+    days.forEach(function(d, i) {
+      var isToday = sameDay(d, today);
+      headerHtml += '<div class="cal-header-cell' + (isToday ? ' today' : '') + '">' + dayNames[i] + '<span class="cal-date-num">' + d.getDate() + '</span></div>';
+    });
+    document.getElementById('cal-header-row').innerHTML = headerHtml;
+
+    var allEntries = collectBoardEntries(calendarFilter);
+
+    var bodyEl = document.getElementById('cal-body');
+    Array.from(bodyEl.querySelectorAll('.cal-day-col')).forEach(function(el) { el.remove(); });
+
+    var weekSeconds = 0;
+
+    days.forEach(function(dayDate) {
+      var dayStart = dayDate.getTime();
+      var dayEnd = dayStart + DAY_MS;
+      var col = document.createElement('div');
+      col.className = 'cal-day-col' + (sameDay(dayDate, today) ? ' today' : '');
+
+      allEntries.forEach(function(entry) {
+        var s = Math.max(entry.start, dayStart);
+        var e = Math.min(entry.end, dayEnd);
+        if (e <= s) return;
+        weekSeconds += (e - s) / 1000;
+        var startMin = (s - dayStart) / 60000;
+        var durMin = (e - s) / 60000;
+        var top = startMin * (HOUR_PX / 60);
+        var height = Math.max(durMin * (HOUR_PX / 60), 14);
+        var block = document.createElement('div');
+        block.className = 'cal-block' + (entry.billable ? '' : ' non-billable');
+        block.setAttribute('data-card-id', entry.cardId);
+        block.style.top = top + 'px';
+        block.style.height = height + 'px';
+        block.style.background = entry.color;
+        var startStr = new Date(s).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        var endStr = new Date(e).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        block.title = entry.title + ' — ' + entry.subLabel + ' (' + startStr + '–' + endStr + ')' + (entry.billable ? '' : ' [unbillable]');
+        block.innerHTML = '<span class="cal-block-title">' + esc(entry.title) + '</span><span class="cal-block-time">' + startStr + '–' + endStr + '</span>';
+        col.appendChild(block);
+      });
+
+      if (sameDay(dayDate, today)) {
+        var now = new Date();
+        var nowMin = now.getHours() * 60 + now.getMinutes();
+        var line = document.createElement('div');
+        line.className = 'cal-now-line';
+        line.style.top = (nowMin * (HOUR_PX / 60)) + 'px';
+        col.appendChild(line);
+      }
+
+      bodyEl.appendChild(col);
+    });
+
+    var weekCost = 0;
+    allCardsFiltered(calendarFilter).forEach(function(item) {
+      var c = item.card, p = item.project;
+      if (c.billable === false) return;
+      var rate = cardRate(p);
+      c.entries.forEach(function(e) {
+        var s = Math.max(e.start, weekStart.getTime());
+        var end = e.end === null ? Date.now() : e.end;
+        var eEnd = Math.min(end, weekStart.getTime() + 7 * DAY_MS);
+        if (eEnd <= s) return;
+        weekCost += ((eEnd - s) / 3600000) * rate;
+      });
+    });
+
+    document.getElementById('cal-week-total').innerHTML = formatHMS(weekSeconds) + '<span class="cost">' + formatMoney(weekCost) + '</span>';
+    document.getElementById('calendar-empty').classList.toggle('show', weekSeconds === 0);
+  }
+
+  document.getElementById('cal-prev').addEventListener('click', function() {
+    weekStart = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() - 7);
+    renderCalendar();
+  });
+  document.getElementById('cal-next').addEventListener('click', function() {
+    weekStart = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 7);
+    renderCalendar();
+  });
+  document.getElementById('cal-today').addEventListener('click', function() {
+    weekStart = getWeekStart(new Date());
+    renderCalendar();
+  });
+  document.getElementById('calendar-project-filter').addEventListener('change', function() {
+    calendarFilter = this.value;
+    renderCalendar();
+  });
+  document.getElementById('cal-body').addEventListener('click', function(e) {
+    var block = e.target.closest('.cal-block');
+    if (block) openCardModal(block.getAttribute('data-card-id'));
+  });
 
   // ---------- RENDER: TODAY ----------
   // A personal daily checklist, separate from the boards: cards get pulled
@@ -4713,7 +5317,7 @@
         (pct ? '<span class="card-checklist-pct' + (pct.pct === 100 ? ' complete' : '') + '">' + svgIcon('checklist') + pct.done + '/' + pct.total + '</span>' : '') +
         '<input type="time" class="today-row-time' + (info.time ? '' : ' time-unset') + '" data-action="set-time" data-item="' + item.id + '" value="' + (info.time || '') + '" title="Schedule this task">' +
         '<span class="today-row-tag">' + esc(info.tag) + '</span>' +
-        (info.done ? '' : '<button type="button" class="today-row-action-btn" data-action="make-hero" data-item="' + item.id + '" title="Make this Up Now">' + svgIcon('target') + '</button>') +
+        (info.done ? '' : '<button type="button" class="today-row-action-btn" data-action="make-hero" data-item="' + item.id + '" title="Make this Up Now">' + svgIcon('arrowUp') + '</button>') +
         '<button type="button" class="today-row-action-btn" data-action="postpone-today" data-item="' + item.id + '" title="Postpone to tomorrow">' + svgIcon('tomorrow') + '</button>' +
         '<button type="button" class="today-row-action-btn" data-action="remove-today" data-item="' + item.id + '" title="Remove from today">' + svgIcon('trash') + '</button>' +
       '</div>'
@@ -4957,11 +5561,13 @@
       document.querySelectorAll('.view-btn').forEach(function(b) { b.classList.toggle('active', b === btn); });
       document.getElementById('board-view').classList.toggle('hide', currentView !== 'board');
       document.getElementById('timeline-view').classList.toggle('hide', currentView !== 'timeline');
+      document.getElementById('calendar-view').classList.toggle('hide', currentView !== 'calendar');
       document.getElementById('today-view').classList.toggle('hide', currentView !== 'today');
       document.getElementById('ideas-view').classList.toggle('hide', currentView !== 'ideas');
       document.querySelectorAll('.board-only').forEach(function(el) { el.classList.toggle('hide', currentView !== 'board'); });
       if (currentView === 'today') renderToday();
       if (currentView === 'ideas') renderIdeas();
+      if (currentView === 'calendar') renderCalendar();
     });
   });
 
@@ -5035,11 +5641,17 @@
     document.getElementById('project-list').innerHTML = data.projects.map(function(p) {
       var isActive = p.id === data.activeProjectId;
       return (
-        '<div class="project-row" data-project="' + p.id + '">' +
-          '<span class="project-row-handle" title="Drag to reorder">' + svgIcon('grip') + '</span>' +
-          '<button type="button" class="project-dot' + (isActive ? ' active' : '') + '" data-action="select-project" data-project="' + p.id + '" title="Switch to this project">' + (isActive ? svgIcon('check') : '') + '</button>' +
-          '<input class="text-input" value="' + esc(p.name) + '" data-action="rename-project" data-project="' + p.id + '" placeholder="Project name">' +
-          (canDelete ? '<button type="button" class="row-del" data-action="delete-project" data-project="' + p.id + '" style="background:none;border:none;cursor:pointer;color:var(--text-dim);padding:3px;display:flex;">' + svgIcon('trash') + '</button>' : '') +
+        '<div class="project-row-group" data-project="' + p.id + '">' +
+          '<div class="project-row" data-project="' + p.id + '">' +
+            '<span class="project-row-handle" title="Drag to reorder">' + svgIcon('grip') + '</span>' +
+            '<button type="button" class="project-dot' + (isActive ? ' active' : '') + '" data-action="select-project" data-project="' + p.id + '" title="Switch to this project">' + (isActive ? svgIcon('check') : '') + '</button>' +
+            '<input class="text-input" value="' + esc(p.name) + '" data-action="rename-project" data-project="' + p.id + '" placeholder="Project name">' +
+            (canDelete ? '<button type="button" class="row-del" data-action="delete-project" data-project="' + p.id + '" style="background:none;border:none;cursor:pointer;color:var(--text-dim);padding:3px;display:flex;">' + svgIcon('trash') + '</button>' : '') +
+          '</div>' +
+          '<div class="project-row-meta">' +
+            '<input class="text-input project-client-input" value="' + esc(p.client || '') + '" data-action="set-project-client" data-project="' + p.id + '" placeholder="Client (optional)">' +
+            '<input class="text-input project-rate-input" type="number" step="0.01" min="0" value="' + (p.rate !== null && p.rate !== undefined ? p.rate : '') + '" data-action="set-project-rate" data-project="' + p.id + '" placeholder="Rate (' + (Number(data.settings.rate) || 0) + '/h)">' +
+          '</div>' +
         '</div>'
       );
     }).join('');
@@ -5068,14 +5680,22 @@
   });
   document.getElementById('project-list').addEventListener('input', function(e) {
     var el = e.target;
-    if (el.getAttribute('data-action') !== 'rename-project') return;
+    var action = el.getAttribute('data-action');
     var proj = data.projects.find(function(x) { return x.id === el.getAttribute('data-project'); });
-    if (proj) {
+    if (!proj) return;
+    if (action === 'rename-project') {
       proj.name = el.value;
       save();
       if (proj.id === data.activeProjectId) {
         document.getElementById('title-project-label').textContent = proj.name || 'Untitled project';
       }
+    } else if (action === 'set-project-client') {
+      proj.client = el.value;
+      save();
+    } else if (action === 'set-project-rate') {
+      var r = parseFloat(el.value);
+      proj.rate = (el.value.trim() === '' || isNaN(r)) ? null : r;
+      save();
     }
   });
 
@@ -5186,7 +5806,7 @@
     var proj = activeProject();
     if (!proj.columns.length) proj.columns = defaultColumns();
     var col = proj.columns[0];
-    col.cards.push({ id: uid(), title: idea.text, description: idea.description || '', due: null, start: null, done: false, doneAt: null, checklist: [], cover: null, color: randomColor() });
+    col.cards.push({ id: uid(), title: idea.text, description: idea.description || '', due: null, start: null, done: false, doneAt: null, checklist: [], cover: null, color: randomColor(), entries: [], billable: true });
     data.ideas = data.ideas.filter(function(i) { return i.id !== id; });
     save();
     currentView = 'board';
@@ -5208,7 +5828,7 @@
     var proj = activeProject();
     if (!proj.columns.length) proj.columns = defaultColumns();
     var col = proj.columns.find(function(c) { return c.id === columnId; }) || proj.columns[0];
-    col.cards.push({ id: uid(), title: idea.text, description: idea.description || '', due: null, start: null, done: false, doneAt: null, checklist: [], cover: null, color: randomColor() });
+    col.cards.push({ id: uid(), title: idea.text, description: idea.description || '', due: null, start: null, done: false, doneAt: null, checklist: [], cover: null, color: randomColor(), entries: [], billable: true });
     data.ideas = data.ideas.filter(function(i) { return i.id !== id; });
     save();
   }
@@ -5590,6 +6210,8 @@
       toggleCardInToday(btn.getAttribute('data-card'));
     } else if (action === 'toggle-card-focus') {
       toggleCardFocus(btn.getAttribute('data-card'));
+    } else if (action === 'toggle-card-timer') {
+      toggleCardTimer(btn.getAttribute('data-card'));
     } else if (action === 'collapse-column' || action === 'expand-column') {
       var col2 = findColumn(btn.getAttribute('data-column'));
       if (col2) { col2.collapsed = !col2.collapsed; save(); renderBoard(); }
@@ -5611,7 +6233,7 @@
     if (!col) return;
     var lastColor = col.cards.length ? col.cards[col.cards.length - 1].color : null;
     var newColorChoices = lastColor ? PALETTE.filter(function(c) { return c !== lastColor; }) : PALETTE;
-    col.cards.push({ id: uid(), title: title, description: '', due: null, start: null, done: false, doneAt: null, checklist: [], cover: null, color: newColorChoices[Math.floor(Math.random() * newColorChoices.length)] });
+    col.cards.push({ id: uid(), title: title, description: '', due: null, start: null, done: false, doneAt: null, checklist: [], cover: null, color: newColorChoices[Math.floor(Math.random() * newColorChoices.length)], entries: [], billable: true });
     el.value = '';
     save(); render();
   }
@@ -5634,6 +6256,9 @@
     updateCardTomorrowToggleUI(cardId);
     updateCardDoneToggleUI(cardId);
     updateCardFocusToggleUI(cardId);
+    updateCardBillableToggleUI(cardId);
+    renderCardTimeSummary(cardId);
+    renderCardEntriesList(cardId);
     document.getElementById('card-description-input').value = c.description || '';
     document.getElementById('card-description-links').innerHTML = renderLinksPreview(c.description || '');
     document.getElementById('card-start-input').value = c.start || '';
@@ -5740,6 +6365,206 @@
     if (!editingCardId) return;
     toggleCardFocus(editingCardId);
     updateCardFocusToggleUI(editingCardId);
+  });
+  function updateCardBillableToggleUI(cardId) {
+    var found = findCard(cardId);
+    var billable = !!(found && found.card.billable !== false);
+    var btn = document.getElementById('card-billable-toggle');
+    btn.classList.toggle('active-billable', billable);
+    document.getElementById('card-billable-toggle-label').textContent = billable ? 'Billable' : 'Unbillable';
+  }
+  document.getElementById('card-billable-toggle').addEventListener('click', function() {
+    if (!editingCardId) return;
+    var found = findCard(editingCardId);
+    if (!found) return;
+    found.card.billable = found.card.billable === false ? true : false;
+    save();
+    updateCardBillableToggleUI(editingCardId);
+    renderCardTimeSummary(editingCardId);
+  });
+
+  // ---------- CARDS: time tracked (summary + manual entries) ----------
+  function renderCardTimeSummary(cardId) {
+    var found = findCard(cardId);
+    if (!found) return;
+    var seconds = cardSeconds(found.card);
+    document.getElementById('card-time-total').textContent = formatHMS(seconds);
+    var costEl = document.getElementById('card-time-cost');
+    costEl.textContent = found.card.billable === false ? '' : formatMoney(cardCost(found.card, found.project));
+  }
+  function renderEntryRow(cardId, entry) {
+    var start = new Date(entry.start);
+    var endMs = entry.end === null ? Date.now() : entry.end;
+    var durSec = Math.max(0, (endMs - entry.start) / 1000);
+    var dateLabel = start.toLocaleDateString();
+    var timeLabel = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
+      (entry.end === null ? ' – running' : ' – ' + new Date(entry.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    return (
+      '<div class="entry-row" data-entry="' + entry.id + '">' +
+        '<div class="entry-row-info">' +
+          '<span class="entry-row-date">' + esc(dateLabel) + '</span>' +
+          '<span class="entry-row-time">' + esc(timeLabel) + '</span>' +
+          '<span class="entry-row-dur">' + formatHMS(durSec) + '</span>' +
+        '</div>' +
+        '<div class="entry-row-actions">' +
+          (entry.end === null ? '' :
+            '<button type="button" class="icon-btn" data-action="edit-entry" data-card="' + cardId + '" data-entry="' + entry.id + '" title="Edit this entry">' + svgIcon('edit') + '</button>' +
+            '<button type="button" class="icon-btn" data-action="delete-entry" data-card="' + cardId + '" data-entry="' + entry.id + '" title="Delete this entry">' + svgIcon('trash') + '</button>') +
+        '</div>' +
+      '</div>'
+    );
+  }
+  function renderCardEntriesList(cardId) {
+    var found = findCard(cardId);
+    if (!found) return;
+    var entries = found.card.entries.slice().sort(function(a, b) { return b.start - a.start; });
+    document.getElementById('card-entries-empty').style.display = entries.length ? 'none' : 'block';
+    document.getElementById('card-entries-list').innerHTML = entries.map(function(e) { return renderEntryRow(cardId, e); }).join('');
+  }
+  document.getElementById('card-entries-list').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    var cardId = btn.getAttribute('data-card');
+    var entryId = btn.getAttribute('data-entry');
+    var found = findCard(cardId);
+    if (!found) return;
+    if (btn.getAttribute('data-action') === 'delete-entry') {
+      found.card.entries = found.card.entries.filter(function(en) { return en.id !== entryId; });
+      save();
+      renderCardTimeSummary(cardId);
+      renderCardEntriesList(cardId);
+      render();
+    } else if (btn.getAttribute('data-action') === 'edit-entry') {
+      var entry = found.card.entries.find(function(en) { return en.id === entryId; });
+      if (entry) openManualTimeModal(cardId, entry.id);
+    }
+  });
+  document.getElementById('card-add-time-btn').addEventListener('click', function() {
+    if (!editingCardId) return;
+    openManualTimeModal(editingCardId, null);
+  });
+
+  // ---------- CARDS: manual time entry modal (add or edit) ----------
+  function parseDurationToMinutes(str) {
+    if (!str) return NaN;
+    str = str.trim().toLowerCase().replace(',', '.');
+    var m1 = str.match(/^(\d+(?:\.\d+)?)\s*h(?:\s*(\d+)\s*m?)?$/);
+    if (m1) return parseFloat(m1[1]) * 60 + (m1[2] ? parseInt(m1[2], 10) : 0);
+    var m2 = str.match(/^(\d+):(\d+)$/);
+    if (m2) return parseInt(m2[1], 10) * 60 + parseInt(m2[2], 10);
+    var m3 = str.match(/^(\d+(?:\.\d+)?)\s*m(?:in)?$/);
+    if (m3) return parseFloat(m3[1]);
+    var m4 = str.match(/^(\d+(?:\.\d+)?)$/);
+    if (m4) return parseFloat(m4[1]);
+    return NaN;
+  }
+
+  var pendingManualCardId = null;
+  var pendingManualEntryId = null;
+  var manualTimeOverlay = document.getElementById('manual-time-overlay');
+  var manualDateEl = document.getElementById('manual-date');
+  var manualStartEl = document.getElementById('manual-start');
+  var manualEndEl = document.getElementById('manual-end');
+  var manualDurationEl = document.getElementById('manual-duration');
+  var manualDeleteBtn = document.getElementById('manual-time-delete');
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function timeToVal(d) { return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+  function dateToVal(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+
+  function recomputeEndFromDuration() {
+    var mins = parseDurationToMinutes(manualDurationEl.value);
+    if (isNaN(mins) || !manualDateEl.value || !manualStartEl.value) return;
+    var dp = manualDateEl.value.split('-').map(Number);
+    var sp = manualStartEl.value.split(':').map(Number);
+    var start = new Date(dp[0], dp[1] - 1, dp[2], sp[0], sp[1]);
+    var end = new Date(start.getTime() + mins * 60000);
+    manualEndEl.value = timeToVal(end);
+  }
+  manualDurationEl.addEventListener('input', recomputeEndFromDuration);
+  manualStartEl.addEventListener('input', function() {
+    if (manualDurationEl.value.trim()) recomputeEndFromDuration();
+  });
+  manualEndEl.addEventListener('input', function() { manualDurationEl.value = ''; });
+
+  function openManualTimeModal(cardId, entryId) {
+    pendingManualCardId = cardId;
+    pendingManualEntryId = entryId;
+    var found = findCard(cardId);
+    var entry = (found && entryId) ? found.card.entries.find(function(e) { return e.id === entryId; }) : null;
+
+    if (entry) {
+      var s = new Date(entry.start), e = new Date(entry.end);
+      manualDateEl.value = dateToVal(s);
+      manualStartEl.value = timeToVal(s);
+      manualEndEl.value = timeToVal(e);
+      manualDurationEl.value = '';
+      document.getElementById('manual-time-title').textContent = 'Edit time entry';
+      document.getElementById('manual-time-save').textContent = 'Save';
+      manualDeleteBtn.style.display = 'flex';
+    } else {
+      var end = new Date();
+      var start = new Date(end.getTime() - 60 * 60 * 1000);
+      manualDateEl.value = dateToVal(end);
+      manualStartEl.value = timeToVal(start);
+      manualEndEl.value = timeToVal(end);
+      manualDurationEl.value = '';
+      document.getElementById('manual-time-title').textContent = 'Add time';
+      document.getElementById('manual-time-save').textContent = 'Add';
+      manualDeleteBtn.style.display = 'none';
+    }
+    manualTimeOverlay.classList.add('show');
+  }
+
+  document.getElementById('manual-time-close').addEventListener('click', function() { manualTimeOverlay.classList.remove('show'); });
+  manualTimeOverlay.addEventListener('click', function(e) { if (e.target === manualTimeOverlay) manualTimeOverlay.classList.remove('show'); });
+
+  document.getElementById('manual-time-save').addEventListener('click', function() {
+    if (!pendingManualCardId) return;
+    var dateVal = manualDateEl.value;
+    var startVal = manualStartEl.value;
+    var endVal = manualEndEl.value;
+    if (!dateVal || !startVal || !endVal) { alert('Please fill in the date and start time, plus either a duration or an end time.'); return; }
+    var dp = dateVal.split('-').map(Number);
+    var sp = startVal.split(':').map(Number);
+    var ep = endVal.split(':').map(Number);
+    var start = new Date(dp[0], dp[1] - 1, dp[2], sp[0], sp[1]);
+    var end = new Date(dp[0], dp[1] - 1, dp[2], ep[0], ep[1]);
+    // A duration (or an end time typed earlier than the start) that pushes past midnight is
+    // valid — e.g. 22:00 + 5h = 03:00 the next day. Roll it forward a day instead of rejecting it.
+    if (end.getTime() <= start.getTime()) end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
+    var found = findCard(pendingManualCardId);
+    if (found) {
+      if (pendingManualEntryId) {
+        var entry = found.card.entries.find(function(e) { return e.id === pendingManualEntryId; });
+        if (entry) { entry.start = start.getTime(); entry.end = end.getTime(); }
+      } else {
+        found.card.entries.push({ id: uid(), start: start.getTime(), end: end.getTime(), manual: true });
+      }
+      save();
+      renderCardTimeSummary(pendingManualCardId);
+      renderCardEntriesList(pendingManualCardId);
+      render();
+    }
+    manualTimeOverlay.classList.remove('show');
+    pendingManualCardId = null;
+    pendingManualEntryId = null;
+  });
+
+  manualDeleteBtn.addEventListener('click', function() {
+    if (!pendingManualCardId || !pendingManualEntryId) return;
+    if (!confirm('Delete this time entry?')) return;
+    var found = findCard(pendingManualCardId);
+    if (found) {
+      found.card.entries = found.card.entries.filter(function(e) { return e.id !== pendingManualEntryId; });
+      save();
+      renderCardTimeSummary(pendingManualCardId);
+      renderCardEntriesList(pendingManualCardId);
+      render();
+    }
+    manualTimeOverlay.classList.remove('show');
+    pendingManualCardId = null;
+    pendingManualEntryId = null;
   });
   document.getElementById('card-description-input').addEventListener('input', function() {
     var c = currentCard(); if (!c) return;
@@ -6256,6 +7081,25 @@
     importFile.value = '';
   });
 
+  // ---- Time settings modal ----
+  var timeSettingsOverlay = document.getElementById('time-settings-overlay');
+  document.getElementById('menu-time-settings').addEventListener('click', function() {
+    document.getElementById('time-rate-input').value = data.settings.rate || '';
+    document.getElementById('time-currency-input').value = data.settings.currency;
+    timeSettingsOverlay.classList.add('show');
+    logoBtn.classList.remove('open');
+    logoDropdown.classList.remove('open');
+  });
+  document.getElementById('time-settings-close').addEventListener('click', function() { timeSettingsOverlay.classList.remove('show'); });
+  timeSettingsOverlay.addEventListener('click', function(e) { if (e.target === timeSettingsOverlay) timeSettingsOverlay.classList.remove('show'); });
+  document.getElementById('time-settings-save').addEventListener('click', function() {
+    var rate = parseFloat(document.getElementById('time-rate-input').value);
+    data.settings.rate = isNaN(rate) ? 0 : rate;
+    data.settings.currency = document.getElementById('time-currency-input').value.trim() || '$';
+    save(); render();
+    timeSettingsOverlay.classList.remove('show');
+  });
+
   document.getElementById('menu-reset').addEventListener('click', function() {
     if (confirm('Clear all projects and boards? This cannot be undone.')) {
       data = defaultData();
@@ -6310,6 +7154,8 @@
   startTodayClock();
   initCustomTimer();
   initBackupFeature();
+  initCalendarSkeleton();
+  initCardTimerEngine();
 
   // Registers the offline app-shell cache — lets the installed app (or a
   // browser tab) keep working without a network connection after first load.
