@@ -258,15 +258,10 @@
   }
 
   /* PROJECT MENU */
-  #project-dropdown { min-width: 300px; }
-  .project-row-group { border-radius: 4px; }
+  #project-dropdown { min-width: 220px; }
   .project-row { display: flex; align-items: center; gap: 4px; padding: 1px; border-radius: 4px; transition: background 0.1s; }
   .project-row.dragging { opacity: 0.4; }
   .project-row.drag-over { background: var(--surface2); }
-  .project-row-meta { display: flex; gap: 4px; padding: 0 0 3px 34px; }
-  .project-row-meta .text-input { font-size: 11px; padding: 3px 6px; }
-  .project-client-input { flex: 1.3; min-width: 0; }
-  .project-rate-input { flex: 1; min-width: 0; }
   .project-row-handle { display: flex; align-items: center; flex-shrink: 0; color: var(--text-dim); cursor: grab; }
   .project-row-handle:hover { color: var(--text-muted); }
   .project-dot {
@@ -327,7 +322,11 @@
 
   /* MAIN */
   #main { padding: 20px 20px 60px; }
-  #board-view.hide, #timeline-view.hide, #ideas-view.hide, #calendar-view.hide { display: none; }
+  #board-view.hide, #timeline-view.hide, #ideas-view.hide, #timetracker-view.hide { display: none; }
+  #tt-recap-panel.hide, #tt-calendar-panel.hide { display: none; }
+  .tt-subtabs { display: flex; gap: 6px; margin-bottom: 18px; }
+  .tt-subtab-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .tt-subtab-btn.active:hover { background: var(--text); color: var(--bg); }
   .board-only.hide { display: none; }
 
   /* BOARD */
@@ -635,6 +634,55 @@
   }
   .entry-row .icon-btn:hover { border-color: var(--border-hover); color: var(--text); }
 
+  /* TIME TRACKER VIEW — global settings, per-project client/rate/estimate, and per-card share recap */
+  #timetracker-main { max-width: 720px; margin: 0 auto; }
+  .time-global-row { display: flex; gap: 10px; margin-bottom: 18px; }
+  .time-global-field { flex: 1; min-width: 0; }
+  .time-global-field-currency { flex: 0 0 70px; }
+  .time-global-field-client { flex: 0 0 180px; }
+  .time-global-field label { display: block; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .recap-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+  .recap-project-fields { display: flex; gap: 6px; padding: 0 12px 10px; }
+  .recap-project-fields .text-input { font-size: 12px; padding: 5px 8px; border-color: var(--border-hover); }
+  .recap-client-input { flex: 1.2; min-width: 0; }
+  .recap-rate-input, .recap-estimate-input { flex: 1; min-width: 0; }
+  .recap-project {
+    border: 0.5px solid var(--border-hover);
+    border-radius: var(--radius);
+    background: var(--surface2);
+    overflow: hidden;
+  }
+  .recap-project-header {
+    width: 100%;
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 12px;
+    background: none; border: none; cursor: pointer;
+    text-align: left; color: var(--text);
+  }
+  .recap-project-header:hover { background: rgba(255,255,255,0.05); }
+  .recap-project-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .recap-project-time { flex-shrink: 0; font-family: ui-monospace, monospace; font-size: 13px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+  .recap-project-time .cost { color: var(--text-muted); margin-left: 6px; }
+  .recap-project-chevron { flex-shrink: 0; color: var(--text-muted); display: flex; transition: transform 0.15s; transform: rotate(90deg); }
+  .recap-project.collapsed .recap-project-chevron { transform: rotate(0deg); }
+  .recap-gauge-row { display: flex; align-items: center; gap: 8px; padding: 0 12px 10px; margin-top: -3px; }
+  .recap-gauge-track {
+    flex: 1; height: 7px; border-radius: 3px;
+    background: var(--bg); border: 0.5px solid var(--border-hover); overflow: hidden;
+  }
+  .recap-gauge-fill { height: 100%; border-radius: 3px; }
+  .recap-gauge-pct { flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; min-width: 34px; text-align: right; }
+  .recap-cards { border-top: 0.5px solid var(--border-hover); padding: 8px 12px 10px; display: flex; flex-direction: column; gap: 8px; }
+  .recap-project.collapsed .recap-cards, .recap-project.collapsed .recap-gauge-row { display: none; }
+  .recap-card-row { display: flex; align-items: center; gap: 6px; font-size: 12px; position: relative; padding-bottom: 5px; }
+  .recap-card-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .recap-card-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+  .recap-card-time { flex-shrink: 0; font-family: ui-monospace, monospace; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .recap-card-pct { flex-shrink: 0; min-width: 34px; text-align: right; color: var(--text-muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .recap-card-pct-bar-track { position: absolute; left: 13px; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,0.1); border-radius: 1.5px; overflow: hidden; }
+  .recap-card-pct-bar-fill { height: 100%; background: var(--text-muted); border-radius: 1.5px; }
+  .recap-cards-empty { color: var(--text-muted); font-size: 12px; padding: 2px 0; }
+
   #board-empty {
     display: none;
     text-align: center;
@@ -699,7 +747,7 @@
   .cal-week-total { margin-left: auto; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   .cal-week-total .cost { color: var(--text-dim); margin-left: 8px; }
 
-  #calendar-view { max-width: 960px; margin: 0 auto; }
+  #timetracker-view { max-width: 960px; margin: 0 auto; }
   .cal-grid-wrap {
     border: 0.5px solid var(--border);
     border-radius: var(--radius-lg);
@@ -2231,11 +2279,6 @@
         Import (JSON)
       </button>
       <div class="tb-sep-h"></div>
-      <button class="tb-btn" id="menu-time-settings" title="Set a default hourly rate and currency for time tracking">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        Time settings…
-      </button>
-      <div class="tb-sep-h"></div>
       <button class="tb-btn hide" id="menu-backup-folder" title="Silently write a timestamped backup to a folder on disk after every change — Chrome/Edge only">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
         <span id="backup-folder-label">Auto-backup: Off</span>
@@ -2331,7 +2374,7 @@
     <button class="tb-btn view-btn" id="view-today-btn" data-view="today">Today</button>
     <button class="tb-btn view-btn active" id="view-board-btn" data-view="board">Board</button>
     <button class="tb-btn view-btn" id="view-timeline-btn" data-view="timeline">Timeline</button>
-    <button class="tb-btn view-btn" id="view-calendar-btn" data-view="calendar">Calendar</button>
+    <button class="tb-btn view-btn" id="view-timetracker-btn" data-view="timetracker">Time Tracker</button>
     <button class="tb-btn view-btn" id="view-ideas-btn" data-view="ideas">Random Ideas</button>
   </div>
   <button class="tb-btn board-only" id="shuffle-btn" title="Shuffle card colors">
@@ -2392,31 +2435,59 @@
     <div id="timeline-empty">No cards yet.<br>Add cards to your board to see them here, sorted by due date.</div>
   </div>
 
-  <div id="calendar-view" class="hide">
-    <div id="calendar-toolbar">
-      <div id="calendar-project-filter-wrap" class="hide">
-        <label for="calendar-project-filter" class="timeline-filter-label">Project</label>
-        <select id="calendar-project-filter" class="text-input"></select>
-      </div>
-      <div class="cal-nav">
-        <button type="button" class="cal-icon-btn" id="cal-prev" title="Previous week">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
-        <button type="button" class="cal-icon-btn" id="cal-next" title="Next week">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-        <button type="button" class="tb-btn" id="cal-today">Today</button>
-        <span class="cal-range-label" id="cal-range-label"></span>
-        <span class="cal-week-total" id="cal-week-total"></span>
+  <div id="timetracker-view" class="hide">
+    <div class="tt-subtabs">
+      <button type="button" class="tb-btn tt-subtab-btn active" id="tt-tab-recap" data-tttab="recap">Recap</button>
+      <button type="button" class="tb-btn tt-subtab-btn" id="tt-tab-calendar" data-tttab="calendar">Calendar</button>
+    </div>
+
+    <div id="tt-recap-panel">
+      <div id="timetracker-main">
+        <div class="time-global-row">
+          <div class="time-global-field">
+            <label for="time-rate-input">Default hourly rate</label>
+            <input id="time-rate-input" class="text-input" type="number" step="0.01" min="0" placeholder="50">
+          </div>
+          <div class="time-global-field time-global-field-currency">
+            <label for="time-currency-input">Currency</label>
+            <input id="time-currency-input" class="text-input" maxlength="3" placeholder="$">
+          </div>
+          <div class="time-global-field time-global-field-client">
+            <label for="recap-client-filter">Client</label>
+            <select id="recap-client-filter" class="text-input"></select>
+          </div>
+        </div>
+        <div class="recap-list" id="recap-list"></div>
+        <div id="recap-empty" style="text-align:center;color:var(--text-dim);font-size:12.5px;padding:24px 0;">No projects yet.</div>
       </div>
     </div>
-    <div class="cal-grid-wrap">
-      <div class="cal-header-row" id="cal-header-row"></div>
-      <div class="cal-body" id="cal-body">
-        <div class="cal-time-col" id="cal-time-col"></div>
+
+    <div id="tt-calendar-panel" class="hide">
+      <div id="calendar-toolbar">
+        <div id="calendar-project-filter-wrap" class="hide">
+          <label for="calendar-project-filter" class="timeline-filter-label">Project</label>
+          <select id="calendar-project-filter" class="text-input"></select>
+        </div>
+        <div class="cal-nav">
+          <button type="button" class="cal-icon-btn" id="cal-prev" title="Previous week">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button type="button" class="cal-icon-btn" id="cal-next" title="Next week">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <button type="button" class="tb-btn" id="cal-today">Today</button>
+          <span class="cal-range-label" id="cal-range-label"></span>
+          <span class="cal-week-total" id="cal-week-total"></span>
+        </div>
       </div>
+      <div class="cal-grid-wrap">
+        <div class="cal-header-row" id="cal-header-row"></div>
+        <div class="cal-body" id="cal-body">
+          <div class="cal-time-col" id="cal-time-col"></div>
+        </div>
+      </div>
+      <div id="calendar-empty">No tracked time this week yet.</div>
     </div>
-    <div id="calendar-empty">No tracked time this week yet.</div>
   </div>
 
   <div id="today-view" class="hide">
@@ -2634,24 +2705,6 @@
     <h2>Version history</h2>
     <p style="font-size:11px;color:var(--text-dim);line-height:1.6;margin-bottom:12px;">Snapshots saved automatically as you work, kept in this browser only (not a substitute for Export/Auto-backup).</p>
     <div id="history-list"></div>
-  </div>
-</div>
-
-<!-- TIME SETTINGS MODAL -->
-<div class="modal-overlay" id="time-settings-overlay">
-  <div class="modal">
-    <button class="modal-close" id="time-settings-close">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-    <h2>Time settings</h2>
-    <label for="time-rate-input">Default hourly rate</label>
-    <input id="time-rate-input" class="text-input" type="number" step="0.01" min="0" placeholder="50">
-    <label for="time-currency-input">Currency</label>
-    <input id="time-currency-input" class="text-input" maxlength="3" placeholder="$">
-    <p style="font-size:11px;color:var(--text-dim);line-height:1.6;margin-top:6px;">Used for any project that doesn't have its own rate set (see the Rate field under each project in the project switcher).</p>
-    <div class="modal-actions">
-      <button class="tb-btn primary" id="time-settings-save" style="width:auto;">Save</button>
-    </div>
   </div>
 </div>
 
@@ -2912,6 +2965,7 @@
 (function() {
   var STORAGE_KEY = 'kanban.v1';
   var currentView = 'board';
+  var timeTrackerTab = 'recap'; // 'recap' or 'calendar' — sub-tab within the Time Tracker view
   var editingCardId = null;
 
   var PALETTE = ['#ec4899', '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#06b6d4', '#84cc16'];
@@ -2978,7 +3032,7 @@
   function defaultData() {
     var pid = uid();
     return {
-      projects: [{ id: pid, name: 'Project 1', columns: defaultColumns(), lastShuffleDate: todayStr(), lastArchiveDate: todayStr(), archive: [] }],
+      projects: [{ id: pid, name: 'Project 1', columns: defaultColumns(), lastShuffleDate: todayStr(), lastArchiveDate: todayStr(), archive: [], client: '', rate: null, estimate: null }],
       activeProjectId: pid,
       ideas: [],
       history: [],
@@ -3011,6 +3065,7 @@
       if (p.dueOnlyFilter === undefined) p.dueOnlyFilter = false;
       if (p.client === undefined) p.client = '';
       if (p.rate === undefined) p.rate = null;
+      if (p.estimate === undefined) p.estimate = null;
       p.columns.forEach(function(col) {
         if (!col.id) col.id = uid();
         if (!col.cards) col.cards = [];
@@ -3474,6 +3529,31 @@
     if (c.billable === false) return 0;
     return (cardSeconds(c) / 3600) * cardRate(project);
   }
+  function projectSeconds(project) {
+    return allCardsInProject(project).reduce(function(sum, item) { return sum + cardSeconds(item.card); }, 0);
+  }
+  function projectCost(project) {
+    return allCardsInProject(project).reduce(function(sum, item) { return sum + cardCost(item.card, project); }, 0);
+  }
+  // Share of the project's total tracked time this one card accounts for —
+  // same "percentage of project total" concept as Time Tracker's taskPct.
+  function cardPctOfProject(card, project) {
+    var total = projectSeconds(project);
+    return total > 0 ? (cardSeconds(card) / total * 100) : 0;
+  }
+  // Same estimate-vs-worked gauge as Time Tracker's projectGaugeInfo, driven
+  // by tracked card time instead of task time.
+  function projectGaugeInfo(project) {
+    var estimateHours = Number(project.estimate) || 0;
+    if (!estimateHours) return { pct: 0, rawPct: 0, color: 'transparent', title: 'Set an estimate (hours) to track progress' };
+    var workedHours = projectSeconds(project) / 3600;
+    var pct = (workedHours / estimateHours) * 100;
+    var hue = Math.max(0, 142 - Math.min(pct, 100) / 100 * 142);
+    var color = 'hsl(' + Math.round(hue) + ', 72%, 58%)';
+    var title = workedHours.toFixed(1) + 'h / ' + estimateHours + 'h (' + Math.round(pct) + '%)';
+    if (pct > 100) title += ' — over estimate';
+    return { pct: Math.min(pct, 100), rawPct: pct, color: color, title: title };
+  }
   function formatHMS(totalSec) {
     totalSec = Math.max(0, Math.round(totalSec));
     var h = Math.floor(totalSec / 3600);
@@ -3555,7 +3635,7 @@
     });
     var heroTimerEl = document.querySelector('[data-role="card-timer-hero"][data-card="' + running.card.id + '"]');
     if (heroTimerEl) heroTimerEl.textContent = formatHMS(seconds);
-    if (currentView === 'calendar') renderCalendar();
+    if (currentView === 'timetracker' && timeTrackerTab === 'calendar') renderCalendar();
     cardTimerTickCount++;
     if (cardTimerTickCount % 10 === 0) recordHeartbeat();
   }
@@ -5561,13 +5641,13 @@
       document.querySelectorAll('.view-btn').forEach(function(b) { b.classList.toggle('active', b === btn); });
       document.getElementById('board-view').classList.toggle('hide', currentView !== 'board');
       document.getElementById('timeline-view').classList.toggle('hide', currentView !== 'timeline');
-      document.getElementById('calendar-view').classList.toggle('hide', currentView !== 'calendar');
+      document.getElementById('timetracker-view').classList.toggle('hide', currentView !== 'timetracker');
       document.getElementById('today-view').classList.toggle('hide', currentView !== 'today');
       document.getElementById('ideas-view').classList.toggle('hide', currentView !== 'ideas');
       document.querySelectorAll('.board-only').forEach(function(el) { el.classList.toggle('hide', currentView !== 'board'); });
       if (currentView === 'today') renderToday();
       if (currentView === 'ideas') renderIdeas();
-      if (currentView === 'calendar') renderCalendar();
+      if (currentView === 'timetracker') openTimeTrackerView();
     });
   });
 
@@ -5641,17 +5721,11 @@
     document.getElementById('project-list').innerHTML = data.projects.map(function(p) {
       var isActive = p.id === data.activeProjectId;
       return (
-        '<div class="project-row-group" data-project="' + p.id + '">' +
-          '<div class="project-row" data-project="' + p.id + '">' +
-            '<span class="project-row-handle" title="Drag to reorder">' + svgIcon('grip') + '</span>' +
-            '<button type="button" class="project-dot' + (isActive ? ' active' : '') + '" data-action="select-project" data-project="' + p.id + '" title="Switch to this project">' + (isActive ? svgIcon('check') : '') + '</button>' +
-            '<input class="text-input" value="' + esc(p.name) + '" data-action="rename-project" data-project="' + p.id + '" placeholder="Project name">' +
-            (canDelete ? '<button type="button" class="row-del" data-action="delete-project" data-project="' + p.id + '" style="background:none;border:none;cursor:pointer;color:var(--text-dim);padding:3px;display:flex;">' + svgIcon('trash') + '</button>' : '') +
-          '</div>' +
-          '<div class="project-row-meta">' +
-            '<input class="text-input project-client-input" value="' + esc(p.client || '') + '" data-action="set-project-client" data-project="' + p.id + '" placeholder="Client (optional)">' +
-            '<input class="text-input project-rate-input" type="number" step="0.01" min="0" value="' + (p.rate !== null && p.rate !== undefined ? p.rate : '') + '" data-action="set-project-rate" data-project="' + p.id + '" placeholder="Rate (' + (Number(data.settings.rate) || 0) + '/h)">' +
-          '</div>' +
+        '<div class="project-row" data-project="' + p.id + '">' +
+          '<span class="project-row-handle" title="Drag to reorder">' + svgIcon('grip') + '</span>' +
+          '<button type="button" class="project-dot' + (isActive ? ' active' : '') + '" data-action="select-project" data-project="' + p.id + '" title="Switch to this project">' + (isActive ? svgIcon('check') : '') + '</button>' +
+          '<input class="text-input" value="' + esc(p.name) + '" data-action="rename-project" data-project="' + p.id + '" placeholder="Project name">' +
+          (canDelete ? '<button type="button" class="row-del" data-action="delete-project" data-project="' + p.id + '" style="background:none;border:none;cursor:pointer;color:var(--text-dim);padding:3px;display:flex;">' + svgIcon('trash') + '</button>' : '') +
         '</div>'
       );
     }).join('');
@@ -5689,13 +5763,6 @@
       if (proj.id === data.activeProjectId) {
         document.getElementById('title-project-label').textContent = proj.name || 'Untitled project';
       }
-    } else if (action === 'set-project-client') {
-      proj.client = el.value;
-      save();
-    } else if (action === 'set-project-rate') {
-      var r = parseFloat(el.value);
-      proj.rate = (el.value.trim() === '' || isNaN(r)) ? null : r;
-      save();
     }
   });
 
@@ -5755,7 +5822,7 @@
   // "+ New project" input and by converting a Random Idea into a board.
   function createProject(name) {
     var id = uid();
-    data.projects.push({ id: id, name: name, columns: defaultColumns(), lastShuffleDate: todayStr(), lastArchiveDate: todayStr(), archive: [] });
+    data.projects.push({ id: id, name: name, columns: defaultColumns(), lastShuffleDate: todayStr(), lastArchiveDate: todayStr(), archive: [], client: '', rate: null, estimate: null });
     data.activeProjectId = id;
     return id;
   }
@@ -7081,23 +7148,173 @@
     importFile.value = '';
   });
 
-  // ---- Time settings modal ----
-  var timeSettingsOverlay = document.getElementById('time-settings-overlay');
-  document.getElementById('menu-time-settings').addEventListener('click', function() {
+  // ---- Time Tracker view: global settings + per-project client/rate/estimate + recap ----
+  var recapCollapsed = {}; // projectId -> true, ephemeral UI state only, not persisted
+  var recapClientFilter = 'all';
+
+  function renderClientFilterOptions() {
+    var select = document.getElementById('recap-client-filter');
+    var clients = [];
+    data.projects.forEach(function(p) {
+      if (p.client && clients.indexOf(p.client) === -1) clients.push(p.client);
+    });
+    clients.sort(function(a, b) { return a.localeCompare(b); });
+    var current = select.value || recapClientFilter;
+    select.innerHTML = '<option value="all">All clients</option>' + clients.map(function(c) {
+      return '<option value="' + esc(c) + '">' + esc(c) + '</option>';
+    }).join('');
+    select.value = clients.indexOf(current) !== -1 || current === 'all' ? current : 'all';
+    recapClientFilter = select.value;
+  }
+
+  function renderRecapCardRow(card, project) {
+    var pct = cardPctOfProject(card, project);
+    return (
+      '<div class="recap-card-row">' +
+        '<span class="recap-card-dot" style="background:' + card.color + ';"></span>' +
+        '<span class="recap-card-title">' + esc(card.title || 'Untitled card') + '</span>' +
+        '<span class="recap-card-time">' + formatHMS(cardSeconds(card)) + '</span>' +
+        '<span class="recap-card-pct">' + Math.round(pct) + '%</span>' +
+        '<div class="recap-card-pct-bar-track"><div class="recap-card-pct-bar-fill" style="width:' + pct + '%;"></div></div>' +
+      '</div>'
+    );
+  }
+
+  function renderRecapProject(project) {
+    var cardsWithTime = allCardsInProject(project)
+      .map(function(item) { return item.card; })
+      .filter(function(c) { return cardSeconds(c) > 0; })
+      .sort(function(a, b) { return cardSeconds(b) - cardSeconds(a); });
+    var seconds = projectSeconds(project);
+    var cost = projectCost(project);
+    var gauge = projectGaugeInfo(project);
+    var collapsed = !!recapCollapsed[project.id];
+
+    var gaugeRow = project.estimate
+      ? '<div class="recap-gauge-row" title="' + esc(gauge.title) + '">' +
+          '<div class="recap-gauge-track"><div class="recap-gauge-fill" style="width:' + gauge.pct + '%;background:' + gauge.color + ';"></div></div>' +
+          '<span class="recap-gauge-pct">' + Math.round(gauge.rawPct) + '%</span>' +
+        '</div>'
+      : '';
+
+    var cardsHtml = cardsWithTime.length
+      ? cardsWithTime.map(function(c) { return renderRecapCardRow(c, project); }).join('')
+      : '<div class="recap-cards-empty">No time logged on any card yet.</div>';
+
+    return (
+      '<div class="recap-project' + (collapsed ? ' collapsed' : '') + '" data-project="' + project.id + '">' +
+        '<button type="button" class="recap-project-header" data-action="toggle-recap-project" data-project="' + project.id + '">' +
+          '<span class="recap-project-chevron">' + svgIcon('expand') + '</span>' +
+          '<span class="recap-project-name">' + esc(project.name || 'Untitled project') + '</span>' +
+          '<span class="recap-project-time">' + formatHMS(seconds) + (cost > 0 ? '<span class="cost">' + formatMoney(cost) + '</span>' : '') + '</span>' +
+        '</button>' +
+        '<div class="recap-project-fields">' +
+          '<input class="text-input recap-client-input" value="' + esc(project.client || '') + '" data-action="set-project-client" data-project="' + project.id + '" placeholder="Client (optional)">' +
+          '<input class="text-input recap-rate-input" type="number" step="0.01" min="0" value="' + (project.rate !== null && project.rate !== undefined ? project.rate : '') + '" data-action="set-project-rate" data-project="' + project.id + '" placeholder="Rate (' + (Number(data.settings.rate) || 0) + '/h)">' +
+          '<input class="text-input recap-estimate-input" type="number" step="0.5" min="0" value="' + (project.estimate !== null && project.estimate !== undefined ? project.estimate : '') + '" data-action="set-project-estimate" data-project="' + project.id + '" placeholder="Est. hours">' +
+        '</div>' +
+        gaugeRow +
+        '<div class="recap-cards">' + cardsHtml + '</div>' +
+      '</div>'
+    );
+  }
+
+  function refreshRecapList() {
+    var projects = recapClientFilter === 'all'
+      ? data.projects
+      : data.projects.filter(function(p) { return p.client === recapClientFilter; });
+    document.getElementById('recap-empty').style.display = projects.length ? 'none' : 'block';
+    document.getElementById('recap-empty').textContent = data.projects.length ? 'No projects for this client.' : 'No projects yet.';
+    document.getElementById('recap-list').innerHTML = projects.map(renderRecapProject).join('');
+  }
+  // Updates just one project's read-only figures (time/cost/gauge) in place,
+  // leaving its Client/Rate/Estimate inputs untouched — a full refreshRecapList()
+  // rebuilds every row's HTML and would blur whichever input the user is
+  // still typing in.
+  function updateRecapProjectStats(projectId) {
+    var project = data.projects.find(function(p) { return p.id === projectId; });
+    var row = document.querySelector('.recap-project[data-project="' + projectId + '"]');
+    if (!project || !row) return;
+    var seconds = projectSeconds(project);
+    var cost = projectCost(project);
+    row.querySelector('.recap-project-time').innerHTML = formatHMS(seconds) + (cost > 0 ? '<span class="cost">' + formatMoney(cost) + '</span>' : '');
+
+    var gauge = projectGaugeInfo(project);
+    var gaugeRowEl = row.querySelector('.recap-gauge-row');
+    if (project.estimate) {
+      if (!gaugeRowEl) {
+        gaugeRowEl = document.createElement('div');
+        gaugeRowEl.className = 'recap-gauge-row';
+        row.querySelector('.recap-project-fields').insertAdjacentElement('afterend', gaugeRowEl);
+      }
+      gaugeRowEl.title = gauge.title;
+      gaugeRowEl.innerHTML = '<div class="recap-gauge-track"><div class="recap-gauge-fill" style="width:' + gauge.pct + '%;background:' + gauge.color + ';"></div></div><span class="recap-gauge-pct">' + Math.round(gauge.rawPct) + '%</span>';
+    } else if (gaugeRowEl) {
+      gaugeRowEl.remove();
+    }
+  }
+
+  function openTimeTrackerView() {
     document.getElementById('time-rate-input').value = data.settings.rate || '';
     document.getElementById('time-currency-input').value = data.settings.currency;
-    timeSettingsOverlay.classList.add('show');
-    logoBtn.classList.remove('open');
-    logoDropdown.classList.remove('open');
+    renderClientFilterOptions();
+    refreshRecapList();
+    if (timeTrackerTab === 'calendar') renderCalendar();
+  }
+  document.getElementById('recap-client-filter').addEventListener('change', function() {
+    recapClientFilter = this.value;
+    refreshRecapList();
   });
-  document.getElementById('time-settings-close').addEventListener('click', function() { timeSettingsOverlay.classList.remove('show'); });
-  timeSettingsOverlay.addEventListener('click', function(e) { if (e.target === timeSettingsOverlay) timeSettingsOverlay.classList.remove('show'); });
-  document.getElementById('time-settings-save').addEventListener('click', function() {
-    var rate = parseFloat(document.getElementById('time-rate-input').value);
+
+  document.querySelectorAll('.tt-subtab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      timeTrackerTab = btn.getAttribute('data-tttab');
+      document.querySelectorAll('.tt-subtab-btn').forEach(function(b) { b.classList.toggle('active', b === btn); });
+      document.getElementById('tt-recap-panel').classList.toggle('hide', timeTrackerTab !== 'recap');
+      document.getElementById('tt-calendar-panel').classList.toggle('hide', timeTrackerTab !== 'calendar');
+      if (timeTrackerTab === 'calendar') renderCalendar();
+    });
+  });
+
+  document.getElementById('time-rate-input').addEventListener('input', function() {
+    var rate = parseFloat(this.value);
     data.settings.rate = isNaN(rate) ? 0 : rate;
-    data.settings.currency = document.getElementById('time-currency-input').value.trim() || '$';
-    save(); render();
-    timeSettingsOverlay.classList.remove('show');
+    save();
+    data.projects.forEach(function(p) { updateRecapProjectStats(p.id); });
+  });
+  document.getElementById('time-currency-input').addEventListener('input', function() {
+    data.settings.currency = this.value.trim() || '$';
+    save();
+    data.projects.forEach(function(p) { updateRecapProjectStats(p.id); });
+  });
+
+  document.getElementById('recap-list').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-action="toggle-recap-project"]');
+    if (!btn) return;
+    var pid = btn.getAttribute('data-project');
+    recapCollapsed[pid] = !recapCollapsed[pid];
+    refreshRecapList();
+  });
+  document.getElementById('recap-list').addEventListener('input', function(e) {
+    var el = e.target;
+    var action = el.getAttribute('data-action');
+    var project = data.projects.find(function(p) { return p.id === el.getAttribute('data-project'); });
+    if (!project) return;
+    if (action === 'set-project-client') {
+      project.client = el.value;
+      save();
+      renderClientFilterOptions();
+    } else if (action === 'set-project-rate') {
+      var r = parseFloat(el.value);
+      project.rate = (el.value.trim() === '' || isNaN(r)) ? null : r;
+      save();
+      updateRecapProjectStats(project.id);
+    } else if (action === 'set-project-estimate') {
+      var est = parseFloat(el.value);
+      project.estimate = (el.value.trim() === '' || isNaN(est)) ? null : est;
+      save();
+      updateRecapProjectStats(project.id);
+    }
   });
 
   document.getElementById('menu-reset').addEventListener('click', function() {
