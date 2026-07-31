@@ -5371,10 +5371,14 @@
     if (idx === -1) return;
     var item = list.items.splice(idx, 1)[0];
     list.items.push(item);
-    // The item itself stays valid (not done, not postponed) so it wouldn't
-    // otherwise lose its pin — "Later" is the explicit signal to hand
-    // Up Now to whatever's next, same as Done does implicitly.
-    if (list.heroId === itemId) list.heroId = null;
+    if (list.heroId === itemId) {
+      // A scheduled time re-sorts this item straight back to the front on
+      // render, so just releasing the pin isn't enough to hand off Up Now
+      // — that leaves it appearing to do nothing for timed tasks. Pin
+      // whatever's next in the same order explicitly instead.
+      var order = computeTodayTodo(list).todo.filter(function(e) { return e.item.id !== itemId; });
+      list.heroId = order.length ? order[0].item.id : null;
+    }
     save();
     render();
   }
@@ -5389,12 +5393,11 @@
     render();
   }
 
-  function renderToday() {
-    var list = ensureTodayList();
-    var before = list.items.length;
-    list.items = list.items.filter(function(i) { return !i.cardId || !!findCard(i.cardId); });
-    if (list.items.length !== before) save();
-
+  // Shared by renderToday and sendTodayItemToBack so both agree on what
+  // "next in line" means — scheduled tasks lead the pile earliest first,
+  // unscheduled ones keep their existing (drag-ordered) relative order,
+  // appended after.
+  function computeTodayTodo(list) {
     var allEntries = list.items.map(function(i) {
       return { item: i, info: todayEntryInfo(i) };
     }).filter(function(e) { return !!e.info; });
@@ -5403,15 +5406,22 @@
     var entries = allEntries.filter(function(e) { return e.item.postponedTo !== tomorrow; });
     var todo = entries.filter(function(e) { return !e.info.done; });
     var done = entries.filter(function(e) { return e.info.done; });
-    var doneToday = entries.filter(function(e) { return e.info.done && e.info.doneAt === todayStr(); });
-
-    // Scheduled tasks lead the pile, earliest first; unscheduled ones keep
-    // their existing (drag-ordered) relative order, appended after.
     var todoTimed = todo.filter(function(e) { return e.info.time; })
       .sort(function(a, b) { return a.info.time < b.info.time ? -1 : a.info.time > b.info.time ? 1 : 0; });
     var todoUntimed = todo.filter(function(e) { return !e.info.time; });
-    todo = todoTimed.concat(todoUntimed);
-    todayTimeDots = todoTimed.map(function(e) { return { time: e.info.time, title: e.info.title }; });
+    return { entries: entries, postponed: postponed, done: done, todo: todoTimed.concat(todoUntimed), todoTimed: todoTimed };
+  }
+
+  function renderToday() {
+    var list = ensureTodayList();
+    var before = list.items.length;
+    list.items = list.items.filter(function(i) { return !i.cardId || !!findCard(i.cardId); });
+    if (list.items.length !== before) save();
+
+    var computed = computeTodayTodo(list);
+    var entries = computed.entries, postponed = computed.postponed, done = computed.done, todo = computed.todo;
+    var doneToday = entries.filter(function(e) { return e.info.done && e.info.doneAt === todayStr(); });
+    todayTimeDots = computed.todoTimed.map(function(e) { return { time: e.info.time, title: e.info.title }; });
     renderTaskDots();
 
     document.getElementById('today-empty').classList.toggle('show', entries.length === 0 && postponed.length === 0);
