@@ -4615,6 +4615,23 @@
   // weekday, skipping templates already spawned today (tracked via each
   // template's own lastAddedDate) so re-renders and reloads don't duplicate
   // them, and so a user-deleted instance doesn't come back the same day.
+  // Cards due today join the Today list on their own — no need to add them
+  // by hand. dismissedDue tracks cards a user explicitly pulled back out
+  // (Hold, remove, etc.) so they don't immediately reappear the same day.
+  function spawnDueTodayCards(list) {
+    var today = todayStr();
+    var added = false;
+    allCardsFiltered('all').forEach(function(e) {
+      var c = e.card;
+      if (c.due !== today || c.done) return;
+      if (list.items.some(function(i) { return i.cardId === c.id; })) return;
+      if (list.dismissedDue.indexOf(c.id) !== -1) return;
+      list.items.push({ id: uid(), cardId: c.id });
+      added = true;
+    });
+    return added;
+  }
+
   function spawnRecurringToday(list) {
     var today = todayStr();
     var weekday = new Date().getDay();
@@ -4630,13 +4647,15 @@
   }
 
   function ensureTodayList() {
-    if (!data.today || !data.today.items) data.today = { date: todayStr(), items: [], heroId: null };
+    if (!data.today || !data.today.items) data.today = { date: todayStr(), items: [], heroId: null, dismissedDue: [] };
+    if (!data.today.dismissedDue) data.today.dismissedDue = [];
     var today = todayStr();
     var changed = false;
     if (data.today.date !== today) {
       recordHistoryDay(data.today.date, data.today.items);
       data.today.date = today;
       data.today.heroId = null;
+      data.today.dismissedDue = [];
       data.today.items = data.today.items.filter(function(i) {
         var info = todayEntryInfo(i);
         return !info || !info.done;
@@ -4649,6 +4668,7 @@
       changed = true;
     }
     if (spawnRecurringToday(data.today)) changed = true;
+    if (spawnDueTodayCards(data.today)) changed = true;
     if (changed) save();
     return data.today;
   }
@@ -4661,11 +4681,17 @@
     var list = ensureTodayList();
     if (list.items.some(function(i) { return i.cardId === cardId; })) return;
     list.items.push({ id: uid(), cardId: cardId });
+    list.dismissedDue = list.dismissedDue.filter(function(id) { return id !== cardId; });
     save();
     render();
   }
   function removeFromToday(itemId) {
     var list = ensureTodayList();
+    var item = list.items.find(function(i) { return i.id === itemId; });
+    // A card due today would otherwise be re-added right back by
+    // spawnDueTodayCards on the next render — remember it was dismissed
+    // on purpose so it stays off the list for the rest of the day.
+    if (item && item.cardId) list.dismissedDue.push(item.cardId);
     list.items = list.items.filter(function(i) { return i.id !== itemId; });
     save();
     render();
