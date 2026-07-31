@@ -324,7 +324,7 @@
 
   /* MAIN */
   #main { padding: 20px 20px 60px; }
-  #board-view.hide, #timeline-view.hide, #ideas-view.hide, #timetracker-view.hide { display: none; }
+  #board-view.hide, #timeline-view.hide, #ideas-view.hide, #timetracker-view.hide, #achievements-view.hide { display: none; }
   #tt-recap-panel.hide, #tt-calendar-panel.hide { display: none; }
   .tt-subtabs { display: flex; gap: 6px; margin-bottom: 18px; }
   .tt-subtab-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
@@ -357,6 +357,14 @@
   .title-project-btn:hover, .title-project-btn.open { background: var(--surface2); }
   .title-project-btn svg.tb-chevron { color: var(--text-dim); flex-shrink: 0; transition: transform 0.15s; }
   .title-project-btn.open svg.tb-chevron { transform: rotate(180deg); }
+  #board-options-btn svg.tb-chevron { color: var(--text-dim); flex-shrink: 0; transition: transform 0.15s; }
+  #board-options-btn.open svg.tb-chevron { transform: rotate(180deg); }
+  /* Sits inside the view-switch pill next to the Board tab — border: none
+     and matching padding keep it visually part of that pill instead of
+     reading as a separate floating toolbar button. */
+  #board-options-btn { border: none; background: transparent; color: var(--text-muted); }
+  #board-options-btn:hover, #board-options-btn.open { background: var(--surface); color: var(--text); }
+  #board-options-wrap .tb-dropdown { left: auto; right: 0; }
   .title-project-wrap #project-dropdown { left: 50%; transform: translateX(-50%); }
   #board {
     display: flex;
@@ -1139,20 +1147,28 @@
     position: relative;
     padding: 26px 22px; text-align: center;
     background: var(--surface2);
-    border: 1px solid rgba(239,107,92,0.55);
+    border: 1px solid rgba(74,222,128,0.55);
     border-radius: var(--radius-lg);
     overflow: hidden;
   }
   #today-hero.hide { display: none; }
-  /* Distraction tally sits beside Up Now rather than in its own row — capped
-     to roughly a tenth of the width so it reads as a small side counter,
-     not a competing box. */
+  /* Distraction + focus tally sit beside Up Now rather than in their own
+     row — capped to roughly a tenth of the width so they read as small
+     side counters, not a competing box. Stacked (not side-by-side) since
+     that footprint is too narrow for two boxes horizontally. */
   .today-hero-row { display: flex; align-items: stretch; gap: 8px; }
   .today-hero-row #today-hero { flex: 1; min-width: 0; margin: 0; }
-  #today-distract-box {
+  #today-side-stats {
     flex: 0 0 10%;
     min-width: 46px;
     max-width: 72px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  #today-distract-box, #today-focus-box {
+    flex: 1;
+    width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1166,14 +1182,44 @@
     padding: 8px 4px;
     transition: border-color 0.15s, color 0.15s;
   }
-  #today-distract-box:hover { border-color: var(--border-hover); color: var(--text); }
+  #today-distract-box:hover, #today-focus-box:hover { border-color: var(--border-hover); color: var(--text); }
+  #today-focus-wrap { flex: 1; display: flex; }
+  #today-focus-wrap #today-focus-box { height: 100%; }
   .today-distract-count {
     font-size: 18px; font-weight: 800; line-height: 1;
     color: var(--danger); font-variant-numeric: tabular-nums;
   }
   .today-distract-count.zero { color: var(--text-dim); }
+  .today-focus-value {
+    font-size: 18px; font-weight: 800; line-height: 1;
+    color: #a78bfa; font-variant-numeric: tabular-nums;
+  }
+  .today-focus-value.unset { color: var(--text-dim); }
+  #today-focus-picker { min-width: 0; padding: 8px; }
+  #today-focus-picker-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .today-focus-pick-btn {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 0.5px solid var(--border-hover);
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 12px; font-weight: 600;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .today-focus-pick-btn:hover { border-color: #a78bfa; color: #a78bfa; }
+  .today-focus-pick-btn.selected { background: #a78bfa; border-color: #a78bfa; color: #1a1225; }
   .today-hero-top { position: relative; margin-bottom: 10px; }
   .today-hero-time-wrap { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 4px; }
+  .today-hero-timer-wrap { position: absolute; left: 0; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 6px; }
+  .today-hero-timer-wrap.hide { display: none; }
+  #today-hero-timer-btn.is-running { background: #f87171; color: #17101f; }
+  #today-hero-timer-btn.is-running:hover { background: #fb9494; }
+  .today-hero-timer-time {
+    font-family: ui-monospace, monospace; font-size: 12px; font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+  }
+  .today-hero-timer-time.is-running { color: #f87171; font-weight: 700; }
   .today-hero-time-wrap .today-row-action-btn { width: 16px; height: 16px; }
   .today-hero-time-wrap .today-row-action-btn svg { width: 8px; height: 8px; }
   #today-hero-time-clear.hide { display: none; }
@@ -1202,7 +1248,7 @@
   .today-row-time.time-unset:focus { color: var(--text); -webkit-text-fill-color: var(--text); }
   .today-hero-eyebrow {
     font-family: ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.08em;
-    text-transform: uppercase; color: #ef6b5c; text-align: center;
+    text-transform: uppercase; color: #4ade80; text-align: center;
   }
   .today-hero-title { font-size: 30px; font-weight: 700; color: #fff; margin-bottom: 18px; word-break: break-word; }
   /* A textarea (not input) so a long standalone task title wraps and grows
@@ -1223,9 +1269,9 @@
   }
   .today-hero-btn:hover { background: var(--surface2); color: var(--text); }
   .today-hero-btn.done {
-    border-color: #ef6b5c; color: #ef6b5c; font-weight: 600;
+    border-color: #4ade80; color: #4ade80; font-weight: 600;
   }
-  .today-hero-btn.done:hover { background: rgba(239,107,92,0.15); }
+  .today-hero-btn.done:hover { background: rgba(74,222,128,0.15); }
   /* FOCUS MODE — strips everything down to three things: the checkpoint
      timeline, the timer (as a line, not a ring), and the hero task, which
      grows to the full row width. Up-next, done, done-today, and the
@@ -1243,7 +1289,7 @@
   #today-view.focus-mode #today-main { max-width: 880px; }
   #today-view.focus-mode #today-hero {
     padding: 44px 32px;
-    border-color: #ef6b5c;
+    border-color: #4ade80;
   }
   #today-view.focus-mode .today-hero-title { font-size: 40px; }
 
@@ -1417,6 +1463,14 @@
     color: var(--text-dim);
   }
   .today-row-action-btn:hover { background: var(--border-hover); color: var(--text); }
+  .today-row-timer-btn.is-running { background: #f87171; color: #17101f; }
+  .today-row-timer-btn.is-running:hover { background: #fb9494; }
+  .today-row-timer-time {
+    flex-shrink: 0;
+    font-family: ui-monospace, monospace; font-size: 11.5px; font-variant-numeric: tabular-nums;
+    color: var(--text-dim);
+  }
+  .today-row-timer-time.is-running { color: #f87171; font-weight: 700; }
 
   /* TOMORROW BOX — items postponed off today's list, sitting below it in
      its own dark plate so they read as "queued for tomorrow" rather than
@@ -1490,7 +1544,8 @@
   /* ACHIEVEMENTS — a GitHub-style contribution calendar over data.history,
      scoped to a plain ADHD-friendly "did I do the thing" readout: no score,
      just filled squares and a level tied to consistency, not volume. */
-  #achievements-modal { max-width: 700px; }
+  #achievements-view { max-width: 760px; margin: 0 auto; }
+  #achievements-main { padding-bottom: 20px; }
   #achievements-summary { display: flex; justify-content: center; gap: 14px; margin-bottom: 26px; flex-wrap: wrap; }
   .achievements-stat {
     display: flex;
@@ -1513,10 +1568,8 @@
     display: flex; flex-direction: column; align-items: center;
     overflow-x: auto; padding-bottom: 4px;
   }
-  #achievements-month-labels { display: flex; gap: 5px; margin-bottom: 6px; }
-  .ach-month-label { width: 22px; font-size: 11.5px; color: var(--text-dim); flex-shrink: 0; white-space: nowrap; }
+  #achievements-range-label { font-size: 11.5px; color: var(--text-dim); margin-bottom: 8px; }
   #achievements-calendar { display: flex; gap: 5px; width: max-content; }
-  .ach-week { display: flex; flex-direction: column; gap: 5px; }
   .ach-day {
     position: relative;
     width: 22px;
@@ -1568,6 +1621,40 @@
   .achievements-legend-sq[data-level="4"] { background: #4ade80; border-color: #4ade80; }
   #achievements-empty { text-align: center; color: var(--text-dim); margin-top: 40px; line-height: 1.6; }
   #achievements-empty.hide { display: none; }
+
+  /* Focus trend chart — hand-rolled SVG line chart over the same date
+     range as the heatmap above, normalizing three different-unit series
+     (task-done %, distraction count, 0-10 focus-difficulty rating) onto
+     a shared 0-100% vertical scale so the shapes stay comparable. */
+  #achievements-chart-section { margin-top: 40px; }
+  #achievements-chart-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  #achievements-chart-sub { font-size: 11.5px; color: var(--text-dim); line-height: 1.5; margin-bottom: 14px; }
+  #achievements-chart-wrap {
+    border: 0.5px solid var(--border); border-radius: var(--radius-lg);
+    background: var(--surface); padding: 12px 14px 6px; overflow-x: auto;
+  }
+  #achievements-chart-wrap svg { display: block; width: 100%; height: auto; }
+  .ach-chart-gridline { stroke: var(--border); stroke-width: 1; }
+  .ach-chart-line { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .ach-chart-dot { fill: var(--surface); stroke-width: 1.5; }
+  #achievements-chart-legend { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 12px; font-size: 11.5px; color: var(--text-muted); }
+  .ach-chart-legend-item { display: flex; align-items: center; gap: 6px; }
+  .ach-chart-swatch { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Focus quality — one composite bar per day, red (hard day) to green
+     (good focus), height/color both encode the score so it reads at a
+     glance without needing the tooltip. */
+  #focus-quality-section { margin-top: 32px; }
+  #focus-quality-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  #focus-quality-sub { font-size: 11.5px; color: var(--text-dim); line-height: 1.5; margin-bottom: 14px; }
+  #focus-quality-wrap {
+    border: 0.5px solid var(--border); border-radius: var(--radius-lg);
+    background: var(--surface); padding: 12px 14px; overflow-x: auto;
+  }
+  #focus-quality-bars { display: flex; align-items: flex-end; gap: 3px; height: 70px; }
+  .fq-bar-col { flex: 1; min-width: 6px; height: 100%; display: flex; align-items: flex-end; cursor: default; }
+  .fq-bar { width: 100%; border-radius: 2px 2px 0 0; background: var(--border); min-height: 3px; }
+  .fq-bar.no-data { background: var(--border); opacity: 0.35; }
 
   #idea-list { display: flex; flex-direction: column; gap: 6px; }
   .idea-row {
@@ -2374,29 +2461,35 @@
     Search
     <span class="tb-shortcut">⌘K</span>
   </button>
-  <button class="tb-btn" id="view-achievements-btn" title="View your activity history">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.3L22 9.3l-5 4.9 1.2 7-6.2-3.4-6.2 3.4 1.2-7-5-4.9 7.1-1z"/></svg>
-    Achievements
-  </button>
   <div class="tb-view-switch">
     <button class="tb-btn view-btn" id="view-today-btn" data-view="today">Today</button>
     <button class="tb-btn view-btn active" id="view-board-btn" data-view="board">Board</button>
+    <div class="tb-menu board-only" id="board-options-wrap">
+      <button type="button" class="tb-btn" id="board-options-btn" title="Board display options">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="6" r="1.6" fill="currentColor" stroke="none"/><circle cx="8" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="14" cy="18" r="1.6" fill="currentColor" stroke="none"/></svg>
+        Options
+        <svg class="tb-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="tb-dropdown" id="board-options-dropdown">
+        <button type="button" class="tb-btn" id="shuffle-btn" title="Shuffle card colors">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
+          Shuffle colors
+        </button>
+        <button type="button" class="tb-btn" id="masonry-btn" title="Toggle masonry layout for columns (M)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          Masonry
+        </button>
+        <button type="button" class="tb-btn" id="due-only-btn" title="Only show cards that have a due date (D)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><circle cx="12" cy="15" r="2.2"/></svg>
+          Due date only
+        </button>
+      </div>
+    </div>
     <button class="tb-btn view-btn" id="view-timeline-btn" data-view="timeline">Timeline</button>
     <button class="tb-btn view-btn" id="view-timetracker-btn" data-view="timetracker">Time Tracker</button>
     <button class="tb-btn view-btn" id="view-ideas-btn" data-view="ideas">Random Ideas</button>
+    <button class="tb-btn view-btn" id="view-achievements-btn" data-view="achievements" title="Streaks, tasks done, distractions and focus difficulty over time">Achievements</button>
   </div>
-  <button class="tb-btn board-only" id="shuffle-btn" title="Shuffle card colors">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
-    Shuffle colors
-  </button>
-  <button class="tb-btn board-only" id="masonry-btn" title="Toggle masonry layout for columns (M)">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
-    Masonry
-  </button>
-  <button class="tb-btn board-only" id="due-only-btn" title="Only show cards that have a due date (D)">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><circle cx="12" cy="15" r="2.2"/></svg>
-    Due date only
-  </button>
   <div class="tb-right">
     <span id="card-total">0 cards<span class="overdue" id="overdue-count" role="button" tabindex="0" title="Show overdue cards"></span></span>
   </div>
@@ -2536,6 +2629,12 @@
           <div id="today-hero" class="hide">
             <div class="today-hero-top">
               <div class="today-hero-eyebrow">Up now</div>
+              <span class="today-hero-timer-wrap hide" id="today-hero-timer-wrap">
+                <button type="button" id="today-hero-timer-btn" class="today-row-action-btn" title="Start timer">
+                  <svg id="today-hero-timer-icon" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+                </button>
+                <span id="today-hero-timer-time" class="today-hero-timer-time" data-role="card-timer-hero" data-card=""></span>
+              </span>
               <span class="today-hero-time-wrap">
                 <input type="time" id="today-hero-time" class="today-row-time" data-action="set-time" title="Schedule this task">
                 <button type="button" id="today-hero-time-clear" class="today-row-action-btn hide" title="Clear time" data-action="clear-time">
@@ -2563,10 +2662,33 @@
               </button>
             </div>
           </div>
-          <button type="button" id="today-distract-box" title="Log a distraction (Shift+D)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h8" stroke-dasharray="2 3"/><path d="M11 12l7-7"/><polyline points="13 5 18 5 18 10"/></svg>
-            <span id="today-distract-count" class="today-distract-count zero">0</span>
-          </button>
+          <div id="today-side-stats">
+            <button type="button" id="today-distract-box" title="Log a distraction (Shift+D)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h8" stroke-dasharray="2 3"/><path d="M11 12l7-7"/><polyline points="13 5 18 5 18 10"/></svg>
+              <span id="today-distract-count" class="today-distract-count zero">0</span>
+            </button>
+            <div class="tb-menu" id="today-focus-wrap">
+              <button type="button" id="today-focus-box" title="Rate how hard it is to concentrate today">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
+                <span id="today-focus-value" class="today-focus-value unset">–</span>
+              </button>
+              <div class="tb-dropdown" id="today-focus-picker">
+                <div class="tb-menu-heading">Focus difficulty</div>
+                <div id="today-focus-picker-grid">
+                  <button type="button" class="today-focus-pick-btn" data-value="1">1</button>
+                  <button type="button" class="today-focus-pick-btn" data-value="2">2</button>
+                  <button type="button" class="today-focus-pick-btn" data-value="3">3</button>
+                  <button type="button" class="today-focus-pick-btn" data-value="4">4</button>
+                  <button type="button" class="today-focus-pick-btn" data-value="5">5</button>
+                  <button type="button" class="today-focus-pick-btn" data-value="6">6</button>
+                  <button type="button" class="today-focus-pick-btn" data-value="7">7</button>
+                  <button type="button" class="today-focus-pick-btn" data-value="8">8</button>
+                  <button type="button" class="today-focus-pick-btn" data-value="9">9</button>
+                  <button type="button" class="today-focus-pick-btn" data-value="10">10</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div id="today-timer-box">
@@ -2622,11 +2744,8 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="achievements-overlay">
-   <div class="modal" id="achievements-modal">
-    <button class="modal-close" id="achievements-close">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
+  <div id="achievements-view" class="hide">
+   <div id="achievements-main">
     <div id="achievements-summary">
       <div class="achievements-stat">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.3L22 9.3l-5 4.9 1.2 7-6.2-3.4-6.2 3.4 1.2-7-5-4.9 7.1-1z"/></svg>
@@ -2646,7 +2765,7 @@
       </div>
     </div>
     <div id="achievements-calendar-wrap">
-      <div id="achievements-month-labels"></div>
+      <div id="achievements-range-label"></div>
       <div id="achievements-calendar"></div>
     </div>
     <div id="achievements-legend">
@@ -2663,6 +2782,23 @@
       <span>= distractions logged that day (darker corner, more of them)</span>
     </div>
     <div id="achievements-empty" class="hide">No history yet.<br>Come back tomorrow — each day you use the Today list gets logged here.</div>
+
+    <div id="achievements-chart-section">
+      <h2 id="achievements-chart-title">Focus trend</h2>
+      <p id="achievements-chart-sub">Tasks done, distractions, and how hard concentration felt (rated 0–10 in Today), day by day.</p>
+      <div id="achievements-chart-wrap"></div>
+      <div id="achievements-chart-legend">
+        <span class="ach-chart-legend-item"><span class="ach-chart-swatch" style="background:#4ade80;"></span>Tasks done</span>
+        <span class="ach-chart-legend-item"><span class="ach-chart-swatch" style="background:#f87171;"></span>Distractions</span>
+        <span class="ach-chart-legend-item"><span class="ach-chart-swatch" style="background:#a78bfa;"></span>Focus difficulty</span>
+      </div>
+    </div>
+
+    <div id="focus-quality-section">
+      <h2 id="focus-quality-title">Focus quality</h2>
+      <p id="focus-quality-sub">A rough day-by-day score (not scientific) blending tasks done, distractions, and focus difficulty into one read.</p>
+      <div id="focus-quality-wrap"></div>
+    </div>
    </div>
   </div>
   <div id="ach-tooltip"></div>
@@ -3074,6 +3210,7 @@
       fontScale: 1,
       monoTheme: false,
       distractionsByDate: {},
+      concentrationByDate: {},
       recurringTasks: [],
       settings: { rate: 0, currency: '$' }
     };
@@ -3140,6 +3277,7 @@
     if (!d.fontScale) d.fontScale = 1;
     if (d.monoTheme === undefined) d.monoTheme = false;
     if (!d.distractionsByDate) d.distractionsByDate = {};
+    if (!d.concentrationByDate) d.concentrationByDate = {};
     if (!d.settings) d.settings = { rate: 0, currency: '$' };
     if (d.settings.rate === undefined) d.settings.rate = 0;
     if (!d.settings.currency) d.settings.currency = '$';
@@ -4413,6 +4551,50 @@
     renderDistractionCount();
   }
 
+  // Self-rated "how hard is it to concentrate today" (0-10) — a single,
+  // replaceable rating per day (not cumulative like distractions), used
+  // alongside tasks-done and distraction counts to chart focus trends
+  // on the Achievements page.
+  function todayConcentrationValue() {
+    var v = data.concentrationByDate[todayStr()];
+    return (v === undefined || v === null) ? null : v;
+  }
+  function renderFocusBox() {
+    var v = todayConcentrationValue();
+    var valueEl = document.getElementById('today-focus-value');
+    if (!valueEl) return;
+    valueEl.textContent = v === null ? '–' : v;
+    valueEl.classList.toggle('unset', v === null);
+    document.querySelectorAll('.today-focus-pick-btn').forEach(function(btn) {
+      btn.classList.toggle('selected', v !== null && parseInt(btn.getAttribute('data-value'), 10) === v);
+    });
+  }
+  function setTodayConcentration(v) {
+    data.concentrationByDate[todayStr()] = v;
+    save();
+    renderFocusBox();
+  }
+  var todayFocusBtn = document.getElementById('today-focus-box');
+  var todayFocusPicker = document.getElementById('today-focus-picker');
+  todayFocusBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    todayFocusBtn.classList.toggle('open');
+    todayFocusPicker.classList.toggle('open');
+  });
+  document.addEventListener('click', function(e) {
+    if (!todayFocusPicker.contains(e.target) && e.target !== todayFocusBtn) {
+      todayFocusBtn.classList.remove('open');
+      todayFocusPicker.classList.remove('open');
+    }
+  });
+  document.getElementById('today-focus-picker-grid').addEventListener('click', function(e) {
+    var btn = e.target.closest('.today-focus-pick-btn');
+    if (!btn) return;
+    setTodayConcentration(parseInt(btn.getAttribute('data-value'), 10));
+    todayFocusBtn.classList.remove('open');
+    todayFocusPicker.classList.remove('open');
+  });
+
   // ---------- RENDER: CALENDAR ----------
   // A week grid of tracked-time blocks — cards double as Time Tracker's
   // "tasks" here too, so this reuses allCardsFiltered() (project scoping,
@@ -5444,6 +5626,7 @@
     list.items = list.items.filter(function(i) { return !i.cardId || !!findCard(i.cardId); });
     if (list.items.length !== before) save();
 
+    renderFocusBox();
     var computed = computeTodayTodo(list);
     var entries = computed.entries, postponed = computed.postponed, done = computed.done, todo = computed.todo;
     var doneToday = entries.filter(function(e) { return e.info.done && e.info.doneAt === todayStr(); });
@@ -5480,6 +5663,7 @@
       var heroTimeClearEl = document.getElementById('today-hero-time-clear');
       heroTimeClearEl.classList.toggle('hide', !hero.info.time);
       heroTimeClearEl.setAttribute('data-item', hero.item.id);
+      renderHeroTimer(hero.item.cardId || null);
       heroTitleEl.innerHTML = hero.info.standalone
         ? '<textarea class="today-hero-title-input" data-action="rename-standalone" data-item="' + hero.item.id + '" rows="1" placeholder="Untitled task">' + esc(hero.info.title) + '</textarea>'
         : '<span class="today-hero-title-text">' + esc(hero.info.title || 'Untitled card') + '</span>';
@@ -5488,6 +5672,7 @@
       heroCurrentItemId = null;
       heroEl.classList.add('hide');
       heroTitleEl.innerHTML = '';
+      renderHeroTimer(null);
     }
 
     document.getElementById('today-todo-list').innerHTML = rest.length
@@ -5521,6 +5706,20 @@
     var colorHtml = info.isBreak
       ? '<span class="today-row-break-icon" title="Quick break task">' + svgIcon('pause') + '</span>'
       : '<span class="today-row-color" style="background:' + info.color + ';"></span>';
+    // Card-linked rows mirror whatever timer state the card itself has —
+    // start it here, on the Board, in the card modal, or from Calendar,
+    // and it shows up ticking wherever that card also happens to be shown.
+    var timerHtml = '';
+    if (!info.standalone && item.cardId) {
+      var timerCard = findCard(item.cardId);
+      if (timerCard) {
+        var running = isCardRunning(timerCard.card);
+        var secs = cardSeconds(timerCard.card);
+        timerHtml =
+          '<button type="button" class="today-row-action-btn today-row-timer-btn' + (running ? ' is-running' : '') + '" data-action="toggle-card-timer" data-card="' + item.cardId + '" title="' + (running ? 'Stop timer' : 'Start timer') + '">' + svgIcon(running ? 'pause' : 'play') + '</button>' +
+          (secs > 0 || running ? '<span class="today-row-timer-time' + (running ? ' is-running' : '') + '" data-role="card-timer" data-card="' + item.cardId + '">' + formatHMS(secs) + '</span>' : '');
+      }
+    }
     return (
       '<div class="today-row' + (info.done ? ' done' : '') + (info.isBreak ? ' today-row-break' : '') + '" data-card="' + (item.cardId || '') + '" data-item="' + item.id + '">' +
         '<span class="today-row-handle" title="Drag to reorder">' + svgIcon('grip') + '</span>' +
@@ -5529,6 +5728,7 @@
         titleHtml +
         (info.done ? '<span class="today-done-badge">DONE</span>' : '') +
         (pct ? '<span class="card-checklist-pct' + (pct.pct === 100 ? ' complete' : '') + '">' + svgIcon('checklist') + pct.done + '/' + pct.total + '</span>' : '') +
+        timerHtml +
         '<input type="time" class="today-row-time' + (info.time ? '' : ' time-unset') + '" data-action="set-time" data-item="' + item.id + '" value="' + (info.time || '') + '" title="Schedule this task">' +
         (info.time ? '<button type="button" class="today-row-action-btn" data-action="clear-time" data-item="' + item.id + '" title="Clear time">' + svgIcon('close') + '</button>' : '') +
         '<span class="today-row-tag">' + esc(info.tag) + '</span>' +
@@ -5579,6 +5779,7 @@
         else if (action === 'make-hero') makeTodayItemHero(btn.getAttribute('data-item'));
         else if (action === 'clear-time') setTodayItemTime(btn.getAttribute('data-item'), '');
         else if (action === 'toggle-done-collapse') { todayDoneCollapsed = !todayDoneCollapsed; renderToday(); }
+        else if (action === 'toggle-card-timer') toggleCardTimer(btn.getAttribute('data-card'));
         return;
       }
       if (e.target.tagName === 'INPUT') return;
@@ -5626,6 +5827,37 @@
   });
   document.getElementById('today-hero-tomorrow').addEventListener('click', function() {
     if (heroCurrentItemId) postponeTodayItem(heroCurrentItemId);
+  });
+
+  // Mirrors the card-row timer control onto the Today hero — same card,
+  // same entries[], so starting/stopping here shows up on the Board card
+  // row, the card modal, and Calendar too (and vice versa).
+  function renderHeroTimer(cardId) {
+    var wrap = document.getElementById('today-hero-timer-wrap');
+    var btn = document.getElementById('today-hero-timer-btn');
+    var icon = document.getElementById('today-hero-timer-icon');
+    var timeEl = document.getElementById('today-hero-timer-time');
+    if (!cardId) { wrap.classList.add('hide'); return; }
+    var found = findCard(cardId);
+    if (!found) { wrap.classList.add('hide'); return; }
+    wrap.classList.remove('hide');
+    var running = isCardRunning(found.card);
+    var secs = cardSeconds(found.card);
+    btn.classList.toggle('is-running', running);
+    btn.title = running ? 'Stop timer' : 'Start timer';
+    icon.outerHTML = running
+      ? '<svg id="today-hero-timer-icon" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg>'
+      : '<svg id="today-hero-timer-icon" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"/></svg>';
+    timeEl.setAttribute('data-card', cardId);
+    timeEl.classList.toggle('is-running', running);
+    timeEl.textContent = (secs > 0 || running) ? formatHMS(secs) : '';
+  }
+  document.getElementById('today-hero-timer-btn').addEventListener('click', function() {
+    if (heroCurrentItemId) {
+      var list = ensureTodayList();
+      var item = list.items.find(function(i) { return i.id === heroCurrentItemId; });
+      if (item && item.cardId) toggleCardTimer(item.cardId);
+    }
   });
 
   // ---------- FOCUS MODE (F, or Focus mode in the main menu) ----------
@@ -5786,23 +6018,13 @@
       document.getElementById('timetracker-view').classList.toggle('hide', currentView !== 'timetracker');
       document.getElementById('today-view').classList.toggle('hide', currentView !== 'today');
       document.getElementById('ideas-view').classList.toggle('hide', currentView !== 'ideas');
+      document.getElementById('achievements-view').classList.toggle('hide', currentView !== 'achievements');
       document.querySelectorAll('.board-only').forEach(function(el) { el.classList.toggle('hide', currentView !== 'board'); });
       if (currentView === 'today') renderToday();
       if (currentView === 'ideas') renderIdeas();
       if (currentView === 'timetracker') openTimeTrackerView();
+      if (currentView === 'achievements') renderAchievements();
     });
-  });
-
-  // ---------- ACHIEVEMENTS (modal, reachable from any view) ----------
-  document.getElementById('view-achievements-btn').addEventListener('click', function() {
-    renderAchievements();
-    document.getElementById('achievements-overlay').classList.add('show');
-  });
-  document.getElementById('achievements-close').addEventListener('click', function() {
-    document.getElementById('achievements-overlay').classList.remove('show');
-  });
-  document.getElementById('achievements-overlay').addEventListener('click', function(e) {
-    if (e.target === this) this.classList.remove('show');
   });
 
   document.getElementById('shuffle-btn').addEventListener('click', shuffleColors);
@@ -5831,6 +6053,21 @@
     if (!logoDropdown.contains(e.target) && e.target !== logoBtn) {
       logoBtn.classList.remove('open');
       logoDropdown.classList.remove('open');
+    }
+  });
+
+  // ---------- BOARD OPTIONS MENU (Shuffle colors / Masonry / Due date only) ----------
+  var boardOptionsBtn = document.getElementById('board-options-btn');
+  var boardOptionsDropdown = document.getElementById('board-options-dropdown');
+  boardOptionsBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    boardOptionsBtn.classList.toggle('open');
+    boardOptionsDropdown.classList.toggle('open');
+  });
+  document.addEventListener('click', function(e) {
+    if (!boardOptionsDropdown.contains(e.target) && e.target !== boardOptionsBtn) {
+      boardOptionsBtn.classList.remove('open');
+      boardOptionsDropdown.classList.remove('open');
     }
   });
 
@@ -6240,46 +6477,141 @@
     var level = 1 + Math.floor(successfulDays / 5);
     document.getElementById('achievements-level').textContent = level;
 
-    var WEEKS = 9;
-    var endDate = new Date();
-    endDate.setDate(endDate.getDate() + (6 - endDate.getDay()));
-    var startDate = new Date(endDate);
-    startDate.setDate(startDate.getDate() - (WEEKS * 7 - 1));
-
+    // Rolling 30-day window (today inclusive), simplest possible reading —
+    // no month grouping, just "the last 30 days" as one row.
+    var ROLLING_DAYS = 30;
     var now = new Date();
-    var weeksHtml = [];
-    var monthLabels = [];
-    var lastMonth = null;
-    var lastLabelWeek = -99;
+    var startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - (ROLLING_DAYS - 1));
+
+    var daysHtml = '';
+    var chartDays = [];
     var cursorDate = new Date(startDate);
-    for (var w = 0; w < WEEKS; w++) {
-      var daysHtml = '';
-      var weekMonth = cursorDate.getMonth();
-      for (var d = 0; d < 7; d++) {
-        var key2 = dateKeyFor(cursorDate);
-        var isFuture = cursorDate > now;
-        var entry2 = historyMap[key2];
-        var lvl = 0;
-        if (entry2 && entry2.total > 0) {
-          var ratio = entry2.done / entry2.total;
-          lvl = ratio >= 1 ? 4 : ratio >= 0.7 ? 3 : ratio >= 0.4 ? 2 : 1;
-        }
-        var distractCount = data.distractionsByDate[key2] || 0;
-        var distractLevel = distractCount === 0 ? 0 : distractCount <= 2 ? 1 : distractCount <= 5 ? 2 : 3;
-        var niceDate = MONTH_NAMES[cursorDate.getMonth()] + ' ' + cursorDate.getDate();
-        var tooltip = isFuture ? '' : (niceDate + ' — ' + (entry2 ? entry2.done + '/' + entry2.total + ' done' : 'no data') + (distractCount ? ' · ' + distractCount + ' distraction' + (distractCount === 1 ? '' : 's') : ''));
-        daysHtml += '<div class="ach-day' + (isFuture ? ' ach-future' : '') + '" data-level="' + lvl + '" data-distract-level="' + (isFuture ? 0 : distractLevel) + '" data-tooltip="' + esc(tooltip) + '"></div>';
-        cursorDate.setDate(cursorDate.getDate() + 1);
+    for (var i = 0; i < ROLLING_DAYS; i++) {
+      var key2 = dateKeyFor(cursorDate);
+      var entry2 = historyMap[key2];
+      var lvl = 0;
+      if (entry2 && entry2.total > 0) {
+        var ratio = entry2.done / entry2.total;
+        lvl = ratio >= 1 ? 4 : ratio >= 0.7 ? 3 : ratio >= 0.4 ? 2 : 1;
       }
-      weeksHtml.push('<div class="ach-week">' + daysHtml + '</div>');
-      var showLabel = weekMonth !== lastMonth && (w - lastLabelWeek) >= 3;
-      monthLabels.push(showLabel ? '<span class="ach-month-label">' + MONTH_NAMES[weekMonth] + '</span>' : '<span class="ach-month-label"></span>');
-      if (showLabel) lastLabelWeek = w;
-      lastMonth = weekMonth;
+      var distractCount = data.distractionsByDate[key2] || 0;
+      var distractLevel = distractCount === 0 ? 0 : distractCount <= 2 ? 1 : distractCount <= 5 ? 2 : 3;
+      var niceDate = MONTH_NAMES[cursorDate.getMonth()] + ' ' + cursorDate.getDate();
+      var tooltip = niceDate + ' — ' + (entry2 ? entry2.done + '/' + entry2.total + ' done' : 'no data') + (distractCount ? ' · ' + distractCount + ' distraction' + (distractCount === 1 ? '' : 's') : '');
+      daysHtml += '<div class="ach-day" data-level="' + lvl + '" data-distract-level="' + distractLevel + '" data-tooltip="' + esc(tooltip) + '"></div>';
+
+      var concentration = data.concentrationByDate[key2];
+      var doneRatioPct = (entry2 && entry2.total > 0) ? (entry2.done / entry2.total * 100) : null;
+      var concentrationPct = (concentration === undefined || concentration === null) ? null : concentration * 10;
+      var distractPct = Math.min(distractCount, 10) * 10;
+      chartDays.push({
+        label: niceDate,
+        doneRatioPct: doneRatioPct,
+        distractPct: distractPct,
+        concentrationPct: concentrationPct,
+        focusQuality: computeFocusQuality(doneRatioPct, concentrationPct, distractPct, distractCount)
+      });
+      cursorDate.setDate(cursorDate.getDate() + 1);
     }
-    document.getElementById('achievements-calendar').innerHTML = weeksHtml.join('');
-    document.getElementById('achievements-month-labels').innerHTML = monthLabels.join('');
+    document.getElementById('achievements-calendar').innerHTML = daysHtml;
+    document.getElementById('achievements-range-label').textContent =
+      MONTH_NAMES[startDate.getMonth()] + ' ' + startDate.getDate() + ' – ' + MONTH_NAMES[now.getMonth()] + ' ' + now.getDate() + ' (last 30 days)';
     document.getElementById('achievements-empty').classList.toggle('hide', data.history.length > 0 || todayRelevant.length > 0);
+    renderAchievementsChart(chartDays);
+    renderFocusQualityChart(chartDays);
+  }
+
+  // A rough, deliberately-not-scientific single "how well is focus going"
+  // score per day: averages whichever of the three signals are actually
+  // available that day (a day with no tasks logged and no focus rating
+  // still counts its distraction count; a day with nothing at all is null,
+  // not zero — no data shouldn't read as "bad day").
+  function computeFocusQuality(doneRatioPct, concentrationPct, distractPct, distractCount) {
+    // A day with zero distractions logged and nothing else tracked isn't
+    // evidence of a great focus day — it's evidence the app wasn't opened.
+    // Only treat the day as scoreable if something was actually recorded.
+    var hasData = doneRatioPct !== null || concentrationPct !== null || distractCount > 0;
+    if (!hasData) return null;
+    var parts = [];
+    if (doneRatioPct !== null) parts.push(doneRatioPct);
+    if (concentrationPct !== null) parts.push(100 - concentrationPct);
+    parts.push(100 - distractPct);
+    return parts.reduce(function(a, b) { return a + b; }, 0) / parts.length;
+  }
+
+  // Draws three normalized-to-0-100% line series on a shared SVG canvas —
+  // each series only connects consecutive days that actually have a value,
+  // so gaps (e.g. days before the focus-difficulty slider was ever touched)
+  // don't get bridged by a misleading straight line.
+  function renderAchievementsChart(days) {
+    var wrap = document.getElementById('achievements-chart-wrap');
+    if (!days.length) { wrap.innerHTML = ''; return; }
+    var W = 900, H = 180, padX = 4, padY = 10;
+    var n = days.length;
+    function xFor(i) { return n > 1 ? padX + (i / (n - 1)) * (W - padX * 2) : W / 2; }
+    function yFor(pct) { return padY + (1 - pct / 100) * (H - padY * 2); }
+
+    function segmentsFor(getter) {
+      var segments = [];
+      var current = [];
+      days.forEach(function(d, i) {
+        var v = getter(d);
+        if (v === null || v === undefined) {
+          if (current.length) { segments.push(current); current = []; }
+          return;
+        }
+        current.push(xFor(i).toFixed(1) + ',' + yFor(v).toFixed(1));
+      });
+      if (current.length) segments.push(current);
+      return segments;
+    }
+    function lineSvg(getter, colorClass, color) {
+      return segmentsFor(getter).map(function(seg) {
+        return '<polyline class="ach-chart-line ' + colorClass + '" points="' + seg.join(' ') + '" stroke="' + color + '"/>';
+      }).join('');
+    }
+    function dotsSvg(getter, color) {
+      return days.map(function(d, i) {
+        var v = getter(d);
+        if (v === null || v === undefined) return '';
+        return '<circle class="ach-chart-dot" cx="' + xFor(i).toFixed(1) + '" cy="' + yFor(v).toFixed(1) + '" r="2.5" stroke="' + color + '"><title>' + esc(d.label) + '</title></circle>';
+      }).join('');
+    }
+
+    var gridlines = [0, 25, 50, 75, 100].map(function(pct) {
+      var y = yFor(pct).toFixed(1);
+      return '<line class="ach-chart-gridline" x1="' + padX + '" y1="' + y + '" x2="' + (W - padX) + '" y2="' + y + '"/>';
+    }).join('');
+
+    wrap.innerHTML =
+      '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' +
+        gridlines +
+        lineSvg(function(d) { return d.doneRatioPct; }, 'ach-line-done', '#4ade80') +
+        lineSvg(function(d) { return d.distractPct; }, 'ach-line-distract', '#f87171') +
+        lineSvg(function(d) { return d.concentrationPct; }, 'ach-line-focus', '#a78bfa') +
+        dotsSvg(function(d) { return d.doneRatioPct; }, '#4ade80') +
+        dotsSvg(function(d) { return d.distractPct; }, '#f87171') +
+        dotsSvg(function(d) { return d.concentrationPct; }, '#a78bfa') +
+      '</svg>';
+  }
+
+  // One bar per day for the composite focusQuality score — same red-to-green
+  // hue ramp already used for the Time Tracker estimate gauge, so "green is
+  // good" reads consistently across the app.
+  function renderFocusQualityChart(days) {
+    var wrap = document.getElementById('focus-quality-wrap');
+    wrap.innerHTML = '<div id="focus-quality-bars"></div>';
+    var barsEl = document.getElementById('focus-quality-bars');
+    barsEl.innerHTML = days.map(function(d) {
+      if (d.focusQuality === null) {
+        return '<div class="fq-bar-col" title="' + esc(d.label) + ' — no data"><div class="fq-bar no-data" style="height:6%;"></div></div>';
+      }
+      var pct = Math.max(0, Math.min(100, d.focusQuality));
+      var hue = Math.min(142, pct / 100 * 142);
+      var color = 'hsl(' + Math.round(hue) + ', 65%, 50%)';
+      return '<div class="fq-bar-col" title="' + esc(d.label) + ' — ' + Math.round(pct) + '% focus quality"><div class="fq-bar" style="height:' + Math.max(pct, 4) + '%;background:' + color + ';"></div></div>';
+    }).join('');
   }
 
   // Custom hover tooltip for each day square — nicer and faster than the
