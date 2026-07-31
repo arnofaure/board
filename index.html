@@ -319,6 +319,8 @@
     font-variant-numeric: tabular-nums;
   }
   #card-total .overdue { color: #f87171; font-weight: 400; margin-left: 8px; }
+  #card-total .overdue:not(:empty) { cursor: pointer; text-decoration: underline; text-decoration-color: transparent; transition: text-decoration-color 0.15s; }
+  #card-total .overdue:not(:empty):hover { text-decoration-color: #f87171; }
 
   /* MAIN */
   #main { padding: 20px 20px 60px; }
@@ -2396,7 +2398,7 @@
     Due date only
   </button>
   <div class="tb-right">
-    <span id="card-total">0 cards<span class="overdue" id="overdue-count"></span></span>
+    <span id="card-total">0 cards<span class="overdue" id="overdue-count" role="button" tabindex="0" title="Show overdue cards"></span></span>
   </div>
 </div>
 
@@ -2546,6 +2548,10 @@
               <button type="button" id="today-hero-done" class="today-hero-btn done">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                 Done
+              </button>
+              <button type="button" id="today-hero-hold" class="today-hero-btn" title="Off today's list — not done, pick it back up whenever">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+                Hold
               </button>
               <button type="button" id="today-hero-next" class="today-hero-btn" title="Move to the back of today's queue">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
@@ -2762,6 +2768,18 @@
     <h2 id="done-modal-title">Done cards</h2>
     <div class="entries-modal-list" id="done-modal-list"></div>
     <div id="done-modal-empty" style="text-align:center;color:var(--text-dim);font-size:12.5px;padding:24px 0;">No completed cards in this project yet.</div>
+  </div>
+</div>
+
+<!-- OVERDUE LIST MODAL -->
+<div class="modal-overlay" id="overdue-overlay">
+  <div class="modal" style="max-width:440px;">
+    <button class="modal-close" id="overdue-close">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h2 id="overdue-modal-title">Overdue cards</h2>
+    <div class="entries-modal-list" id="overdue-modal-list"></div>
+    <div id="overdue-modal-empty" style="text-align:center;color:var(--text-dim);font-size:12.5px;padding:24px 0;">No overdue cards.</div>
   </div>
 </div>
 
@@ -4099,12 +4117,73 @@
 
   function updateTotals() {
     var entries = allCardsInProject(activeProject());
-    var overdueCount = entries.filter(function(e) { return dueStatus(e.card.due) === 'overdue'; }).length;
+    // Overdue counts across every project, not just the active one — a
+    // task doesn't stop being late just because you're looking at a
+    // different board.
+    var overdueCount = allCardsFiltered('all').filter(function(e) { return !e.card.done && dueStatus(e.card.due) === 'overdue'; }).length;
     document.getElementById('card-total').innerHTML = entries.length + (entries.length === 1 ? ' card' : ' cards') +
-      (overdueCount ? '<span class="overdue">' + overdueCount + ' overdue</span>' : '');
+      '<span class="overdue" id="overdue-count" role="button" tabindex="0" title="Show overdue cards">' + (overdueCount ? overdueCount + ' overdue' : '') + '</span>';
     document.getElementById('done-count-badge').textContent = entries.filter(function(e) { return e.card.done; }).length;
     document.getElementById('archive-count-badge').textContent = activeProject().archive.length;
   }
+
+  // ---------- OVERDUE MODAL (across every project) ----------
+  function renderOverdueModalRow(entry) {
+    var c = entry.card;
+    return (
+      '<div class="tl-row" data-card-id="' + c.id + '" style="--card-color:' + c.color + ';">' +
+        '<span class="tl-row-col">' + esc(entry.project.name || 'Untitled') + ' · ' + esc(entry.column.name) + '</span>' +
+        '<span class="tl-row-title">' + esc(c.title || 'Untitled card') + '</span>' +
+      '</div>'
+    );
+  }
+
+  function renderOverdueModalList() {
+    var overdueEntries = allCardsFiltered('all').filter(function(e) { return !e.card.done && dueStatus(e.card.due) === 'overdue'; });
+    overdueEntries.sort(function(a, b) { return a.card.due < b.card.due ? -1 : a.card.due > b.card.due ? 1 : 0; });
+    document.getElementById('overdue-modal-title').textContent = 'Overdue cards' + (overdueEntries.length ? ' — ' + overdueEntries.length : '');
+    document.getElementById('overdue-modal-empty').style.display = overdueEntries.length ? 'none' : 'block';
+    // Grouped by due date so a glance at the left-hand headers tells you
+    // how late each cluster of cards is, oldest first.
+    var groups = [];
+    overdueEntries.forEach(function(e) {
+      var g = groups[groups.length - 1];
+      if (!g || g.due !== e.card.due) { g = { due: e.card.due, entries: [] }; groups.push(g); }
+      g.entries.push(e);
+    });
+    document.getElementById('overdue-modal-list').innerHTML = groups.map(function(g) {
+      return (
+        '<div class="tl-group">' +
+          '<div class="tl-group-title overdue">' + esc(formatDue(g.due)) + ' · ' + g.entries.length + '</div>' +
+          g.entries.map(renderOverdueModalRow).join('') +
+        '</div>'
+      );
+    }).join('');
+  }
+
+  function openOverdueModal() {
+    renderOverdueModalList();
+    document.getElementById('overdue-overlay').classList.add('show');
+  }
+  document.getElementById('card-total').addEventListener('click', function(e) {
+    if (e.target.closest('#overdue-count')) openOverdueModal();
+  });
+  document.getElementById('card-total').addEventListener('keydown', function(e) {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('#overdue-count')) { e.preventDefault(); openOverdueModal(); }
+  });
+  document.getElementById('overdue-close').addEventListener('click', function() {
+    document.getElementById('overdue-overlay').classList.remove('show');
+  });
+  document.getElementById('overdue-overlay').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('show');
+  });
+  document.getElementById('overdue-modal-list').addEventListener('click', function(e) {
+    var row = e.target.closest('.tl-row');
+    if (row) {
+      document.getElementById('overdue-overlay').classList.remove('show');
+      openCardModal(row.getAttribute('data-card-id'));
+    }
+  });
 
   // ---------- DONE LIST (per project) ----------
   function renderDoneModalRow(entry) {
@@ -5502,6 +5581,9 @@
   });
   document.getElementById('today-hero-done').addEventListener('click', function() {
     if (heroCurrentItemId) toggleTodayItemDone(heroCurrentItemId);
+  });
+  document.getElementById('today-hero-hold').addEventListener('click', function() {
+    if (heroCurrentItemId) removeFromToday(heroCurrentItemId);
   });
   document.getElementById('today-hero-next').addEventListener('click', function() {
     if (heroCurrentItemId) sendTodayItemToBack(heroCurrentItemId);
