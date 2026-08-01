@@ -1588,21 +1588,6 @@
   .ach-day[data-level="3"] { background: #22a55e; border-color: #22a55e; }
   .ach-day[data-level="4"] { background: #4ade80; border-color: #4ade80; }
   .ach-day.ach-future { background: transparent; border-color: transparent; cursor: default; }
-  /* Distraction tally gets a corner of the cube rather than its own square —
-     a bottom-right red wedge, darker/lighter with how many were logged that
-     day, layered over whatever the completion-ratio color underneath is. */
-  .ach-day[data-distract-level]:not([data-distract-level="0"])::after {
-    content: '';
-    position: absolute; right: 0; bottom: 0;
-    width: 0; height: 0;
-    border-style: solid;
-    border-width: 0 0 10px 10px;
-    border-color: transparent transparent var(--danger) transparent;
-    border-bottom-right-radius: 5px;
-  }
-  .ach-day[data-distract-level="1"]::after { opacity: 0.45; }
-  .ach-day[data-distract-level="2"]::after { opacity: 0.75; }
-  .ach-day[data-distract-level="3"]::after { opacity: 1; }
 
   #ach-tooltip {
     position: fixed; pointer-events: none; z-index: 400;
@@ -1613,7 +1598,6 @@
   }
   #ach-tooltip.show { opacity: 1; }
   #achievements-legend { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 12px; font-size: 11px; color: var(--text-dim); }
-  #achievements-legend-distract { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; font-size: 11px; color: var(--text-dim); }
   .achievements-legend-sq { width: 13px; height: 13px; border-radius: 3px; background: var(--surface2); border: 0.5px solid var(--border); }
   .achievements-legend-sq[data-level="1"] { background: #14532d; border-color: #14532d; }
   .achievements-legend-sq[data-level="2"] { background: #166534; border-color: #166534; }
@@ -2293,6 +2277,7 @@
   html.mono-theme .achievements-legend-sq[data-level="3"] { background: rgba(var(--mono-accent-rgb), 0.7); border-color: rgba(var(--mono-accent-rgb), 0.7); }
   html.mono-theme .ach-day[data-level="4"],
   html.mono-theme .achievements-legend-sq[data-level="4"] { background: var(--mono-accent); border-color: var(--mono-accent); }
+  html.mono-theme .fq-bar:not(.no-data) { background: rgba(var(--mono-accent-rgb), var(--fq-opacity)) !important; }
 
   /* Hover states on the status toggles — bases were covered, hover swaps
      to a brighter tint of the same colors and needs its own override. */
@@ -2338,12 +2323,6 @@
     </button>
     <div class="tb-dropdown" id="logo-dropdown">
       <div class="tb-menu-heading">Board</div>
-      <div class="tb-menu-fontsize">
-        <label for="fontsize-slider">Text size</label>
-        <input type="range" id="fontsize-slider" min="85" max="160" step="5" value="100">
-        <span class="tb-menu-fontsize-value" id="fontsize-value">100%</span>
-      </div>
-      <div class="tb-sep-h"></div>
       <button class="tb-btn" id="menu-focus" title="Strip the Today view down to the timeline, timer, and current task">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
         Focus mode
@@ -2471,6 +2450,12 @@
         <svg class="tb-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <div class="tb-dropdown" id="board-options-dropdown">
+        <div class="tb-menu-fontsize">
+          <label for="fontsize-slider">Text size</label>
+          <input type="range" id="fontsize-slider" min="85" max="160" step="5" value="100">
+          <span class="tb-menu-fontsize-value" id="fontsize-value">100%</span>
+        </div>
+        <div class="tb-sep-h"></div>
         <button type="button" class="tb-btn" id="shuffle-btn" title="Shuffle card colors">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
           Shuffle colors
@@ -2776,10 +2761,6 @@
       <span class="achievements-legend-sq" data-level="3"></span>
       <span class="achievements-legend-sq" data-level="4"></span>
       <span>More</span>
-    </div>
-    <div id="achievements-legend-distract">
-      <span class="ach-day" data-distract-level="3" style="width:13px;height:13px;cursor:default;"></span>
-      <span>= distractions logged that day (darker corner, more of them)</span>
     </div>
     <div id="achievements-empty" class="hide">No history yet.<br>Come back tomorrow — each day you use the Today list gets logged here.</div>
 
@@ -6605,35 +6586,54 @@
     var barsEl = document.getElementById('focus-quality-bars');
     barsEl.innerHTML = days.map(function(d) {
       if (d.focusQuality === null) {
-        return '<div class="fq-bar-col" title="' + esc(d.label) + ' — no data"><div class="fq-bar no-data" style="height:6%;"></div></div>';
+        return '<div class="fq-bar-col" data-tooltip="' + esc(d.label) + ' — no data"><div class="fq-bar no-data" style="height:6%;"></div></div>';
       }
       var pct = Math.max(0, Math.min(100, d.focusQuality));
-      var hue = Math.min(142, pct / 100 * 142);
-      var color = 'hsl(' + Math.round(hue) + ', 65%, 50%)';
-      return '<div class="fq-bar-col" title="' + esc(d.label) + ' — ' + Math.round(pct) + '% focus quality"><div class="fq-bar" style="height:' + Math.max(pct, 4) + '%;background:' + color + ';"></div></div>';
+      // Single-hue purple ramp (dim → bright), same purple already used for
+      // "Focus difficulty" in the trend chart above (#a78bfa) — a low score
+      // reads as "dim", not a red alarm. Also sets --fq-opacity, the same
+      // 0.25→1 range as the calendar's level-1..4 opacities, so the
+      // mono-theme override below can recolor these bars to the user's own
+      // chosen accent instead of a hardcoded color — the calendar squares
+      // already do this (see the mono-theme .ach-day rules); this chart was
+      // missing that and stayed one fixed hue regardless of theme.
+      var lightness = Math.round(22 + (pct / 100) * 38);
+      var color = 'hsl(262, 55%, ' + lightness + '%)';
+      var opacity = (0.25 + (pct / 100) * 0.75).toFixed(2);
+      return '<div class="fq-bar-col" data-tooltip="' + esc(d.label) + ' — ' + Math.round(pct) + '% focus quality"><div class="fq-bar" style="height:' + Math.max(pct, 4) + '%;background:' + color + ';--fq-opacity:' + opacity + ';"></div></div>';
     }).join('');
   }
 
-  // Custom hover tooltip for each day square — nicer and faster than the
-  // native title attribute, and lets the text be styled to match the app.
+  // Custom hover tooltip — nicer and faster than the native title
+  // attribute, and lets the text be styled to match the app. Shared by the
+  // day squares and the Focus quality bars below them (same [data-tooltip]
+  // convention on both).
   var achTooltip = document.getElementById('ach-tooltip');
-  document.getElementById('achievements-calendar').addEventListener('mouseover', function(e) {
-    var day = e.target.closest('.ach-day');
-    if (!day || day.classList.contains('ach-future')) return;
-    var text = day.getAttribute('data-tooltip');
-    if (!text) return;
-    achTooltip.textContent = text;
-    var rect = day.getBoundingClientRect();
-    achTooltip.style.left = (rect.left + rect.width / 2) + 'px';
-    achTooltip.style.top = (rect.top - 8) + 'px';
-    achTooltip.style.transform = 'translate(-50%, -100%)';
-    achTooltip.classList.add('show');
-  });
-  document.getElementById('achievements-calendar').addEventListener('mouseout', function(e) {
-    var toEl = e.relatedTarget;
-    if (toEl && toEl.closest && toEl.closest('.ach-day')) return;
-    achTooltip.classList.remove('show');
-  });
+  function wireHoverTooltip(containerId, itemSelector) {
+    var container = document.getElementById(containerId);
+    container.addEventListener('mouseover', function(e) {
+      var item = e.target.closest(itemSelector);
+      if (!item || item.classList.contains('ach-future')) return;
+      var text = item.getAttribute('data-tooltip');
+      if (!text) return;
+      achTooltip.textContent = text;
+      var rect = item.getBoundingClientRect();
+      achTooltip.style.left = (rect.left + rect.width / 2) + 'px';
+      achTooltip.style.top = (rect.top - 8) + 'px';
+      achTooltip.style.transform = 'translate(-50%, -100%)';
+      achTooltip.classList.add('show');
+    });
+    container.addEventListener('mouseout', function(e) {
+      var toEl = e.relatedTarget;
+      if (toEl && toEl.closest && toEl.closest(itemSelector)) return;
+      achTooltip.classList.remove('show');
+    });
+  }
+  wireHoverTooltip('achievements-calendar', '.ach-day');
+  // Listens on the always-present wrapper, not #focus-quality-bars itself
+  // — that inner div is only injected once renderFocusQualityChart() first
+  // runs, which wiring code at load time would race.
+  wireHoverTooltip('focus-quality-wrap', '.fq-bar-col');
 
   var ideaAddInput = document.getElementById('idea-add-input');
   ideaAddInput.addEventListener('keydown', function(e) {
