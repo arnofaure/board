@@ -2456,7 +2456,7 @@
           <span class="tb-menu-fontsize-value" id="fontsize-value">100%</span>
         </div>
         <div class="tb-sep-h"></div>
-        <button type="button" class="tb-btn" id="shuffle-btn" title="Shuffle card colors">
+        <button type="button" class="tb-btn" id="shuffle-btn" title="Shuffle card colors (S)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>
           Shuffle colors
         </button>
@@ -7593,9 +7593,9 @@
   });
 
   // Shortcuts: M toggles Masonry, B toggles Monochrome, D toggles Due date
-  // only, Shift+D logs a distraction (every view, not just Today), F toggles
-  // Today's Focus mode — ignored while typing anywhere editable so they
-  // don't fire mid-title/description.
+  // only, S shuffles card colors, Shift+D logs a distraction (every view,
+  // not just Today), F toggles Today's Focus mode — ignored while typing
+  // anywhere editable so they don't fire mid-title/description.
   document.addEventListener('keydown', function(e) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     var tag = e.target.tagName;
@@ -7605,6 +7605,7 @@
     if (key === 'm') document.getElementById('masonry-btn').click();
     else if (key === 'b') document.getElementById('menu-mono').click();
     else if (key === 'd') document.getElementById('due-only-btn').click();
+    else if (key === 's') document.getElementById('shuffle-btn').click();
     else if (key === 'f' && currentView === 'today') setFocusMode(!focusModeOn);
   });
 
