@@ -905,7 +905,7 @@
     z-index: 2;
   }
   .gantt-bar.resizing, .gantt-bar.moving { cursor: grabbing; filter: brightness(1.12); }
-  .gantt-bar-label { overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+  .gantt-bar-pct { margin-left: auto; pointer-events: none; opacity: 0.85; }
   .gantt-bar-handle {
     position: absolute;
     top: 0; bottom: 0;
@@ -1226,6 +1226,25 @@
   .card-field-with-clear { display: flex; align-items: center; gap: 6px; }
   .card-field-with-clear .text-input { flex: 1; min-width: 0; }
   #card-time-clear.hide { display: none; }
+  /* Time field: type it by hand, or click the clock icon for a quick-pick
+     menu — a native <input type="time"> forces a wheel picker on mobile
+     with no way to type, so this is a plain text field instead. */
+  .time-field-wrap { position: relative; }
+  #card-time-input { font-family: ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 0.02em; }
+  #card-time-menu-btn.hide { display: none; }
+  .time-menu {
+    position: absolute; top: calc(100% + 4px); right: 0; z-index: 20;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    max-height: 220px; overflow-y: auto; min-width: 90px; padding: 4px;
+  }
+  .time-menu.hide { display: none; }
+  .time-menu-option {
+    display: block; width: 100%; text-align: left; padding: 5px 10px; border-radius: 5px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px;
+    background: none; border: none; color: var(--text); cursor: pointer;
+  }
+  .time-menu-option:hover, .time-menu-option.active { background: var(--surface2); }
   /* Optional HH:MM scheduling, shared by the hero and every list row —
      same visual weight as the project tag next to it (badge, not a bare
      form field), so it reads as metadata whether set or not. */
@@ -3250,11 +3269,15 @@
           <input id="card-due-input" class="text-input" type="date">
 
           <label for="card-time-input">Time</label>
-          <div class="card-field-with-clear">
-            <input id="card-time-input" class="text-input" type="time">
+          <div class="card-field-with-clear time-field-wrap">
+            <input id="card-time-input" class="text-input" type="text" inputmode="numeric" placeholder="--:--" maxlength="5" autocomplete="off">
+            <button type="button" id="card-time-menu-btn" class="today-row-action-btn" title="Pick a time">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </button>
             <button type="button" id="card-time-clear" class="today-row-action-btn hide" title="Clear time">
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
+            <div id="card-time-menu" class="time-menu hide"></div>
           </div>
         </div>
       </div>
@@ -4400,7 +4423,7 @@
   }
 
   // ---------- RENDER: TIMELINE ----------
-  var GANTT_DAY_WIDTH = 34;
+  var GANTT_DAY_WIDTH = 90;
   var GANTT_DAY_WIDTH_MIN = 18;
   var GANTT_DAY_WIDTH_MAX = 90;
   var timelineFilter = 'all';
@@ -4486,15 +4509,15 @@
       var left = startIdx * dw + 2;
       var width = (endIdx - startIdx + 1) * dw - 4;
       var pct = checklistPct(c);
-      var barLabel = esc(c.title || 'Untitled card') + (pct ? ' · ' + pct.done + '/' + pct.total : '');
+      var barPct = pct ? '<span class="gantt-bar-pct">' + pct.done + '/' + pct.total + '</span>' : '';
       var tagHtml = showProjectTag ? '<span class="gantt-row-tag" style="color:' + projectColor(entry.project) + ';">' + esc(entry.project.name || 'Untitled') + '</span>' : '';
       return (
         '<div class="gantt-row" data-card-id="' + c.id + '">' +
           '<div class="gantt-row-label">' + tagHtml + '<span class="gantt-row-title-text">' + esc(c.title || 'Untitled card') + '</span></div>' +
-          '<div class="gantt-track">' +
+          '<div class="gantt-track" style="background-image:repeating-linear-gradient(to right, rgba(255,255,255,0.07), rgba(255,255,255,0.07) 1px, transparent 1px, transparent ' + dw + 'px);">' +
             '<div class="gantt-bar" data-card-id="' + c.id + '" style="left:' + left + 'px;width:' + width + 'px;background:' + c.color + ';" title="' + esc(c.title || 'Untitled card') + '">' +
               '<span class="gantt-bar-handle left" data-resize="start"></span>' +
-              '<span class="gantt-bar-label">' + barLabel + '</span>' +
+              barPct +
               '<span class="gantt-bar-handle right" data-resize="due"></span>' +
             '</div>' +
           '</div>' +
@@ -7105,7 +7128,9 @@
     document.getElementById('card-start-input').value = c.start || '';
     document.getElementById('card-due-input').value = c.due || '';
     document.getElementById('card-time-input').value = c.time || '';
+    document.getElementById('card-time-input').setAttribute('data-prev', c.time || '');
     document.getElementById('card-time-clear').classList.toggle('hide', !c.time);
+    document.getElementById('card-time-menu').classList.add('hide');
 
     var projectSelect = document.getElementById('card-project-select');
     projectSelect.innerHTML = data.projects.map(function(p) {
@@ -7444,20 +7469,99 @@
     var c = currentCard(); if (!c) return;
     c.due = this.value || null; save();
   });
-  document.getElementById('card-time-input').addEventListener('input', function() {
+  // Auto-formats digits as they're typed into "HH:MM" (e.g. "930" -> "9:30"),
+  // so the field can be typed by hand instead of only driven by the picker menu.
+  function formatTimeTyping(raw, prevRaw) {
+    var digits = raw.replace(/\D/g, '').slice(0, 4);
+    var deleting = raw.length < (prevRaw || '').length;
+    if (!digits) return '';
+    if (digits.length <= 2) {
+      // Only clamp/pad to HH:MM once a 3rd digit arrives, so "1" and "2"
+      // can still lead into "14" or "23" instead of snapping to "01:".
+      if (digits.length === 2 && !deleting && parseInt(digits, 10) > 23) digits = digits[0];
+      return digits;
+    }
+    var h = digits.slice(0, 2), m = digits.slice(2);
+    if (parseInt(h, 10) > 23) h = '23';
+    if (m.length === 2 && parseInt(m, 10) > 59) m = '59';
+    return h + ':' + m;
+  }
+  function isCompleteTime(str) { return /^\d{2}:\d{2}$/.test(str); }
+
+  var cardTimeInput = document.getElementById('card-time-input');
+  var cardTimeMenu = document.getElementById('card-time-menu');
+  var cardTimeMenuBtn = document.getElementById('card-time-menu-btn');
+
+  cardTimeInput.addEventListener('input', function() {
+    var prev = this.getAttribute('data-prev') || '';
+    var formatted = formatTimeTyping(this.value, prev);
+    this.value = formatted;
+    this.setAttribute('data-prev', formatted);
     var c = currentCard(); if (!c) return;
-    c.time = this.value || null; save(); renderToday();
+    if (isCompleteTime(formatted)) {
+      c.time = formatted; save(); renderToday();
+    } else if (!formatted) {
+      c.time = null; save(); renderToday();
+    }
     document.getElementById('card-time-clear').classList.toggle('hide', !c.time);
+  });
+  cardTimeInput.addEventListener('blur', function() {
+    // An incomplete typed value (e.g. "9:3") isn't a valid time — drop it
+    // rather than saving something that can't be parsed elsewhere.
+    if (this.value && !isCompleteTime(this.value)) {
+      this.value = '';
+      this.setAttribute('data-prev', '');
+      var c = currentCard();
+      if (c) { c.time = null; save(); renderToday(); document.getElementById('card-time-clear').classList.add('hide'); }
+    }
   });
   document.getElementById('card-time-clear').addEventListener('click', function() {
     var c = currentCard(); if (!c) return;
     c.time = null; save(); renderToday();
-    document.getElementById('card-time-input').value = '';
+    cardTimeInput.value = ''; cardTimeInput.setAttribute('data-prev', '');
     this.classList.add('hide');
   });
-  // Clicking anywhere in a date/time field opens the native picker, not
-  // just the small icon — easier to hit and more discoverable.
-  [document.getElementById('card-start-input'), document.getElementById('card-due-input'), document.getElementById('card-time-input')].forEach(function(input) {
+
+  function renderCardTimeMenuOptions() {
+    var opts = [];
+    for (var h = 0; h < 24; h++) {
+      for (var m = 0; m < 60; m += 30) {
+        opts.push((h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m));
+      }
+    }
+    var current = cardTimeInput.value;
+    cardTimeMenu.innerHTML = opts.map(function(t) {
+      return '<button type="button" class="time-menu-option' + (t === current ? ' active' : '') + '">' + t + '</button>';
+    }).join('');
+  }
+  cardTimeMenuBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var opening = cardTimeMenu.classList.contains('hide');
+    cardTimeMenu.classList.toggle('hide');
+    if (opening) {
+      renderCardTimeMenuOptions();
+      var active = cardTimeMenu.querySelector('.time-menu-option.active');
+      if (active) active.scrollIntoView({ block: 'center' });
+    }
+  });
+  cardTimeMenu.addEventListener('click', function(e) {
+    var opt = e.target.closest('.time-menu-option');
+    if (!opt) return;
+    var c = currentCard(); if (!c) return;
+    cardTimeInput.value = opt.textContent;
+    cardTimeInput.setAttribute('data-prev', opt.textContent);
+    c.time = opt.textContent; save(); renderToday();
+    document.getElementById('card-time-clear').classList.toggle('hide', !c.time);
+    cardTimeMenu.classList.add('hide');
+  });
+  document.addEventListener('click', function(e) {
+    if (!cardTimeMenu.classList.contains('hide') && !e.target.closest('.time-field-wrap')) {
+      cardTimeMenu.classList.add('hide');
+    }
+  });
+  // Clicking anywhere in a date field opens the native picker, not just
+  // the small icon — easier to hit and more discoverable.
+  [document.getElementById('card-start-input'), document.getElementById('card-due-input')].forEach(function(input) {
     input.addEventListener('click', function() { if (this.showPicker) { try { this.showPicker(); } catch (e) {} } });
   });
   document.getElementById('card-column-select').addEventListener('change', function() {
