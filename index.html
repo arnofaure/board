@@ -884,7 +884,7 @@
   .gantt-row { display: flex; align-items: center; border-bottom: 0.5px solid rgba(255,255,255,0.08); position: relative; height: 56px; cursor: pointer; }
   .gantt-row:hover .gantt-row-label { color: var(--text); background: var(--surface2); }
   .gantt-row-label {
-    width: 170px; flex-shrink: 0; position: sticky; left: 0; background: var(--surface);
+    width: 170px; height: 100%; flex-shrink: 0; position: sticky; left: 0; background: var(--surface);
     padding: 0 10px; font-size: 12px; color: var(--text); overflow: hidden;
     white-space: nowrap; border-right: 1px solid rgba(255,255,255,0.14); z-index: 4;
     transition: background 0.1s;
@@ -4527,9 +4527,15 @@
       var pct = checklistPct(c);
       var barPct = pct ? '<span class="gantt-bar-pct">' + pct.done + '/' + pct.total + '</span>' : '';
       var tagHtml = showProjectTag ? '<span class="gantt-row-tag" style="color:' + projectColor(entry.project) + ';">' + esc(entry.project.name || 'Untitled') + '</span>' : '';
+      // When several projects are mixed together, the project tag already
+      // carries the color — coloring the task title too made rows read as
+      // noisy/confusing, so it stays the default text color there. Viewing
+      // a single project, there's no tag to clash with, so the title takes
+      // the task's own color.
+      var titleColor = showProjectTag ? 'var(--text)' : c.color;
       return (
         '<div class="gantt-row" data-card-id="' + c.id + '">' +
-          '<div class="gantt-row-label" title="' + esc(c.title || 'Untitled card') + '">' + tagHtml + '<span class="gantt-row-title-text" style="color:' + c.color + ';">' + esc(c.title || 'Untitled card') + '</span></div>' +
+          '<div class="gantt-row-label" title="' + esc(c.title || 'Untitled card') + '">' + tagHtml + '<span class="gantt-row-title-text" style="color:' + titleColor + ';">' + esc(c.title || 'Untitled card') + '</span></div>' +
           '<div class="gantt-track" style="background-image:repeating-linear-gradient(to right, rgba(255,255,255,0.07), rgba(255,255,255,0.07) 1px, transparent 1px, transparent ' + dw + 'px);">' +
             '<div class="gantt-bar" data-card-id="' + c.id + '" style="left:' + left + 'px;width:' + width + 'px;background:' + c.color + ';" title="' + esc(c.title || 'Untitled card') + '">' +
               '<span class="gantt-bar-handle left" data-resize="start"></span>' +
