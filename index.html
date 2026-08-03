@@ -856,7 +856,10 @@
     flex-shrink: 0;
     white-space: nowrap;
   }
-  .gantt-row-title-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gantt-row-title-text {
+    white-space: normal; line-height: 1.25;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
 
   .gantt-wrap {
     border: 1px solid rgba(255,255,255,0.18);
@@ -878,19 +881,19 @@
   .gantt-day .gantt-day-num { display: block; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
   .gantt-day.today { color: #4ade80; }
   .gantt-day.today .gantt-day-num { color: #4ade80; font-weight: 700; }
-  .gantt-row { display: flex; align-items: center; border-bottom: 0.5px solid rgba(255,255,255,0.08); position: relative; height: 44px; cursor: pointer; }
+  .gantt-row { display: flex; align-items: center; border-bottom: 0.5px solid rgba(255,255,255,0.08); position: relative; height: 56px; cursor: pointer; }
   .gantt-row:hover .gantt-row-label { color: var(--text); background: var(--surface2); }
   .gantt-row-label {
     width: 170px; flex-shrink: 0; position: sticky; left: 0; background: var(--surface);
     padding: 0 10px; font-size: 12px; color: var(--text); overflow: hidden;
-    white-space: nowrap; border-right: 1px solid rgba(255,255,255,0.14); z-index: 1;
+    white-space: nowrap; border-right: 1px solid rgba(255,255,255,0.14); z-index: 4;
     transition: background 0.1s;
     display: flex; align-items: center; gap: 5px;
   }
   .gantt-track { position: relative; flex: 1; height: 100%; }
   .gantt-bar {
     position: absolute;
-    top: 9px;
+    top: 15px;
     height: 26px;
     border-radius: 5px;
     display: flex;
@@ -4526,7 +4529,7 @@
       var tagHtml = showProjectTag ? '<span class="gantt-row-tag" style="color:' + projectColor(entry.project) + ';">' + esc(entry.project.name || 'Untitled') + '</span>' : '';
       return (
         '<div class="gantt-row" data-card-id="' + c.id + '">' +
-          '<div class="gantt-row-label">' + tagHtml + '<span class="gantt-row-title-text">' + esc(c.title || 'Untitled card') + '</span></div>' +
+          '<div class="gantt-row-label" title="' + esc(c.title || 'Untitled card') + '">' + tagHtml + '<span class="gantt-row-title-text" style="color:' + c.color + ';">' + esc(c.title || 'Untitled card') + '</span></div>' +
           '<div class="gantt-track" style="background-image:repeating-linear-gradient(to right, rgba(255,255,255,0.07), rgba(255,255,255,0.07) 1px, transparent 1px, transparent ' + dw + 'px);">' +
             '<div class="gantt-bar" data-card-id="' + c.id + '" style="left:' + left + 'px;width:' + width + 'px;background:' + c.color + ';" title="' + esc(c.title || 'Untitled card') + '">' +
               '<span class="gantt-bar-handle left" data-resize="start"></span>' +
