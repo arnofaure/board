@@ -4373,7 +4373,7 @@
     var titleTxt = c.title ? esc(c.title) : 'Untitled card';
     var coverFlag = c.cover ? '<span class="card-cover-flag" title="Has a cover image">' + svgIcon('image') + '</span>' : '';
     var pct = checklistPct(c);
-    var inToday = !!todayItemForCard(c.id);
+    var inToday = isCardInToday(c.id);
     var running = isCardRunning(c);
     var secs = cardSeconds(c);
 
@@ -5223,9 +5223,18 @@
     save();
     render();
   }
+  // "In Today" means actively on today's list — an item postponed to
+  // Tomorrow still exists in the today list under the hood, but toggling
+  // "Today" on it should un-postpone it back to today, not delete it
+  // outright the way removing an actual today item does.
+  function isCardInToday(cardId) {
+    var item = todayItemForCard(cardId);
+    return !!(item && !item.postponedTo);
+  }
   function toggleCardInToday(cardId) {
     var existing = todayItemForCard(cardId);
-    if (existing) removeFromToday(existing.id);
+    if (existing && existing.postponedTo) unpostponeTodayItem(existing.id);
+    else if (existing) removeFromToday(existing.id);
     else addCardToToday(cardId);
   }
 
@@ -7201,7 +7210,7 @@
     c.title = this.value; save();
   });
   function updateCardTodayToggleUI(cardId) {
-    var inToday = !!todayItemForCard(cardId);
+    var inToday = isCardInToday(cardId);
     var btn = document.getElementById('card-today-toggle');
     btn.classList.toggle('active-today', inToday);
     document.getElementById('card-today-toggle-label').textContent = inToday ? 'Remove from Today' : 'Add to Today';
