@@ -1126,21 +1126,28 @@
     padding: 4px 2px;
   }
   .today-timer-box-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  /* Greyed out at rest; the tomato-red accent only kicks in while the
+     timer is actually running (#today-timer-box.running), so red reads
+     as "counting down right now" instead of a permanent color. */
   #today-timer-linebar-btn {
     flex-shrink: 0; width: 22px; height: 22px;
-    background: #ef6b5c; color: #fff; border-radius: 50%;
+    background: var(--surface2); color: var(--text-dim); border-radius: 50%;
   }
   #today-timer-linebar-btn:hover { opacity: 0.85; }
+  #today-timer-box.running #today-timer-linebar-btn { background: #ef6b5c; color: #fff; }
   #today-timer-line-track {
     position: relative; flex: 1; min-width: 0; height: 3px; border-radius: 2px;
-    background: rgba(239,107,92,0.2); overflow: hidden;
+    background: var(--surface2); overflow: hidden;
   }
-  #today-timer-line-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: #ef6b5c; }
+  #today-timer-box.running #today-timer-line-track { background: rgba(239,107,92,0.2); }
+  #today-timer-line-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; background: var(--text-dim); }
+  #today-timer-box.running #today-timer-line-fill { background: #ef6b5c; }
   #today-timer-line-label {
     flex-shrink: 0; min-width: 40px; text-align: right;
     font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; font-weight: 600;
-    font-variant-numeric: tabular-nums; color: #ef6b5c;
+    font-variant-numeric: tabular-nums; color: var(--text-dim);
   }
+  #today-timer-box.running #today-timer-line-label { color: #ef6b5c; }
 
   /* FOCUS HERO — the one task currently "up" gets the spotlight; the rest
      waits below in a plain queue. "Later" reorders without marking done.
@@ -2415,13 +2422,13 @@
   html.mono-theme .cp-remaining-label.extra { color: var(--text-muted); }
 
   /* Timer + Up Now hero (already coral by design — pinned to the same accent) */
-  html.mono-theme #today-timer-linebar-btn,
-  html.mono-theme #today-timer-line-fill { background: var(--mono-accent); color: #fff; }
+  html.mono-theme #today-timer-box.running #today-timer-linebar-btn,
+  html.mono-theme #today-timer-box.running #today-timer-line-fill { background: var(--mono-accent); color: #fff; }
   html.mono-theme .today-hero-eyebrow,
   html.mono-theme #today-summary-count,
   html.mono-theme #today-summary-label { color: var(--mono-accent); }
-  html.mono-theme #today-timer-line-track { background: rgba(var(--mono-accent-rgb), 0.2); }
-  html.mono-theme #today-timer-line-label { color: var(--mono-accent); }
+  html.mono-theme #today-timer-box.running #today-timer-line-track { background: rgba(var(--mono-accent-rgb), 0.2); }
+  html.mono-theme #today-timer-box.running #today-timer-line-label { color: var(--mono-accent); }
   html.mono-theme #today-hero { border-color: rgba(var(--mono-accent-rgb), 0.55); }
   html.mono-theme .today-hero-btn.done { border-color: var(--mono-accent); color: var(--mono-accent); }
   html.mono-theme .today-hero-btn.done:hover { background: rgba(var(--mono-accent-rgb), 0.15); }
@@ -5843,7 +5850,7 @@
     var lineBtn = document.getElementById('today-timer-linebar-btn');
     document.getElementById('today-timer-line-fill').style.width = (fraction * 100) + '%';
     document.getElementById('today-timer-line-label').textContent = formatTimerClock(customTimerRemainingSec);
-    lineBtn.classList.toggle('running', customTimerRunning);
+    document.getElementById('today-timer-box').classList.toggle('running', customTimerRunning);
     lineBtn.innerHTML = customTimerRunning ? svgIcon('pause') : svgIcon('play');
     lineBtn.title = customTimerRunning ? 'Pause timer' : 'Start timer';
   }
