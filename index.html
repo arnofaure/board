@@ -4145,6 +4145,19 @@
     return esc(desc).replace(/\n/g, '<br>');
   }
 
+  // Whether a card has any real description content — used to decide
+  // whether clicking a Today row should open the quick-glance description
+  // overlay at all, or jump straight to the full card.
+  function cardHasDescription(c) {
+    return !!(c.description || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+  }
+
+  function openCardOrDesc(cardId) {
+    var found = findCard(cardId);
+    if (found && cardHasDescription(found.card)) openDescOverlay(cardId);
+    else openCardModal(cardId);
+  }
+
   // Splits a description's HTML into sections at each heading, so the Today
   // overlay can show one section ("page") at a time with a heading-jump
   // footer, instead of dumping everything into one long scroll. Content with
@@ -5884,10 +5897,8 @@
     var item = list.items.splice(idx, 1)[0];
     list.items.push(item);
     if (list.heroId === itemId) {
-      // A scheduled time re-sorts this item straight back to the front on
-      // render, so just releasing the pin isn't enough to hand off Up Now
-      // — that leaves it appearing to do nothing for timed tasks. Pin
-      // whatever's next in the same order explicitly instead.
+      // Releasing the pin should hand Up Now to whatever's next in the
+      // current drag order, not just fall back to a recomputed default.
       var order = computeTodayTodo(list).todo.filter(function(e) { return e.item.id !== itemId; });
       list.heroId = order.length ? order[0].item.id : null;
     }
@@ -5906,9 +5917,10 @@
   }
 
   // Shared by renderToday and sendTodayItemToBack so both agree on what
-  // "next in line" means — scheduled tasks lead the pile earliest first,
-  // unscheduled ones keep their existing (drag-ordered) relative order,
-  // appended after.
+  // "next in line" means. `todo` is always plain drag order — a scheduled
+  // time no longer forces a task to the front or locks its position, so
+  // users can freely reorder timed and untimed tasks together. `todoTimed`
+  // (sorted earliest-first) is kept separately just for the time-dots strip.
   function computeTodayTodo(list) {
     var allEntries = list.items.map(function(i) {
       return { item: i, info: todayEntryInfo(i) };
@@ -5920,8 +5932,7 @@
     var done = entries.filter(function(e) { return e.info.done; });
     var todoTimed = todo.filter(function(e) { return e.info.time; })
       .sort(function(a, b) { return a.info.time < b.info.time ? -1 : a.info.time > b.info.time ? 1 : 0; });
-    var todoUntimed = todo.filter(function(e) { return !e.info.time; });
-    return { entries: entries, postponed: postponed, done: done, todo: todoTimed.concat(todoUntimed), todoTimed: todoTimed };
+    return { entries: entries, postponed: postponed, done: done, todo: todo, todoTimed: todoTimed };
   }
 
   function renderToday() {
@@ -6091,7 +6102,7 @@
       if (!row) return;
       var cardId = row.getAttribute('data-card');
       if (cardId) {
-        openDescOverlay(cardId);
+        openCardOrDesc(cardId);
       } else {
         var input = row.querySelector('.today-row-title-input');
         if (input) input.focus();
@@ -6114,7 +6125,7 @@
   todayHeroTitleEl.addEventListener('click', function(e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     var cardId = todayHeroTitleEl.getAttribute('data-card');
-    if (cardId) openDescOverlay(cardId);
+    if (cardId) openCardOrDesc(cardId);
   });
   todayHeroTitleEl.addEventListener('input', function(e) {
     commitStandaloneRename(e.target);
