@@ -501,6 +501,11 @@
   }
   .card:hover { background: rgba(255,255,255,0.05); }
   .card.dragging { opacity: 0.35; pointer-events: none; }
+  /* Real element inserted into the card list at the drop slot, rather than
+     a box-shadow toggled on a card — cards already stack up to three
+     box-shadow states (focus/timing/both) that would otherwise clobber a
+     class-based line the same way the Today list's did before that fix. */
+  .card-drop-line { height: 2px; margin: 0 10px; background: #fff; border-radius: 1px; pointer-events: none; flex-shrink: 0; }
   .card.is-focus { box-shadow: inset 0 0 0 1.5px var(--card-color, #b285f0); background: rgba(255,255,255,0.03); }
   .card.is-timing { box-shadow: inset 0 0 0 1.5px #f87171; }
   .card.is-focus.is-timing { box-shadow: inset 0 0 0 1.5px var(--card-color, #b285f0), inset 0 0 0 3px #f87171; }
@@ -1168,12 +1173,18 @@
   #today-hero {
     position: relative;
     padding: 26px 22px; text-align: center;
-    background: var(--surface2);
+    background: rgba(74,222,128,0.1);
     border: 1px solid rgba(74,222,128,0.55);
     border-radius: var(--radius-lg);
     overflow: hidden;
   }
   #today-hero.hide { display: none; }
+  /* Mirrors the card's own purple "focus" toggle so the task you marked as
+     your focus is still obviously flagged once it lands in Up Now. */
+  #today-hero.is-focus { box-shadow: inset 0 0 0 2px #b285f0; }
+  #today-hero.is-focus .today-hero-eyebrow::after {
+    content: '· Focus'; color: #b285f0; margin-left: 4px;
+  }
   /* Distraction + focus tally sit beside Up Now rather than in their own
      row — capped to roughly a tenth of the width so they read as small
      side counters, not a competing box. Stacked (not side-by-side) since
@@ -1197,14 +1208,16 @@
     justify-content: center;
     gap: 6px;
     background: var(--surface2);
-    border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     color: var(--text-dim);
     cursor: pointer;
     padding: 8px 4px;
     transition: border-color 0.15s, color 0.15s;
   }
-  #today-distract-box:hover, #today-focus-box:hover { border-color: var(--border-hover); color: var(--text); }
+  #today-distract-box { border: 1px solid rgba(224,88,74,0.45); }
+  #today-focus-box { border: 1px solid rgba(167,139,250,0.45); }
+  #today-distract-box:hover { border-color: var(--danger); color: var(--text); }
+  #today-focus-box:hover { border-color: #a78bfa; color: var(--text); }
   #today-focus-wrap { flex: 1; display: flex; }
   #today-focus-wrap #today-focus-box { height: 100%; }
   .today-distract-count {
@@ -1455,13 +1468,25 @@
   .today-row.dragging .today-row-handle { cursor: grabbing; }
   .today-row:hover { border-color: var(--border-hover); }
   .today-row.dragging { opacity: 0.35; }
-  .today-row.drag-over { border-color: var(--border-hover); background: var(--surface2); }
+  /* Insertion-line preview while dragging — shows exactly where the row
+     will land (before/after the hovered row) instead of just a vague
+     highlight, so the drop position is obvious mid-drag. */
+  .today-row.drag-over-before { box-shadow: inset 0 2px 0 0 #fff; }
+  .today-row.drag-over-after { box-shadow: inset 0 -2px 0 0 #fff; }
+  /* Focus's left-edge accent and the drag line both use box-shadow, so on
+     a focused row they'd otherwise clobber each other (last rule wins,
+     same specificity) — layer them as two shadows instead so both show. */
+  .today-row.is-focus.drag-over-before { box-shadow: inset 2px 0 0 0 #b285f0, inset 0 2px 0 0 #fff; }
+  .today-row.is-focus.drag-over-after { box-shadow: inset 2px 0 0 0 #b285f0, inset 0 -2px 0 0 #fff; }
   .today-row.done { opacity: 0.6; }
   .today-row.done .today-row-title { text-decoration: line-through; color: var(--text-muted); }
   /* "Break" personal tasks (quick scroll/social checks) get a dashed edge
      and an amber icon in place of the color dot — a visual nudge that
      it's a break, not real work — but otherwise act like any other row. */
   .today-row.today-row-break { border-style: dashed; border-color: rgba(240,180,41,0.35); }
+  /* Mirrors the board card's purple focus toggle, so a task marked as
+     "focus" still reads that way once it's queued in Today. */
+  .today-row.is-focus { box-shadow: inset 2px 0 0 0 #b285f0; }
   .today-row-break-icon {
     display: flex; align-items: center; justify-content: center;
     width: 8px; height: 8px; flex-shrink: 0; color: #f0b429;
@@ -2441,9 +2466,18 @@
   html.mono-theme #today-summary-label { color: var(--mono-accent); }
   html.mono-theme #today-timer-box.running #today-timer-line-track { background: rgba(var(--mono-accent-rgb), 0.2); }
   html.mono-theme #today-timer-box.running #today-timer-line-label { color: var(--mono-accent); }
-  html.mono-theme #today-hero { border-color: rgba(var(--mono-accent-rgb), 0.55); }
+  html.mono-theme #today-hero { background: rgba(var(--mono-accent-rgb), 0.1); border-color: rgba(var(--mono-accent-rgb), 0.55); }
+  html.mono-theme #today-hero.is-focus { box-shadow: inset 0 0 0 2px var(--mono-accent); }
+  html.mono-theme #today-hero.is-focus .today-hero-eyebrow::after { color: var(--mono-accent); }
+  html.mono-theme .today-row.is-focus { box-shadow: inset 2px 0 0 0 var(--mono-accent); }
+  html.mono-theme .today-row.is-focus.drag-over-before { box-shadow: inset 2px 0 0 0 var(--mono-accent), inset 0 2px 0 0 #fff; }
+  html.mono-theme .today-row.is-focus.drag-over-after { box-shadow: inset 2px 0 0 0 var(--mono-accent), inset 0 -2px 0 0 #fff; }
   html.mono-theme .today-hero-btn.done { border-color: var(--mono-accent); color: var(--mono-accent); }
   html.mono-theme .today-hero-btn.done:hover { background: rgba(var(--mono-accent-rgb), 0.15); }
+  html.mono-theme #today-distract-box,
+  html.mono-theme #today-focus-box { border-color: rgba(var(--mono-accent-rgb), 0.45); }
+  html.mono-theme #today-distract-box:hover,
+  html.mono-theme #today-focus-box:hover { border-color: var(--mono-accent); }
 
   /* Card status toggles (done/today/tomorrow/focus/timer) — same accent, text tells them apart */
   html.mono-theme .card-icon-btn.done.is-done,
@@ -5302,7 +5336,8 @@
         checklistPct: checklistPct(found.card),
         standalone: false,
         isBreak: false,
-        time: found.card.time || null
+        time: found.card.time || null,
+        focus: !!found.card.focus
       };
     }
     return {
@@ -5314,7 +5349,8 @@
       checklistPct: null,
       standalone: true,
       isBreak: isBreakTitle(item.title),
-      time: item.time || null
+      time: item.time || null,
+      focus: false
     };
   }
 
@@ -6007,6 +6043,7 @@
       rest = todo.filter(function(e) { return e !== hero; });
       heroCurrentItemId = hero.item.id;
       heroEl.classList.remove('hide');
+      heroEl.classList.toggle('is-focus', !!hero.info.focus);
       heroTitleEl.setAttribute('data-card', hero.item.cardId || '');
       var heroTimeEl = document.getElementById('today-hero-time');
       heroTimeEl.value = hero.info.time || '';
@@ -6073,7 +6110,7 @@
       }
     }
     return (
-      '<div class="today-row' + (info.done ? ' done' : '') + (info.isBreak ? ' today-row-break' : '') + '" data-card="' + (item.cardId || '') + '" data-item="' + item.id + '">' +
+      '<div class="today-row' + (info.done ? ' done' : '') + (info.isBreak ? ' today-row-break' : '') + (info.focus ? ' is-focus' : '') + '" data-card="' + (item.cardId || '') + '" data-item="' + item.id + '">' +
         '<span class="today-row-handle" title="Drag to reorder">' + svgIcon('grip') + '</span>' +
         '<button type="button" class="checklist-check' + (info.done ? ' done' : '') + '" data-action="toggle-today-done" data-item="' + item.id + '" title="Mark done">' + (info.done ? svgIcon('check') : '') + '</button>' +
         colorHtml +
@@ -6265,12 +6302,24 @@
       document.body.classList.add('no-select');
     }
     e.preventDefault();
-    document.querySelectorAll('.today-row.drag-over').forEach(function(el) { el.classList.remove('drag-over'); });
+    clearTodayDragOverMarks();
     var under = document.elementFromPoint(e.clientX, e.clientY);
     var targetRow = under && under.closest('.today-row');
     if (targetRow && targetRow !== todayDrag.el && targetRow.closest('.today-group') === todayDrag.group) {
-      targetRow.classList.add('drag-over');
+      // Direction (not pointer position within the row) decides before/after,
+      // since that's what onTodayDragEnd's splice actually produces — this
+      // way the line always previews the real result, never a false one.
+      var list = ensureTodayList();
+      var fromIdx = list.items.findIndex(function(i) { return i.id === todayDrag.itemId; });
+      var toIdx = list.items.findIndex(function(i) { return i.id === targetRow.getAttribute('data-item'); });
+      targetRow.classList.add(toIdx > fromIdx ? 'drag-over-after' : 'drag-over-before');
     }
+  }
+
+  function clearTodayDragOverMarks() {
+    document.querySelectorAll('.today-row.drag-over-before, .today-row.drag-over-after').forEach(function(el) {
+      el.classList.remove('drag-over-before', 'drag-over-after');
+    });
   }
 
   function onTodayDragEnd(e) {
@@ -6280,7 +6329,7 @@
     var wasActive = todayDrag.active;
     todayDrag.el.classList.remove('dragging');
     document.body.classList.remove('no-select');
-    document.querySelectorAll('.today-row.drag-over').forEach(function(el) { el.classList.remove('drag-over'); });
+    clearTodayDragOverMarks();
     if (wasActive) {
       var under = document.elementFromPoint(e.clientX, e.clientY);
       var targetRow = under && under.closest('.today-row');
@@ -7943,7 +7992,32 @@
     document.querySelectorAll('.column.drag-over').forEach(function(el) { el.classList.remove('drag-over'); });
     var under = document.elementFromPoint(e.clientX, e.clientY);
     var colBody = under && under.closest('.column-body');
-    if (colBody) colBody.closest('.column').classList.add('drag-over');
+    if (colBody) {
+      colBody.closest('.column').classList.add('drag-over');
+      markCardDropLine(colBody, e.clientY, cardDrag.id);
+    } else {
+      clearCardDropLine();
+    }
+  }
+
+  // Reused across drags rather than recreated each move, so it stays a
+  // single node getting relocated via insertBefore/appendChild.
+  var cardDropLineEl = null;
+  function markCardDropLine(colBody, clientY, excludeCardId) {
+    if (!cardDropLineEl) { cardDropLineEl = document.createElement('div'); cardDropLineEl.className = 'card-drop-line'; }
+    var cardEls = Array.prototype.filter.call(colBody.querySelectorAll('.card'), function(el) {
+      return el.getAttribute('data-card-id') !== excludeCardId;
+    });
+    var before = null;
+    for (var i = 0; i < cardEls.length; i++) {
+      var rect = cardEls[i].getBoundingClientRect();
+      if (clientY < rect.top + rect.height / 2) { before = cardEls[i]; break; }
+    }
+    if (before) colBody.insertBefore(cardDropLineEl, before);
+    else colBody.appendChild(cardDropLineEl);
+  }
+  function clearCardDropLine() {
+    if (cardDropLineEl && cardDropLineEl.parentNode) cardDropLineEl.parentNode.removeChild(cardDropLineEl);
   }
 
   function onCardDragEnd(e) {
@@ -7955,6 +8029,7 @@
     cardDrag.el.classList.remove('dragging');
     document.body.classList.remove('no-select');
     document.querySelectorAll('.column.drag-over').forEach(function(el) { el.classList.remove('drag-over'); });
+    clearCardDropLine();
     if (wasActive) {
       var under = document.elementFromPoint(e.clientX, e.clientY);
       var colBody = under && under.closest('.column-body');
