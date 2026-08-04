@@ -429,8 +429,8 @@
     align-items: center;
     gap: 6px;
     padding: 10px 10px;
-    background: var(--surface2);
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    background: #262626;
+    border-bottom: 1px solid rgba(255,255,255,0.14);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     cursor: grab;
     -webkit-user-select: none;
@@ -439,8 +439,9 @@
   .column-header:active { cursor: grabbing; }
   .column-header input.column-name { -webkit-user-select: text; user-select: text; }
   .column-name {
-    font-size: calc(12.5px * var(--board-scale));
-    font-weight: 600;
+    font-size: calc(13px * var(--board-scale));
+    font-weight: 700;
+    letter-spacing: 0.1px;
     color: var(--text);
     background: transparent;
     border: none;
@@ -453,10 +454,21 @@
   .column-name:focus { border-bottom-color: var(--border-hover); }
   .column-count {
     font-size: calc(11px * var(--board-scale));
-    color: var(--text-dim);
+    font-weight: 600;
+    color: var(--text-muted);
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 2px 7px;
   }
+  .column-header-btn {
+    width: 22px; height: 22px; border-radius: 50%; border: none; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; color: var(--text-muted); cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+  }
+  .column-header-btn:hover { background: rgba(255,255,255,0.14); color: var(--text); }
 
   .column-body {
     flex: 1;
@@ -4346,12 +4358,12 @@
     return (
       '<div class="column" data-column-id="' + col.id + '">' +
         '<div class="column-header" data-action="drag-column-handle">' +
-          '<button class="row-del" data-action="collapse-column" data-column="' + col.id + '" title="Collapse column" style="background:none;border:none;cursor:pointer;color:var(--text-dim);padding:3px;display:flex;">' +
+          '<button class="row-del column-header-btn" data-action="collapse-column" data-column="' + col.id + '" title="Collapse column">' +
             svgIcon('collapse') +
           '</button>' +
           '<input class="column-name" value="' + esc(col.name) + '" data-action="rename-column" data-column="' + col.id + '" placeholder="Column name">' +
           '<span class="column-count">' + countLabel + '</span>' +
-          '<button class="row-del" data-action="delete-column" data-column="' + col.id + '" title="Delete column" style="background:none;border:none;cursor:pointer;color:var(--text-dim);padding:3px;display:flex;">' +
+          '<button class="row-del column-header-btn" data-action="delete-column" data-column="' + col.id + '" title="Delete column">' +
             svgIcon('trash') +
           '</button>' +
         '</div>' +
