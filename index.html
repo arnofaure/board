@@ -1687,7 +1687,7 @@
   .ach-chart-gridline { stroke: var(--border); stroke-width: 1; }
   .ach-chart-line { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .ach-chart-dot { fill: var(--surface); stroke-width: 1.5; }
-  .ach-chart-tick { stroke-width: 2; stroke-linecap: round; }
+  .ach-chart-tick { stroke-width: 3; stroke-linecap: round; opacity: 0.85; }
   #achievements-chart-legend { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 12px; font-size: 11.5px; color: var(--text-muted); }
   .ach-chart-legend-item { display: flex; align-items: center; gap: 6px; }
   .ach-chart-swatch { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
@@ -6980,15 +6980,16 @@
         return '<circle class="ach-chart-dot" cx="' + xFor(i).toFixed(1) + '" cy="' + yFor(v).toFixed(1) + '" r="2.5" stroke="' + color + '"><title>' + esc(d.label) + '</title></circle>';
       }).join('');
     }
-    // Focus difficulty reads as an unconnected tick per day (not a
-    // trend line) — it's a subjective per-day rating, not something
-    // that meaningfully interpolates between days like the other two.
+    // Focus difficulty reads as an unconnected bar per day (not a trend
+    // line) — it's a subjective per-day rating, not something that
+    // meaningfully interpolates between days like the other two.
     function ticksSvg(getter, color) {
+      var baseY = yFor(0).toFixed(1);
       return days.map(function(d, i) {
         var v = getter(d);
         if (v === null || v === undefined) return '';
-        var x = xFor(i).toFixed(1), y = yFor(v);
-        return '<line class="ach-chart-tick" x1="' + x + '" y1="' + (y - 4).toFixed(1) + '" x2="' + x + '" y2="' + (y + 4).toFixed(1) + '" stroke="' + color + '"><title>' + esc(d.label) + '</title></line>';
+        var x = xFor(i).toFixed(1);
+        return '<line class="ach-chart-tick" x1="' + x + '" y1="' + baseY + '" x2="' + x + '" y2="' + yFor(v).toFixed(1) + '" stroke="' + color + '"><title>' + esc(d.label) + '</title></line>';
       }).join('');
     }
 
