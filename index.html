@@ -4101,6 +4101,8 @@
     var c = found.card;
     c.done = !c.done;
     c.doneAt = c.done ? todayStr() : null;
+    // A task marked done shouldn't keep silently racking up time.
+    if (c.done && isCardRunning(c)) runningCardEntry(c).end = Date.now();
     // Marking done also moves the card into a "Done" column on its board,
     // if one exists, so completing it from Today is reflected there too.
     if (c.done) {
