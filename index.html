@@ -3949,6 +3949,13 @@
       });
     });
   }
+  // A task leaving active focus — done, held, or sent to the back of the
+  // queue — shouldn't keep silently racking up time in the background.
+  function stopCardTimerIfRunning(cardId) {
+    var found = cardId && findCard(cardId);
+    if (!found) return;
+    if (isCardRunning(found.card)) runningCardEntry(found.card).end = Date.now();
+  }
   function toggleCardTimer(cardId) {
     var found = findCard(cardId);
     if (!found) return;
@@ -4101,8 +4108,7 @@
     var c = found.card;
     c.done = !c.done;
     c.doneAt = c.done ? todayStr() : null;
-    // A task marked done shouldn't keep silently racking up time.
-    if (c.done && isCardRunning(c)) runningCardEntry(c).end = Date.now();
+    if (c.done) stopCardTimerIfRunning(c.id);
     // Marking done also moves the card into a "Done" column on its board,
     // if one exists, so completing it from Today is reflected there too.
     if (c.done) {
@@ -5255,7 +5261,7 @@
     // A card due today would otherwise be re-added right back by
     // spawnDueTodayCards on the next render — remember it was dismissed
     // on purpose so it stays off the list for the rest of the day.
-    if (item && item.cardId) list.dismissedDue.push(item.cardId);
+    if (item && item.cardId) { list.dismissedDue.push(item.cardId); stopCardTimerIfRunning(item.cardId); }
     list.items = list.items.filter(function(i) { return i.id !== itemId; });
     save();
     render();
@@ -5972,6 +5978,7 @@
     if (idx === -1) return;
     var item = list.items.splice(idx, 1)[0];
     list.items.push(item);
+    stopCardTimerIfRunning(item.cardId);
     if (list.heroId === itemId) {
       // Releasing the pin should hand Up Now to whatever's next in the
       // current drag order, not just fall back to a recomputed default.
