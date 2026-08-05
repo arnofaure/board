@@ -1687,6 +1687,7 @@
   .ach-chart-gridline { stroke: var(--border); stroke-width: 1; }
   .ach-chart-line { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .ach-chart-dot { fill: var(--surface); stroke-width: 1.5; }
+  .ach-chart-tick { stroke-width: 2; stroke-linecap: round; }
   #achievements-chart-legend { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 12px; font-size: 11.5px; color: var(--text-muted); }
   .ach-chart-legend-item { display: flex; align-items: center; gap: 6px; }
   .ach-chart-swatch { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
@@ -6941,10 +6942,10 @@
     return parts.reduce(function(a, b) { return a + b; }, 0) / parts.length;
   }
 
-  // Draws three normalized-to-0-100% line series on a shared SVG canvas —
-  // each series only connects consecutive days that actually have a value,
-  // so gaps (e.g. days before the focus-difficulty slider was ever touched)
-  // don't get bridged by a misleading straight line.
+  // Draws three normalized-to-0-100% series on a shared SVG canvas. Tasks
+  // done and distractions connect consecutive days that have a value (with
+  // gaps left unbridged); focus difficulty is a per-day subjective rating,
+  // not a trend, so it's drawn as standalone ticks rather than a line.
   function renderAchievementsChart(days) {
     var wrap = document.getElementById('achievements-chart-wrap');
     if (!days.length) { wrap.innerHTML = ''; return; }
@@ -6979,6 +6980,17 @@
         return '<circle class="ach-chart-dot" cx="' + xFor(i).toFixed(1) + '" cy="' + yFor(v).toFixed(1) + '" r="2.5" stroke="' + color + '"><title>' + esc(d.label) + '</title></circle>';
       }).join('');
     }
+    // Focus difficulty reads as an unconnected tick per day (not a
+    // trend line) — it's a subjective per-day rating, not something
+    // that meaningfully interpolates between days like the other two.
+    function ticksSvg(getter, color) {
+      return days.map(function(d, i) {
+        var v = getter(d);
+        if (v === null || v === undefined) return '';
+        var x = xFor(i).toFixed(1), y = yFor(v);
+        return '<line class="ach-chart-tick" x1="' + x + '" y1="' + (y - 4).toFixed(1) + '" x2="' + x + '" y2="' + (y + 4).toFixed(1) + '" stroke="' + color + '"><title>' + esc(d.label) + '</title></line>';
+      }).join('');
+    }
 
     var gridlines = [0, 25, 50, 75, 100].map(function(pct) {
       var y = yFor(pct).toFixed(1);
@@ -6990,10 +7002,9 @@
         gridlines +
         lineSvg(function(d) { return d.doneRatioPct; }, 'ach-line-done', '#4ade80') +
         lineSvg(function(d) { return d.distractPct; }, 'ach-line-distract', '#f87171') +
-        lineSvg(function(d) { return d.concentrationPct; }, 'ach-line-focus', '#a78bfa') +
         dotsSvg(function(d) { return d.doneRatioPct; }, '#4ade80') +
         dotsSvg(function(d) { return d.distractPct; }, '#f87171') +
-        dotsSvg(function(d) { return d.concentrationPct; }, '#a78bfa') +
+        ticksSvg(function(d) { return d.concentrationPct; }, '#a78bfa') +
       '</svg>';
   }
 
