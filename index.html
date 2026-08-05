@@ -1215,9 +1215,9 @@
     transition: border-color 0.15s, color 0.15s;
   }
   #today-distract-box { border: 1px solid rgba(224,88,74,0.45); }
-  #today-focus-box { border: 1px solid rgba(167,139,250,0.45); }
+  #today-focus-box { border: 1px solid rgba(251,191,36,0.45); }
   #today-distract-box:hover { border-color: var(--danger); color: var(--text); }
-  #today-focus-box:hover { border-color: #a78bfa; color: var(--text); }
+  #today-focus-box:hover { border-color: #fbbf24; color: var(--text); }
   #today-focus-wrap { flex: 1; display: flex; }
   #today-focus-wrap #today-focus-box { height: 100%; }
   .today-distract-count {
@@ -1227,7 +1227,7 @@
   .today-distract-count.zero { color: var(--text-dim); }
   .today-focus-value {
     font-size: 18px; font-weight: 800; line-height: 1;
-    color: #a78bfa; font-variant-numeric: tabular-nums;
+    color: #fbbf24; font-variant-numeric: tabular-nums;
   }
   .today-focus-value.unset { color: var(--text-dim); }
   #today-focus-picker { min-width: 0; padding: 8px; }
@@ -1242,8 +1242,8 @@
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
-  .today-focus-pick-btn:hover { border-color: #a78bfa; color: #a78bfa; }
-  .today-focus-pick-btn.selected { background: #a78bfa; border-color: #a78bfa; color: #1a1225; }
+  .today-focus-pick-btn:hover { border-color: #fbbf24; color: #fbbf24; }
+  .today-focus-pick-btn.selected { background: #fbbf24; border-color: #fbbf24; color: #1a1a05; }
   .today-hero-top { position: relative; margin-bottom: 10px; }
   .today-hero-time-wrap { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 4px; }
   .today-hero-timer-wrap { position: absolute; left: 0; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 6px; }
@@ -1654,6 +1654,10 @@
   .ach-day[data-level="3"] { background: #22a55e; border-color: #22a55e; }
   .ach-day[data-level="4"] { background: #4ade80; border-color: #4ade80; }
   .ach-day.ach-future { background: transparent; border-color: transparent; cursor: default; }
+  /* The window is now centered on today rather than ending there, so
+     today no longer has an obvious fixed spot (the last square) — mark
+     it explicitly instead. */
+  .ach-day.ach-today { outline-color: var(--text-muted); }
 
   #ach-tooltip {
     position: fixed; pointer-events: none; z-index: 400;
@@ -3013,7 +3017,7 @@
       <div id="achievements-chart-legend">
         <span class="ach-chart-legend-item"><span class="ach-chart-swatch" style="background:#4ade80;"></span>Tasks done</span>
         <span class="ach-chart-legend-item"><span class="ach-chart-swatch" style="background:#f87171;"></span>Distractions</span>
-        <span class="ach-chart-legend-item"><span class="ach-chart-swatch" style="background:#a78bfa;"></span>Focus difficulty</span>
+        <span class="ach-chart-legend-item"><span class="ach-chart-swatch" style="background:#fbbf24;"></span>Focus difficulty</span>
       </div>
     </div>
 
@@ -6888,18 +6892,25 @@
     var level = 1 + Math.floor(successfulDays / 5);
     document.getElementById('achievements-level').textContent = level;
 
-    // Rolling 30-day window (today inclusive), simplest possible reading —
-    // no month grouping, just "the last 30 days" as one row.
+    // 30-day window centered on today rather than ending at today — with
+    // only a couple weeks of real history, an end-aligned window reads as
+    // a wall of empty cells crammed against the left edge. Centering keeps
+    // today in the middle with empty cells balanced on both sides instead.
     var ROLLING_DAYS = 30;
     var now = new Date();
     var startDate = new Date(now);
-    startDate.setDate(startDate.getDate() - (ROLLING_DAYS - 1));
+    startDate.setDate(startDate.getDate() - Math.floor(ROLLING_DAYS / 2));
+    var endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + (ROLLING_DAYS - 1));
 
+    var todayKey = todayStr();
     var daysHtml = '';
     var chartDays = [];
     var cursorDate = new Date(startDate);
     for (var i = 0; i < ROLLING_DAYS; i++) {
       var key2 = dateKeyFor(cursorDate);
+      var isFuture = key2 > todayKey;
+      var isToday = key2 === todayKey;
       var entry2 = historyMap[key2];
       var lvl = 0;
       if (entry2 && entry2.total > 0) {
@@ -6910,24 +6921,25 @@
       var distractLevel = distractCount === 0 ? 0 : distractCount <= 2 ? 1 : distractCount <= 5 ? 2 : 3;
       var niceDate = MONTH_NAMES[cursorDate.getMonth()] + ' ' + cursorDate.getDate();
       var tooltip = niceDate + ' — ' + (entry2 ? entry2.done + '/' + entry2.total + ' done' : 'no data') + (distractCount ? ' · ' + distractCount + ' distraction' + (distractCount === 1 ? '' : 's') : '');
-      daysHtml += '<div class="ach-day" data-level="' + lvl + '" data-distract-level="' + distractLevel + '" data-tooltip="' + esc(tooltip) + '"></div>';
+      var dayClass = 'ach-day' + (isFuture ? ' ach-future' : '') + (isToday ? ' ach-today' : '');
+      daysHtml += '<div class="' + dayClass + '" data-level="' + lvl + '" data-distract-level="' + distractLevel + '" data-tooltip="' + esc(tooltip) + '"></div>';
 
       var concentration = data.concentrationByDate[key2];
-      var doneRatioPct = (entry2 && entry2.total > 0) ? (entry2.done / entry2.total * 100) : null;
-      var concentrationPct = (concentration === undefined || concentration === null) ? null : concentration * 10;
-      var distractPct = Math.min(distractCount, 10) * 10;
+      var doneRatioPct = isFuture ? null : (entry2 && entry2.total > 0) ? (entry2.done / entry2.total * 100) : null;
+      var concentrationPct = isFuture || concentration === undefined || concentration === null ? null : concentration * 10;
+      var distractPct = isFuture ? null : Math.min(distractCount, 10) * 10;
       chartDays.push({
         label: niceDate,
         doneRatioPct: doneRatioPct,
         distractPct: distractPct,
         concentrationPct: concentrationPct,
-        focusQuality: computeFocusQuality(doneRatioPct, concentrationPct, distractPct, distractCount)
+        focusQuality: isFuture ? null : computeFocusQuality(doneRatioPct, concentrationPct, distractPct, distractCount)
       });
       cursorDate.setDate(cursorDate.getDate() + 1);
     }
     document.getElementById('achievements-calendar').innerHTML = daysHtml;
     document.getElementById('achievements-range-label').textContent =
-      MONTH_NAMES[startDate.getMonth()] + ' ' + startDate.getDate() + ' – ' + MONTH_NAMES[now.getMonth()] + ' ' + now.getDate() + ' (last 30 days)';
+      MONTH_NAMES[startDate.getMonth()] + ' ' + startDate.getDate() + ' – ' + MONTH_NAMES[endDate.getMonth()] + ' ' + endDate.getDate() + ' (today centered)';
     document.getElementById('achievements-empty').classList.toggle('hide', data.history.length > 0 || todayRelevant.length > 0);
     renderAchievementsChart(chartDays);
     renderFocusQualityChart(chartDays);
@@ -7014,7 +7026,7 @@
         lineSvg(function(d) { return d.distractPct; }, 'ach-line-distract', '#f87171') +
         dotsSvg(function(d) { return d.doneRatioPct; }, '#4ade80') +
         dotsSvg(function(d) { return d.distractPct; }, '#f87171') +
-        ticksSvg(function(d) { return d.concentrationPct; }, '#a78bfa') +
+        ticksSvg(function(d) { return d.concentrationPct; }, '#fbbf24') +
       '</svg>';
   }
 
@@ -7030,9 +7042,10 @@
         return '<div class="fq-bar-col" data-tooltip="' + esc(d.label) + ' — no data"><div class="fq-bar no-data" style="height:6%;"></div></div>';
       }
       var pct = Math.max(0, Math.min(100, d.focusQuality));
-      // Single-hue purple ramp (dim → bright), same purple already used for
-      // "Focus difficulty" in the trend chart above (#a78bfa) — a low score
-      // reads as "dim", not a red alarm. Also sets --fq-opacity, the same
+      // Single-hue purple ramp (dim → bright) — this is the blended
+      // composite score, a separate metric from "Focus difficulty" above,
+      // so it keeps its own color rather than following that one. A low
+      // score reads as "dim", not a red alarm. Also sets --fq-opacity, the same
       // 0.25→1 range as the calendar's level-1..4 opacities, so the
       // mono-theme override below can recolor these bars to the user's own
       // chosen accent instead of a hardcoded color — the calendar squares
