@@ -324,7 +324,7 @@
 
   /* MAIN */
   #main { padding: 20px 20px 60px; }
-  #board-view.hide, #timeline-view.hide, #ideas-view.hide, #timetracker-view.hide, #achievements-view.hide { display: none; }
+  #board-view.hide, #timeline-view.hide, #ideas-view.hide, #timetracker-view.hide, #achievements-view.hide, #images-view.hide { display: none; }
   #tt-recap-panel.hide, #tt-calendar-panel.hide { display: none; }
   .tt-subtabs { display: flex; gap: 6px; margin-bottom: 18px; }
   .tt-subtab-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
@@ -1711,6 +1711,37 @@
   .fq-bar { width: 100%; border-radius: 2px 2px 0 0; background: var(--border); min-height: 3px; }
   .fq-bar.no-data { background: var(--border); opacity: 0.35; }
 
+  /* IMAGES VIEW — every card that has a cover, board chrome stripped
+     away entirely: just the photo and the task's name. */
+  #images-empty { text-align: center; color: var(--text-dim); margin-top: 60px; line-height: 1.6; }
+  #images-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .images-tile {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius-lg);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .images-tile:hover { border-color: var(--border-hover); }
+  .images-tile-cover {
+    position: absolute; inset: 0;
+    background-size: contain; background-repeat: no-repeat; background-position: center;
+  }
+  .images-tile-title {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 18px 10px 8px;
+    font-size: 12.5px; font-weight: 600; color: #fff;
+    background: linear-gradient(to top, rgba(0,0,0,0.72), transparent);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
   #idea-list { display: flex; flex-direction: column; gap: 6px; }
   .idea-row {
     display: flex;
@@ -1764,14 +1795,44 @@
     padding: 8px 10px;
   }
   .idea-edit-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-  .desc-links { display: flex; flex-direction: column; gap: 2px; }
+  .desc-links { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .desc-links:empty { display: none; }
-  .desc-links a {
-    font-size: 11.5px;
-    color: #6ea8fe;
-    word-break: break-all;
+  .desc-link-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11.5px; font-weight: 600; color: var(--text-muted);
+    background: var(--surface2); border: 1px solid rgba(96,165,250,0.5);
+    border-radius: 20px; padding: 5px 10px 5px 8px;
+    max-width: 220px;
+    transition: border-color 0.12s, color 0.12s;
   }
-  .desc-links a:hover { text-decoration: underline; }
+  .desc-link-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .desc-link-btn svg { flex-shrink: 0; }
+  .desc-link-btn:hover { color: var(--text); border-color: #60a5fa; }
+  /* Pasting a link doesn't change the description text at all (that's the
+     point), so without this the paste looks like it silently did nothing
+     — the ring pulse is the only confirmation the user gets that it landed. */
+  @keyframes descLinkAdded {
+    0% { box-shadow: 0 0 0 0 rgba(96,165,250,0.55); }
+    70% { box-shadow: 0 0 0 9px rgba(96,165,250,0); }
+    100% { box-shadow: 0 0 0 0 rgba(96,165,250,0); }
+  }
+  .desc-link-btn-added { animation: descLinkAdded 1.2s ease-out; border-color: #60a5fa; }
+  /* Inline marker left in the description text itself at the exact spot a
+     link was pasted — the below-box row is easy to miss entirely, this is
+     the "yes, it's right here" confirmation. Non-editable so it behaves as
+     one atomic unit rather than text you can accidentally type inside. */
+  .desc-link-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    vertical-align: middle;
+    font-size: 0.85em; font-weight: 600; color: var(--text-muted);
+    background: var(--surface2); border: 1px solid rgba(96,165,250,0.5);
+    border-radius: 20px; padding: 2px 8px 2px 6px;
+    max-width: 220px;
+    text-decoration: none; cursor: pointer;
+  }
+  .desc-link-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .desc-link-chip svg { flex-shrink: 0; }
+  .desc-link-chip:hover { color: var(--text); border-color: #60a5fa; }
   .idea-tag-input {
     background: transparent;
     border: none;
@@ -2689,7 +2750,7 @@
   </button>
   <div class="tb-view-switch">
     <button class="tb-btn view-btn" id="view-today-btn" data-view="today">Today</button>
-    <button class="tb-btn view-btn active" id="view-board-btn" data-view="board">Board</button>
+    <button class="tb-btn view-btn active" id="view-board-btn" data-view="board" title="Normal board view (N)">Board</button>
     <div class="tb-menu board-only" id="board-options-wrap">
       <button type="button" class="tb-btn" id="board-options-btn" title="Board display options">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="6" r="1.6" fill="currentColor" stroke="none"/><circle cx="8" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="14" cy="18" r="1.6" fill="currentColor" stroke="none"/></svg>
@@ -2714,6 +2775,11 @@
         <button type="button" class="tb-btn" id="due-only-btn" title="Only show cards that have a due date (D)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><circle cx="12" cy="15" r="2.2"/></svg>
           Due date only
+        </button>
+        <div class="tb-sep-h"></div>
+        <button type="button" class="tb-btn view-btn" id="view-images-btn" data-view="images" title="Every card's cover image, board chrome stripped away (I)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          Images view
         </button>
       </div>
     </div>
@@ -3030,6 +3096,11 @@
    </div>
   </div>
   <div id="ach-tooltip"></div>
+
+<div id="images-view" class="hide">
+  <div id="images-empty" class="hide">No cards have a cover image yet — attach one from a card's detail view (or paste one in with ⌘V).</div>
+  <div id="images-grid"></div>
+</div>
 
 </div>
 
@@ -3391,6 +3462,7 @@
       </button>
     </div>
     <div id="desc-modal-input" class="desc-modal-view"></div>
+    <div class="desc-links" id="desc-modal-links"></div>
     <div class="desc-modal-nav hide" id="desc-modal-nav"></div>
   </div>
 </div>
@@ -3523,6 +3595,7 @@
           if (c.due === undefined) c.due = null;
           if (c.start === undefined) c.start = null;
           if (c.description === undefined) c.description = '';
+          if (!c.links) c.links = [];
           if (c.done === undefined) c.done = false;
           if (c.doneAt === undefined) c.doneAt = null;
           if (c.focus === undefined) c.focus = false;
@@ -4178,15 +4251,25 @@
     return d.innerHTML;
   }
 
-  // Descriptions are plain-text textareas (so typing/editing stays simple),
-  // but any URL inside one should still be reachable — this renders detected
-  // links as a small clickable row below the textarea.
+  // Any URL pasted into a description is kept out of the flowing text (see
+  // wireDescEditor's paste handler) and rendered as a button below instead
+  // — extraLinks carries those (card.links); the regex still scans the text
+  // too, so a URL that's simply typed or embedded in a sentence still shows
+  // up here as well.
   var URL_REGEX = /(https?:\/\/[^\s<>"']+)/g;
-  function renderLinksPreview(text) {
-    var urls = text ? text.match(URL_REGEX) : null;
-    if (!urls || !urls.length) return '';
+  function shortenUrlLabel(u) {
+    try { return new URL(u).hostname.replace(/^www\./, ''); }
+    catch (e) { return u; }
+  }
+  function renderLinksPreview(text, extraLinks, justAddedUrl) {
+    var urls = (text ? text.match(URL_REGEX) : null) || [];
+    if (extraLinks && extraLinks.length) urls = urls.concat(extraLinks);
+    var seen = {};
+    urls = urls.filter(function(u) { if (seen[u]) return false; seen[u] = true; return true; });
+    if (!urls.length) return '';
     return urls.map(function(u) {
-      return '<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + esc(u) + '</a>';
+      var cls = 'desc-link-btn' + (u === justAddedUrl ? ' desc-link-btn-added' : '');
+      return '<a class="' + cls + '" href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + svgIcon('link') + '<span>' + esc(shortenUrlLabel(u)) + '</span></a>';
     }).join('');
   }
 
@@ -4289,6 +4372,35 @@
     editor.addEventListener('paste', function(e) {
       e.preventDefault();
       var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+      var trimmed = text.trim();
+      // A paste that's nothing but a URL becomes a link button, both
+      // inline (right where it was pasted) and in the row below — instead
+      // of being dropped into the prose as raw text.
+      if (/^https?:\/\/\S+$/.test(trimmed)) {
+        var c = currentCard();
+        if (c) {
+          if (!c.links) c.links = [];
+          if (c.links.indexOf(trimmed) === -1) c.links.push(trimmed);
+          var chipId = 'desc-link-chip-' + uid();
+          var chipHtml = '<a id="' + chipId + '" class="desc-link-chip" href="' + esc(trimmed) + '" target="_blank" rel="noopener noreferrer" contenteditable="false">' +
+            svgIcon('link') + '<span>' + esc(shortenUrlLabel(trimmed)) + '</span></a>&nbsp;';
+          document.execCommand('insertHTML', false, chipHtml);
+          // Flash via the Web Animations API, not a CSS class or inline
+          // style — those would get baked into editor.innerHTML by commit()
+          // below and replay every time this description is ever opened again.
+          var chipEl = document.getElementById(chipId);
+          if (chipEl) {
+            chipEl.removeAttribute('id');
+            chipEl.animate(
+              [{ boxShadow: '0 0 0 0 rgba(96,165,250,0.55)' }, { boxShadow: '0 0 0 9px rgba(96,165,250,0)', offset: 0.7 }, { boxShadow: '0 0 0 0 rgba(96,165,250,0)' }],
+              { duration: 1200, easing: 'ease-out' }
+            );
+          }
+          commit();
+          document.getElementById('card-description-links').innerHTML = renderLinksPreview(editor.innerHTML, c.links, trimmed);
+        }
+        return;
+      }
       document.execCommand('insertText', false, text);
     });
     editor.addEventListener('input', commit);
@@ -4508,7 +4620,8 @@
       dollar: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
       dollarOff: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/><line x1="3" y1="3" x2="21" y2="21" stroke="#e0584a"/></svg>',
       clock: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>',
-      arrowUp: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>'
+      arrowUp: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>',
+      link: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.5-1.5"/></svg>'
     };
     return icons[name] || '';
   }
@@ -6443,12 +6556,35 @@
       document.getElementById('today-view').classList.toggle('hide', currentView !== 'today');
       document.getElementById('ideas-view').classList.toggle('hide', currentView !== 'ideas');
       document.getElementById('achievements-view').classList.toggle('hide', currentView !== 'achievements');
+      document.getElementById('images-view').classList.toggle('hide', currentView !== 'images');
       document.querySelectorAll('.board-only').forEach(function(el) { el.classList.toggle('hide', currentView !== 'board'); });
       if (currentView === 'today') renderToday();
       if (currentView === 'ideas') renderIdeas();
       if (currentView === 'timetracker') openTimeTrackerView();
       if (currentView === 'achievements') renderAchievements();
+      if (currentView === 'images') renderImagesView();
     });
+  });
+
+  // Every card with a cover image, across every project, laid out as a
+  // plain photo grid — no columns, no board chrome, just the image and
+  // the task's name so it reads as a moodboard rather than a kanban.
+  function renderImagesView() {
+    var entries = allCardsFiltered('all').filter(function(e) { return !!e.card.cover; });
+    document.getElementById('images-empty').classList.toggle('hide', entries.length > 0);
+    document.getElementById('images-grid').innerHTML = entries.map(function(e) {
+      var c = e.card;
+      return (
+        '<div class="images-tile" data-card-id="' + c.id + '">' +
+          '<div class="images-tile-cover" style="background-image:url(' + c.cover + ');"></div>' +
+          '<div class="images-tile-title">' + esc(c.title || 'Untitled card') + '</div>' +
+        '</div>'
+      );
+    }).join('');
+  }
+  document.getElementById('images-grid').addEventListener('click', function(e) {
+    var tile = e.target.closest('.images-tile');
+    if (tile) openCardModal(tile.getAttribute('data-card-id'));
   });
 
   document.getElementById('shuffle-btn').addEventListener('click', shuffleColors);
@@ -7264,7 +7400,7 @@
     renderCardTimeSummary(cardId);
     renderCardEntriesList(cardId);
     document.getElementById('card-description-input').innerHTML = descToEditorHtml(c.description || '');
-    document.getElementById('card-description-links').innerHTML = renderLinksPreview(c.description || '');
+    document.getElementById('card-description-links').innerHTML = renderLinksPreview(c.description || '', c.links);
     document.getElementById('card-start-input').value = c.start || '';
     document.getElementById('card-due-input').value = c.due || '';
     document.getElementById('card-time-input').value = c.time || '';
@@ -7592,7 +7728,7 @@
     var c = currentCard(); if (!c) return;
     c.description = html; save();
     document.getElementById('card-description-input').innerHTML = descToEditorHtml(html);
-    document.getElementById('card-description-links').innerHTML = renderLinksPreview(html);
+    document.getElementById('card-description-links').innerHTML = renderLinksPreview(html, c.links);
   });
   document.getElementById('desc-editor-close').addEventListener('click', closeDescEditorOverlay);
   descEditorOverlayEl.addEventListener('click', function(e) {
@@ -7773,10 +7909,7 @@
     };
     reader.readAsDataURL(file);
   }
-  coverFile.addEventListener('change', function() {
-    var file = this.files[0];
-    if (!file) return;
-    coverFile.value = '';
+  function applyCoverFile(file) {
     resizeImageFile(file, 1600, 0.82, function(dataUrl) {
       var c = currentCard(); if (!c) return;
       c.cover = dataUrl;
@@ -7784,6 +7917,12 @@
       coverPick.classList.add('has-cover');
       coverPick.style.backgroundImage = 'url(' + c.cover + ')';
     });
+  }
+  coverFile.addEventListener('change', function() {
+    var file = this.files[0];
+    if (!file) return;
+    coverFile.value = '';
+    applyCoverFile(file);
   });
   document.getElementById('cover-remove').addEventListener('click', function(e) {
     e.stopPropagation();
@@ -7792,6 +7931,22 @@
     save();
     coverPick.classList.remove('has-cover');
     coverPick.style.backgroundImage = '';
+  });
+  // Paste an image straight onto the open card as its cover (Cmd/Ctrl+V),
+  // mirroring the file-picker flow. Only acts when the clipboard actually
+  // carries an image, so pasting text anywhere in the modal (including
+  // the description editor's own paste handler) is unaffected.
+  document.addEventListener('paste', function(e) {
+    if (!editingCardId) return;
+    var items = (e.clipboardData || window.clipboardData || {}).items;
+    if (!items) return;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') === 0) {
+        var file = items[i].getAsFile();
+        if (file) { e.preventDefault(); applyCoverFile(file); }
+        return;
+      }
+    }
   });
 
   // ---------- LIGHTBOX (full-size view of an attached cover image) ----------
@@ -7939,6 +8094,7 @@
     descOverlayCardId = cardId;
     document.getElementById('desc-modal-title').textContent = c.title || 'Untitled card';
     document.getElementById('desc-modal-color').style.background = c.color;
+    document.getElementById('desc-modal-links').innerHTML = renderLinksPreview(c.description || '', c.links);
     descOverlaySections = splitDescIntoSections(descToEditorHtml(c.description || ''));
     descOverlaySectionIndex = 0;
     renderDescOverlaySection();
@@ -8273,9 +8429,10 @@
   });
 
   // Shortcuts: M toggles Masonry, B toggles Monochrome, D toggles Due date
-  // only, S shuffles card colors, Shift+D logs a distraction (every view,
-  // not just Today), F toggles Today's Focus mode — ignored while typing
-  // anywhere editable so they don't fire mid-title/description.
+  // only, S shuffles card colors, I opens the Images view, N opens the
+  // normal Board view, Shift+D logs a distraction (every view, not just
+  // Today), F toggles Today's Focus mode — ignored while typing anywhere
+  // editable so they don't fire mid-title/description.
   document.addEventListener('keydown', function(e) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     var tag = e.target.tagName;
@@ -8286,6 +8443,8 @@
     else if (key === 'b') document.getElementById('menu-mono').click();
     else if (key === 'd') document.getElementById('due-only-btn').click();
     else if (key === 's') document.getElementById('shuffle-btn').click();
+    else if (key === 'i') document.getElementById('view-images-btn').click();
+    else if (key === 'n') document.getElementById('view-board-btn').click();
     else if (key === 'f' && currentView === 'today') setFocusMode(!focusModeOn);
   });
 
