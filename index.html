@@ -2290,7 +2290,8 @@
     border-radius: var(--radius);
     border: 0.5px dashed var(--border-hover);
     background: var(--surface2);
-    background-size: cover;
+    background-size: contain;
+    background-repeat: no-repeat;
     background-position: center;
     display: flex;
     align-items: center;
@@ -3586,7 +3587,15 @@
   document.documentElement.style.setProperty('--board-scale', String(data.fontScale));
   document.documentElement.classList.toggle('mono-theme', !!data.monoTheme);
   function save() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      // Most likely QuotaExceededError from an oversized attached image —
+      // unhandled, this throw would silently kill every save app-wide
+      // (Add to Today included) with no feedback at all.
+      alert('Could not save — storage is full. Try removing a large attached image.');
+      return;
+    }
     maybeWriteAutoBackup();
     maybePushHistorySnapshot();
   }
@@ -7742,19 +7751,39 @@
     e.stopPropagation();
     coverFile.click();
   });
+  // A raw phone-camera photo can be several MB, which as base64 easily
+  // blows past localStorage's ~5-10MB total quota — and once that quota
+  // is hit, every save() afterward throws, breaking saves app-wide (Add
+  // to Today included) with no visible error. Downscale + re-encode as
+  // JPEG first so a cover image stays a reasonable size on disk.
+  function resizeImageFile(file, maxDim, quality, cb) {
+    var reader = new FileReader();
+    reader.onload = function() {
+      var img = new Image();
+      img.onload = function() {
+        var scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        var w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        cb(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = function() { cb(reader.result); };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
   coverFile.addEventListener('change', function() {
     var file = this.files[0];
     if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function() {
+    coverFile.value = '';
+    resizeImageFile(file, 1600, 0.82, function(dataUrl) {
       var c = currentCard(); if (!c) return;
-      c.cover = reader.result;
+      c.cover = dataUrl;
       save();
       coverPick.classList.add('has-cover');
       coverPick.style.backgroundImage = 'url(' + c.cover + ')';
-    };
-    reader.readAsDataURL(file);
-    coverFile.value = '';
+    });
   });
   document.getElementById('cover-remove').addEventListener('click', function(e) {
     e.stopPropagation();
