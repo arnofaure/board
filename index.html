@@ -5328,6 +5328,26 @@
     return added;
   }
 
+  // Cards due (or starting) tomorrow preview themselves in the Tomorrow
+  // box automatically too, same idea as spawnDueTodayCards, so upcoming
+  // work is visible as it comes up instead of only appearing once its due
+  // day actually arrives. Shares dismissedDue with today's auto-add — a
+  // card removed from either doesn't immediately respawn in the other.
+  function spawnDueTomorrowCards(list) {
+    var tomorrow = tomorrowStr();
+    var added = false;
+    allCardsFiltered('all').forEach(function(e) {
+      var c = e.card;
+      if (c.done) return;
+      if (c.due !== tomorrow && c.start !== tomorrow) return;
+      if (list.items.some(function(i) { return i.cardId === c.id; })) return;
+      if (list.dismissedDue.indexOf(c.id) !== -1) return;
+      list.items.push({ id: uid(), cardId: c.id, postponedTo: tomorrow });
+      added = true;
+    });
+    return added;
+  }
+
   function spawnRecurringToday(list) {
     var today = todayStr();
     var weekday = new Date().getDay();
@@ -5365,6 +5385,7 @@
     }
     if (spawnRecurringToday(data.today)) changed = true;
     if (spawnDueTodayCards(data.today)) changed = true;
+    if (spawnDueTomorrowCards(data.today)) changed = true;
     if (changed) save();
     return data.today;
   }
@@ -6272,6 +6293,7 @@
         '<span class="today-tomorrow-row-title">' + esc(info.title || 'Untitled card') + '</span>' +
         '<span class="today-row-tag">' + esc(info.tag) + '</span>' +
         '<button type="button" class="today-row-action-btn" data-action="unpostpone-today" data-item="' + item.id + '" title="Move back to today">' + svgIcon('restore') + '</button>' +
+        '<button type="button" class="today-row-action-btn" data-action="remove-today" data-item="' + item.id + '" title="Remove from today/tomorrow">' + svgIcon('trash') + '</button>' +
       '</div>'
     );
   }
@@ -6402,8 +6424,10 @@
     if (titleInput) autoResizeHeroTitle(titleInput);
   }
   document.getElementById('today-tomorrow-list').addEventListener('click', function(e) {
-    var btn = e.target.closest('[data-action="unpostpone-today"]');
-    if (btn) unpostponeTodayItem(btn.getAttribute('data-item'));
+    var restoreBtn = e.target.closest('[data-action="unpostpone-today"]');
+    if (restoreBtn) { unpostponeTodayItem(restoreBtn.getAttribute('data-item')); return; }
+    var removeBtn = e.target.closest('[data-action="remove-today"]');
+    if (removeBtn) removeFromToday(removeBtn.getAttribute('data-item'));
   });
   document.getElementById('today-tomorrow-box-title').addEventListener('click', function() {
     todayTomorrowCollapsed = !todayTomorrowCollapsed;
