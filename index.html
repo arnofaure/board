@@ -1018,8 +1018,19 @@
   #today-clock-time {
     font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums; color: var(--text); flex-shrink: 0;
+    transition: font-size 0.15s;
   }
-  .cp-track { position: relative; flex: 1; height: 16px; }
+  /* Once every checkpoint for the day (including the extra block, if any)
+     has passed, the tick-by-tick timeline stops being useful — swap it for
+     one big, easy-to-read clock instead. Toggled in renderCheckpointLine. */
+  .cp-row-checkpoints { position: relative; }
+  .cp-row-checkpoints.all-passed .cp-track { opacity: 0; pointer-events: none; }
+  .cp-row-checkpoints.all-passed #today-clock-time {
+    position: absolute; left: 50%; top: 50%; z-index: 5;
+    transform: translate(-50%, -50%);
+    font-size: 36px;
+  }
+  .cp-track { position: relative; flex: 1; height: 16px; transition: opacity 0.15s; }
   .cp-track::before {
     content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 3px; transform: translateY(-50%);
     border-radius: 2px; background: var(--surface2);
@@ -5994,6 +6005,7 @@
 
     if (!dayTimes.extraEnabled) {
       document.getElementById('cp-fill-extra').style.width = '0%';
+      document.querySelector('.cp-row-checkpoints').classList.toggle('all-passed', minutesNow >= dayTimes.end);
       return;
     }
 
@@ -6012,6 +6024,7 @@
     document.getElementById('cp-extra-end-remaining').classList.toggle('hide', extraPassed || minutesNow < dayTimes.extraStart);
     document.getElementById('cp-extra-end-remaining').innerHTML = remainingLabelHtml(dayTimes.extraEnd - minutesNow, nextTaskText);
     document.getElementById('cp-tick-extra-end').classList.toggle('passed', extraPassed);
+    document.querySelector('.cp-row-checkpoints').classList.toggle('all-passed', extraPassed);
   }
 
   function renderTodayClock() {
