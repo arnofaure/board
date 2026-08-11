@@ -1194,6 +1194,8 @@
   #today-summary-box.hide { display: none; }
   #today-summary-count { font-size: 13px; font-weight: 700; color: #4ade80; }
   #today-summary-label { font-size: 11px; color: #4ade80; opacity: 0.75; }
+  html.light-theme #today-summary-count,
+  html.light-theme #today-summary-label { color: #15803d; }
 
   /* Timer — a single thin line under Up now, sized to match the checkpoint
      bar's own countdown text rather than standing out as its own gauge. */
@@ -1237,6 +1239,11 @@
     border-radius: var(--radius-lg);
     overflow: hidden;
   }
+  /* The same 10%-opacity tint reads as a pleasant dark-green wash on the
+     near-black dark surface, but washes out to a barely-there pale mint
+     on white — needs a stronger tint and a deeper, more saturated green
+     to actually stand out against a light background. */
+  html.light-theme #today-hero { background: rgba(21,128,61,0.14); border-color: rgba(21,128,61,0.65); }
   #today-hero.hide { display: none; }
   /* Mirrors the card's own purple "focus" toggle so the task you marked as
      your focus is still obviously flagged once it lands in Up Now. */
@@ -1364,6 +1371,9 @@
     font-family: ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.08em;
     text-transform: uppercase; color: #4ade80; text-align: center;
   }
+  /* Same reason as #today-hero's own background override above: #4ade80
+     is too light to read against the light-mode green tint. */
+  html.light-theme .today-hero-eyebrow { color: #15803d; }
   .today-hero-title { font-size: 30px; font-weight: 700; color: var(--text); margin-bottom: 18px; word-break: break-word; }
   /* A textarea (not input) so a long standalone task title wraps and grows
      the hero box, same as the plain-span title on card-linked tasks —
@@ -1386,6 +1396,8 @@
     border-color: #4ade80; color: #4ade80; font-weight: 600;
   }
   .today-hero-btn.done:hover { background: rgba(74,222,128,0.15); }
+  html.light-theme .today-hero-btn.done { border-color: #15803d; color: #15803d; }
+  html.light-theme .today-hero-btn.done:hover { background: rgba(21,128,61,0.15); }
   /* FOCUS MODE — strips everything down to three things: the checkpoint
      timeline, the timer (as a line, not a ring), and the hero task, which
      grows to the full row width. Up-next, done, done-today, and the
