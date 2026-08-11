@@ -1642,21 +1642,27 @@
   .achievements-stat.stat-distract,
   .achievements-stat.stat-distract span { color: var(--danger) !important; }
   #achievements-calendar-wrap {
-    display: flex; flex-direction: column; align-items: center;
-    overflow-x: auto; padding-bottom: 4px;
+    display: flex; flex-direction: column; align-items: flex-start;
+    overflow-x: auto; padding: 0 8px 4px 0;
   }
-  #achievements-range-label { font-size: 11.5px; color: var(--text-dim); margin-bottom: 8px; }
-  #achievements-calendar { display: flex; gap: 5px; width: max-content; }
+  #achievements-range-label { font-size: 11.5px; color: var(--text-dim); margin-bottom: 8px; align-self: center; }
+  /* Month labels are absolutely positioned and centered over the actual
+     span of week-columns that month occupies (computed in JS), rather
+     than pinned to the left edge of the column where it merely starts. */
+  #achievements-month-labels { position: relative; height: 13px; margin-bottom: 3px; }
+  .ach-month-label { position: absolute; top: 0; transform: translateX(-50%); font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+  #achievements-calendar { display: flex; gap: 3px; width: max-content; }
+  .ach-week { display: flex; flex-direction: column; gap: 3px; }
   .ach-day {
     position: relative;
-    width: 22px;
-    height: 22px;
-    border-radius: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 2.5px;
     background: var(--surface2);
     border: 0.5px solid var(--border);
     cursor: pointer;
     transition: outline-color 0.1s;
-    outline: 1.5px solid transparent;
+    outline: 1px solid transparent;
     outline-offset: 1px;
   }
   .ach-day:not(.ach-future):hover { outline-color: var(--text-dim); }
@@ -3075,6 +3081,7 @@
     </div>
     <div id="achievements-calendar-wrap">
       <div id="achievements-range-label"></div>
+      <div id="achievements-month-labels"></div>
       <div id="achievements-calendar"></div>
     </div>
     <div id="achievements-legend">
@@ -7074,38 +7081,26 @@
     var level = 1 + Math.floor(successfulDays / 5);
     document.getElementById('achievements-level').textContent = level;
 
-    // 30-day window centered on today rather than ending at today — with
-    // only a couple weeks of real history, an end-aligned window reads as
-    // a wall of empty cells crammed against the left edge. Centering keeps
-    // today in the middle with empty cells balanced on both sides instead.
+    document.getElementById('achievements-empty').classList.toggle('hide', data.history.length > 0 || todayRelevant.length > 0);
+    renderAchievementsCalendar(historyMap);
+
+    // The trend chart/quality bars stay a short, readable 30-day window,
+    // centered on today so a short history doesn't read as a wall of
+    // empty cells crammed against the left edge — separate from the
+    // calendar above, which now spans much further back GitHub-style.
     var ROLLING_DAYS = 30;
     var now = new Date();
-    var startDate = new Date(now);
-    startDate.setDate(startDate.getDate() - Math.floor(ROLLING_DAYS / 2));
-    var endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + (ROLLING_DAYS - 1));
-
+    var chartStart = new Date(now);
+    chartStart.setDate(chartStart.getDate() - Math.floor(ROLLING_DAYS / 2));
     var todayKey = todayStr();
-    var daysHtml = '';
     var chartDays = [];
-    var cursorDate = new Date(startDate);
+    var cursorDate = new Date(chartStart);
     for (var i = 0; i < ROLLING_DAYS; i++) {
       var key2 = dateKeyFor(cursorDate);
       var isFuture = key2 > todayKey;
-      var isToday = key2 === todayKey;
       var entry2 = historyMap[key2];
-      var lvl = 0;
-      if (entry2 && entry2.total > 0) {
-        var ratio = entry2.done / entry2.total;
-        lvl = ratio >= 1 ? 4 : ratio >= 0.7 ? 3 : ratio >= 0.4 ? 2 : 1;
-      }
       var distractCount = data.distractionsByDate[key2] || 0;
-      var distractLevel = distractCount === 0 ? 0 : distractCount <= 2 ? 1 : distractCount <= 5 ? 2 : 3;
       var niceDate = MONTH_NAMES[cursorDate.getMonth()] + ' ' + cursorDate.getDate();
-      var tooltip = niceDate + ' — ' + (entry2 ? entry2.done + '/' + entry2.total + ' done' : 'no data') + (distractCount ? ' · ' + distractCount + ' distraction' + (distractCount === 1 ? '' : 's') : '');
-      var dayClass = 'ach-day' + (isFuture ? ' ach-future' : '') + (isToday ? ' ach-today' : '');
-      daysHtml += '<div class="' + dayClass + '" data-level="' + lvl + '" data-distract-level="' + distractLevel + '" data-tooltip="' + esc(tooltip) + '"></div>';
-
       var concentration = data.concentrationByDate[key2];
       var doneRatioPct = isFuture ? null : (entry2 && entry2.total > 0) ? (entry2.done / entry2.total * 100) : null;
       var concentrationPct = isFuture || concentration === undefined || concentration === null ? null : concentration * 10;
@@ -7119,12 +7114,79 @@
       });
       cursorDate.setDate(cursorDate.getDate() + 1);
     }
-    document.getElementById('achievements-calendar').innerHTML = daysHtml;
-    document.getElementById('achievements-range-label').textContent =
-      MONTH_NAMES[startDate.getMonth()] + ' ' + startDate.getDate() + ' – ' + MONTH_NAMES[endDate.getMonth()] + ' ' + endDate.getDate() + ' (today centered)';
-    document.getElementById('achievements-empty').classList.toggle('hide', data.history.length > 0 || todayRelevant.length > 0);
     renderAchievementsChart(chartDays);
     renderFocusQualityChart(chartDays);
+  }
+
+  // GitHub-style contribution grid: full Sun–Sat weeks as columns, ending
+  // on today (not centered — a real GitHub graph doesn't center either,
+  // and the mostly-empty early months are expected/normal there too),
+  // with month labels above each column where a new month first appears.
+  var CAL_WEEKS = 53;
+  function renderAchievementsCalendar(historyMap) {
+    var todayKey = todayStr();
+    var calEnd = new Date();
+    var calStart = new Date(calEnd);
+    calStart.setDate(calStart.getDate() - (CAL_WEEKS * 7 - 1));
+    calStart.setDate(calStart.getDate() - calStart.getDay());
+    var totalDays = daysBetween(calStart, calEnd) + 1;
+
+    var weeks = [];
+    for (var i = 0; i < totalDays; i++) {
+      var d = addDays(calStart, i);
+      var weekIdx = Math.floor(i / 7);
+      if (!weeks[weekIdx]) weeks[weekIdx] = [];
+      weeks[weekIdx][d.getDay()] = d;
+    }
+
+    // One mark per month transition (the week it first appears in); each
+    // month's label is then centered over the full run of columns up to
+    // the next month's first week, not pinned to its own starting column.
+    var monthMarks = [];
+    var prevMonth = -1;
+    var calHtml = '';
+    weeks.forEach(function(week, wIdx) {
+      var firstDay = week.filter(function(d) { return !!d; })[0];
+      if (firstDay && firstDay.getMonth() !== prevMonth) {
+        prevMonth = firstDay.getMonth();
+        monthMarks.push({ month: prevMonth, startWeek: wIdx });
+      }
+      calHtml += '<div class="ach-week">' + [0, 1, 2, 3, 4, 5, 6].map(function(dow) {
+        var d = week[dow];
+        if (!d) return '<div class="ach-day ach-future"></div>';
+        var key = dateKeyFor(d);
+        var entry = historyMap[key];
+        var lvl = 0;
+        if (entry && entry.total > 0) {
+          var ratio = entry.done / entry.total;
+          lvl = ratio >= 1 ? 4 : ratio >= 0.7 ? 3 : ratio >= 0.4 ? 2 : 1;
+        }
+        var distractCount = data.distractionsByDate[key] || 0;
+        var distractLevel = distractCount === 0 ? 0 : distractCount <= 2 ? 1 : distractCount <= 5 ? 2 : 3;
+        var niceDate = MONTH_NAMES[d.getMonth()] + ' ' + d.getDate();
+        var tooltip = niceDate + ' — ' + (entry ? entry.done + '/' + entry.total + ' done' : 'no data') + (distractCount ? ' · ' + distractCount + ' distraction' + (distractCount === 1 ? '' : 's') : '');
+        var dayClass = 'ach-day' + (key === todayKey ? ' ach-today' : '');
+        return '<div class="' + dayClass + '" data-level="' + lvl + '" data-distract-level="' + distractLevel + '" data-tooltip="' + esc(tooltip) + '"></div>';
+      }).join('') + '</div>';
+    });
+
+    var COL_W = 15; // 12px cell + 3px gap
+    var labelsHtml = monthMarks.map(function(m, i) {
+      var endWeek = (i + 1 < monthMarks.length ? monthMarks[i + 1].startWeek : weeks.length) - 1;
+      var centerPx = (m.startWeek + endWeek) * COL_W / 2 + 6;
+      return '<span class="ach-month-label" style="left:' + centerPx + 'px;">' + MONTH_NAMES[m.month] + '</span>';
+    }).join('');
+    var labelsEl = document.getElementById('achievements-month-labels');
+    labelsEl.style.width = (weeks.length * COL_W - 3) + 'px';
+    labelsEl.innerHTML = labelsHtml;
+    document.getElementById('achievements-calendar').innerHTML = calHtml;
+    document.getElementById('achievements-range-label').textContent =
+      MONTH_NAMES[calStart.getMonth()] + ' ' + calStart.getDate() + ' – ' + MONTH_NAMES[calEnd.getMonth()] + ' ' + calEnd.getDate();
+    // Left-aligned so the grid reads oldest-to-newest like GitHub's own,
+    // but scrolled to the right by default so today (the most relevant
+    // part) is what's actually visible without having to scroll first.
+    var wrap = document.getElementById('achievements-calendar-wrap');
+    wrap.scrollLeft = wrap.scrollWidth;
   }
 
   // A rough, deliberately-not-scientific single "how well is focus going"
