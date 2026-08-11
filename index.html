@@ -32,8 +32,8 @@
     --bg: #0d0d0d;
     --surface: #161616;
     --surface2: #1f1f1f;
-    --border: rgba(255,255,255,0.08);
-    --border-hover: rgba(255,255,255,0.18);
+    --border: rgba(var(--overlay-rgb),0.08);
+    --border-hover: rgba(var(--overlay-rgb),0.18);
     --text: #e8e8e8;
     --text-muted: #999999;
     --text-dim: #5a5a5a;
@@ -42,6 +42,33 @@
     --radius: 6px;
     --radius-lg: 10px;
     --board-scale: 1;
+    /* Every ad-hoc "rgba(var(--overlay-rgb),X)" / "rgba(var(--overlay-rgb),X)" subtle
+       overlay border/hover in the sheet was rewritten to
+       rgba(var(--overlay-rgb),X) — one variable flip adapts all of them
+       for light mode instead of hunting down ~35 individual literals. */
+    --overlay-rgb: 255,255,255;
+    --dropdown-bg: #1a1a1a;
+    --bg-rgb: 13,13,13;
+  }
+
+  /* LIGHT THEME — opt-in toggle (menu-light), same idea as mono-theme:
+     flips the base palette + the two shared overlay variables above.
+     Saturated accent colors (task colors, done/distraction/focus/etc.)
+     are left as-is since they already read fine on a light surface. */
+  html.light-theme {
+    --bg: #f4f4f2;
+    --surface: #ffffff;
+    --surface2: #eeeeec;
+    --border: rgba(0,0,0,0.1);
+    --border-hover: rgba(0,0,0,0.22);
+    --text: #1c1c1c;
+    --text-muted: #6b6b6b;
+    --text-dim: #a3a3a3;
+    --accent: #1c1c1c;
+    --danger: #c8402f;
+    --overlay-rgb: 0,0,0;
+    --dropdown-bg: #ffffff;
+    --bg-rgb: 244,244,242;
   }
 
   html, body {
@@ -82,7 +109,7 @@
     position: sticky;
     top: 0;
     z-index: 100;
-    background: rgba(13,13,13,0.92);
+    background: rgba(var(--bg-rgb),0.92);
     backdrop-filter: blur(12px);
     border-bottom: 0.5px solid var(--border);
     padding: 10px 20px;
@@ -121,8 +148,8 @@
   }
   .tb-logo { height: 24px; width: auto; color: var(--text); display: block; }
   .tb-beta {
-    font-size: 9px; font-weight: 700; letter-spacing: .03em; color: rgba(255,255,255,0.55);
-    padding: 1px 4px; border: 0.5px solid rgba(255,255,255,0.25); border-radius: 4px; flex-shrink: 0;
+    font-size: 9px; font-weight: 700; letter-spacing: .03em; color: rgba(var(--overlay-rgb),0.55);
+    padding: 1px 4px; border: 0.5px solid rgba(var(--overlay-rgb),0.25); border-radius: 4px; flex-shrink: 0;
   }
 
   .tb-dropdown {
@@ -133,7 +160,7 @@
     top: calc(100% + 8px);
     left: 0;
     min-width: 220px;
-    background: #1a1a1a;
+    background: var(--dropdown-bg);
     border: 0.5px solid var(--border-hover);
     border-radius: var(--radius);
     padding: 6px;
@@ -377,13 +404,13 @@
     flex: 0 0 calc(272px * var(--board-scale));
     width: calc(272px * var(--board-scale));
     background: var(--surface);
-    border: 1px solid rgba(211,211,211,0.4);
+    border: 1px solid rgba(var(--overlay-rgb),0.4);
     border-radius: var(--radius-lg);
     display: flex;
     flex-direction: column;
     max-height: calc(100vh - 110px);
   }
-  .column.drag-over { border-color: rgba(255,255,255,0.4); background: var(--surface2); }
+  .column.drag-over { border-color: rgba(var(--overlay-rgb),0.4); background: var(--surface2); }
   .column.dragging { opacity: 0.5; pointer-events: none; }
 
   /* COLLAPSED COLUMNS — pulled out of the board row entirely and shown as
@@ -397,7 +424,7 @@
     display: flex; align-items: center; gap: 8px;
     padding: 7px 12px;
     background: var(--surface);
-    border: 1px solid rgba(211,211,211,0.4);
+    border: 1px solid rgba(var(--overlay-rgb),0.4);
     border-radius: 20px;
     color: var(--text);
     cursor: pointer;
@@ -430,7 +457,7 @@
     gap: 6px;
     padding: 10px 10px;
     background: #262626;
-    border-bottom: 1px solid rgba(255,255,255,0.14);
+    border-bottom: 1px solid rgba(var(--overlay-rgb),0.14);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     cursor: grab;
     -webkit-user-select: none;
@@ -458,7 +485,7 @@
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
-    background: rgba(255,255,255,0.1);
+    background: rgba(var(--overlay-rgb),0.1);
     border-radius: 10px;
     padding: 2px 7px;
   }
@@ -468,7 +495,7 @@
     background: transparent; color: var(--text-muted); cursor: pointer;
     transition: background 0.12s, color 0.12s;
   }
-  .column-header-btn:hover { background: rgba(255,255,255,0.14); color: var(--text); }
+  .column-header-btn:hover { background: rgba(var(--overlay-rgb),0.14); color: var(--text); }
 
   .column-body {
     flex: 1;
@@ -492,21 +519,21 @@
     flex-direction: column;
     gap: calc(3px * var(--board-scale));
     padding: calc(8px * var(--board-scale)) calc(10px * var(--board-scale));
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(var(--overlay-rgb),0.05);
     cursor: grab;
     transition: background 0.12s, box-shadow 0.12s;
     -webkit-user-select: none;
     user-select: none;
     -webkit-user-drag: element;
   }
-  .card:hover { background: rgba(255,255,255,0.05); }
+  .card:hover { background: rgba(var(--overlay-rgb),0.05); }
   .card.dragging { opacity: 0.35; pointer-events: none; }
   /* Real element inserted into the card list at the drop slot, rather than
      a box-shadow toggled on a card — cards already stack up to three
      box-shadow states (focus/timing/both) that would otherwise clobber a
      class-based line the same way the Today list's did before that fix. */
   .card-drop-line { height: 2px; margin: 0 10px; background: #fff; border-radius: 1px; pointer-events: none; flex-shrink: 0; }
-  .card.is-focus { box-shadow: inset 0 0 0 1.5px var(--card-color, #b285f0); background: rgba(255,255,255,0.03); }
+  .card.is-focus { box-shadow: inset 0 0 0 1.5px var(--card-color, #b285f0); background: rgba(var(--overlay-rgb),0.03); }
   .card.is-timing { box-shadow: inset 0 0 0 1.5px #f87171; }
   .card.is-focus.is-timing { box-shadow: inset 0 0 0 1.5px var(--card-color, #b285f0), inset 0 0 0 3px #f87171; }
   .drag-ghost {
@@ -572,11 +599,11 @@
   .card-icon-btn {
     width: calc(21px * var(--board-scale)); height: calc(21px * var(--board-scale)); border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(255,255,255,0.22); color: #f5f6f8;
+    background: rgba(var(--overlay-rgb),0.22); color: #f5f6f8;
     transition: background 0.12s, color 0.12s;
   }
   .card-icon-btn svg { width: calc(11px * var(--board-scale)); height: calc(11px * var(--board-scale)); }
-  .card-icon-btn:hover { background: rgba(255,255,255,0.34); color: #fff; }
+  .card-icon-btn:hover { background: rgba(var(--overlay-rgb),0.34); color: #fff; }
   .card-icon-btn.done.is-done { background: #4ade80; color: #0d0d0d; }
   .card-icon-btn.done.is-done:hover { background: #6ee8a0; }
   .card-icon-btn.today.is-active { background: #fbbf24; color: #17140a; }
@@ -686,7 +713,7 @@
     background: none; border: none; cursor: pointer;
     text-align: left; color: var(--text);
   }
-  .recap-project-header:hover { background: rgba(255,255,255,0.05); }
+  .recap-project-header:hover { background: rgba(var(--overlay-rgb),0.05); }
   .recap-project-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .recap-project-time { flex-shrink: 0; font-family: ui-monospace, monospace; font-size: 13px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
   .recap-project-time .cost { color: var(--text-muted); margin-left: 6px; }
@@ -706,7 +733,7 @@
   .recap-card-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
   .recap-card-time { flex-shrink: 0; font-family: ui-monospace, monospace; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   .recap-card-pct { flex-shrink: 0; min-width: 34px; text-align: right; color: var(--text-muted); font-weight: 600; font-variant-numeric: tabular-nums; }
-  .recap-card-pct-bar-track { position: absolute; left: 13px; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,0.1); border-radius: 1.5px; overflow: hidden; }
+  .recap-card-pct-bar-track { position: absolute; left: 13px; right: 0; bottom: 0; height: 3px; background: rgba(var(--overlay-rgb),0.1); border-radius: 1.5px; overflow: hidden; }
   .recap-card-pct-bar-fill { height: 100%; background: var(--text-muted); border-radius: 1.5px; }
   .recap-cards-empty { color: var(--text-muted); font-size: 12px; padding: 2px 0; }
 
@@ -807,12 +834,12 @@
     max-height: 560px;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.15) transparent;
+    scrollbar-color: rgba(var(--overlay-rgb),0.15) transparent;
   }
   .cal-body::-webkit-scrollbar { width: 8px; }
   .cal-body::-webkit-scrollbar-track { background: transparent; }
-  .cal-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
-  .cal-body::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+  .cal-body::-webkit-scrollbar-thumb { background: rgba(var(--overlay-rgb),0.15); border-radius: 4px; }
+  .cal-body::-webkit-scrollbar-thumb:hover { background: rgba(var(--overlay-rgb),0.28); }
   .cal-time-col { display: flex; flex-direction: column; }
   .cal-hour-label {
     height: 48px;
@@ -879,31 +906,31 @@
   }
 
   .gantt-wrap {
-    border: 1px solid rgba(255,255,255,0.18);
+    border: 1px solid rgba(var(--overlay-rgb),0.18);
     border-radius: var(--radius-lg);
     background: var(--surface);
     overflow-x: auto;
     margin-bottom: 26px;
   }
   .gantt-grid { display: inline-flex; flex-direction: column; min-width: 100%; position: relative; }
-  .gantt-header-row { display: flex; border-bottom: 1px solid rgba(255,255,255,0.18); position: sticky; top: 0; background: var(--surface); z-index: 2; }
+  .gantt-header-row { display: flex; border-bottom: 1px solid rgba(var(--overlay-rgb),0.18); position: sticky; top: 0; background: var(--surface); z-index: 2; }
   .gantt-label-col {
     width: 170px; flex-shrink: 0; position: sticky; left: 0; background: var(--surface);
-    border-right: 1px solid rgba(255,255,255,0.14); z-index: 3;
+    border-right: 1px solid rgba(var(--overlay-rgb),0.14); z-index: 3;
   }
   .gantt-day {
     width: 34px; flex-shrink: 0; text-align: center; font-size: 10px; color: var(--text-dim);
-    padding: 8px 0 6px; border-right: 0.5px solid rgba(255,255,255,0.06);
+    padding: 8px 0 6px; border-right: 0.5px solid rgba(var(--overlay-rgb),0.06);
   }
   .gantt-day .gantt-day-num { display: block; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
   .gantt-day.today { color: #4ade80; }
   .gantt-day.today .gantt-day-num { color: #4ade80; font-weight: 700; }
-  .gantt-row { display: flex; align-items: center; border-bottom: 0.5px solid rgba(255,255,255,0.08); position: relative; height: 56px; cursor: pointer; }
+  .gantt-row { display: flex; align-items: center; border-bottom: 0.5px solid rgba(var(--overlay-rgb),0.08); position: relative; height: 56px; cursor: pointer; }
   .gantt-row:hover .gantt-row-label { color: var(--text); background: var(--surface2); }
   .gantt-row-label {
     width: 170px; height: 100%; flex-shrink: 0; position: sticky; left: 0; background: var(--surface);
     padding: 0 10px; font-size: 12px; color: var(--text); overflow: hidden;
-    white-space: nowrap; border-right: 1px solid rgba(255,255,255,0.14); z-index: 4;
+    white-space: nowrap; border-right: 1px solid rgba(var(--overlay-rgb),0.14); z-index: 4;
     transition: background 0.1s;
     display: flex; align-items: center; gap: 5px;
   }
@@ -1011,7 +1038,7 @@
   #cp-topbar {
     padding: 32px 14px 42px;
     background: var(--surface);
-    border: 1px solid rgba(211,211,211,0.4);
+    border: 1px solid rgba(var(--overlay-rgb),0.4);
     border-radius: var(--radius-lg);
   }
   .cp-row { display: flex; align-items: center; gap: 12px; }
@@ -1074,7 +1101,7 @@
      as an actual span of time, not just an abstract progress bar. */
   .cp-grad {
     position: absolute; top: 50%; width: 1.5px; height: 10px;
-    background: rgba(255,255,255,0.55); transform: translate(-50%, -50%);
+    background: rgba(var(--overlay-rgb),0.55); transform: translate(-50%, -50%);
     pointer-events: none; z-index: 1;
   }
   /* Scheduled-task markers — small dots sitting below the main line, one
@@ -1090,7 +1117,7 @@
   /* Instant custom tooltip (no native ~1s hover delay) naming the task. */
   #cp-task-tooltip {
     position: absolute; top: 100%; margin-top: 46px; transform: translateX(-50%);
-    background: #1a1a1a; color: var(--text); font-size: 11px; font-weight: 600;
+    background: var(--dropdown-bg); color: var(--text); font-size: 11px; font-weight: 600;
     padding: 4px 9px; border-radius: 6px; border: 1px solid var(--border-hover);
     white-space: nowrap; pointer-events: none; z-index: 20;
     opacity: 0; visibility: hidden; transition: opacity 0.1s;
@@ -1099,7 +1126,7 @@
   #cp-task-tooltip.show { opacity: 1; visibility: visible; }
   #cp-task-tooltip::after {
     content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
-    border: 4px solid transparent; border-bottom-color: #1a1a1a;
+    border: 4px solid transparent; border-bottom-color: var(--dropdown-bg);
   }
   .cp-mini-btn {
     display: flex; align-items: center; justify-content: center;
@@ -1134,7 +1161,7 @@
   .cp-remaining-label.pm { color: #b285f0; }
   /* Time until the next scheduled task, appended in white so it reads as
      distinct from the checkpoint's own (colored) countdown. */
-  .cp-remaining-next { color: #fff; }
+  .cp-remaining-next { color: var(--text); }
 
   /* The task pile: a slim "done today" readout above Up now, which sits
      above the descending Up-next queue — one column, biggest thing first. */
@@ -1315,7 +1342,7 @@
     font-family: ui-monospace, monospace; font-size: 10.5px; letter-spacing: 0.08em;
     text-transform: uppercase; color: #4ade80; text-align: center;
   }
-  .today-hero-title { font-size: 30px; font-weight: 700; color: #fff; margin-bottom: 18px; word-break: break-word; }
+  .today-hero-title { font-size: 30px; font-weight: 700; color: var(--text); margin-bottom: 18px; word-break: break-word; }
   /* A textarea (not input) so a long standalone task title wraps and grows
      the hero box, same as the plain-span title on card-linked tasks —
      height is kept in sync with content via JS on every render/input. */
@@ -1383,7 +1410,7 @@
     left: 0; right: 0;
     max-height: 320px;
     overflow-y: auto;
-    background: #1a1a1a;
+    background: var(--dropdown-bg);
     border: 0.5px solid var(--border-hover);
     border-radius: var(--radius);
     padding: 6px;
@@ -1448,7 +1475,7 @@
     gap: 10px;
     padding: 9px 10px;
     background: var(--surface2);
-    border: 1px solid rgba(211,211,211,0.2);
+    border: 1px solid rgba(var(--overlay-rgb),0.2);
     border-radius: var(--radius);
     transition: border-color 0.15s;
   }
@@ -1554,7 +1581,7 @@
      mixed in with today's active tasks. */
   #today-tomorrow-box {
     background: var(--surface2);
-    border: 1px solid rgba(211,211,211,0.25);
+    border: 1px solid rgba(var(--overlay-rgb),0.25);
     border-radius: var(--radius-lg);
     padding: 14px 16px;
   }
@@ -1678,7 +1705,7 @@
 
   #ach-tooltip {
     position: fixed; pointer-events: none; z-index: 400;
-    background: #1a1a1a; border: 0.5px solid var(--border-hover); border-radius: var(--radius);
+    background: var(--dropdown-bg); border: 0.5px solid var(--border-hover); border-radius: var(--radius);
     padding: 6px 10px; font-size: 11.5px; font-weight: 600; color: var(--text); white-space: nowrap;
     box-shadow: 0 8px 20px rgba(0,0,0,0.45);
     opacity: 0; transition: opacity 0.1s;
@@ -1917,7 +1944,7 @@
   #palette-modal {
     max-width: 620px; padding: 0; overflow: hidden;
     border-color: var(--border-hover);
-    box-shadow: 0 24px 64px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.04);
+    box-shadow: 0 24px 64px rgba(0,0,0,0.65), 0 0 0 1px rgba(var(--overlay-rgb),0.04);
   }
   #palette-input-wrap {
     display: flex;
@@ -2117,7 +2144,7 @@
   .desc-tb-color {
     width: 16px; height: 16px;
     border-radius: 50%;
-    border: 0.5px solid rgba(255,255,255,0.15);
+    border: 0.5px solid rgba(var(--overlay-rgb),0.15);
     cursor: pointer;
     padding: 0;
     flex-shrink: 0;
@@ -2343,7 +2370,7 @@
     background: var(--bg);
     border-color: var(--border-hover);
   }
-  #card-modal .text-input:hover, #card-modal .text-input:focus { border-color: rgba(255,255,255,0.32); }
+  #card-modal .text-input:hover, #card-modal .text-input:focus { border-color: rgba(var(--overlay-rgb),0.32); }
   #card-modal label { color: var(--text-muted); font-weight: 600; }
   .field-hint { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text-dim); font-size: 11px; margin-left: 4px; }
   .card-modal-fields-grid {
@@ -2390,7 +2417,7 @@
     width: 22px; height: 22px;
     align-items: center;
     justify-content: center;
-    color: var(--text);
+    color: #f5f5f5;
     cursor: pointer;
   }
   .card-cover-pick .cover-remove { right: 6px; }
@@ -2421,7 +2448,7 @@
   #lightbox-close {
     position: absolute;
     top: 18px; right: 22px;
-    background: rgba(255,255,255,0.1);
+    background: rgba(var(--overlay-rgb),0.1);
     border: none;
     border-radius: 50%;
     width: 34px; height: 34px;
@@ -2431,7 +2458,7 @@
     color: var(--text);
     cursor: pointer;
   }
-  #lightbox-close:hover { background: rgba(255,255,255,0.2); }
+  #lightbox-close:hover { background: rgba(var(--overlay-rgb),0.2); }
 
   .color-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
   .color-swatch {
@@ -2657,6 +2684,11 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor" stroke="none"/></svg>
         Monochrome
         <span class="tb-shortcut">B</span>
+      </button>
+      <button class="tb-btn" id="menu-light" title="Switch between dark and light mode (L)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="4.22" y1="4.22" x2="5.94" y2="5.94"/><line x1="18.06" y1="18.06" x2="19.78" y2="19.78"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.22" y1="19.78" x2="5.94" y2="18.06"/><line x1="18.06" y1="5.94" x2="19.78" y2="4.22"/></svg>
+        Light mode
+        <span class="tb-shortcut">L</span>
       </button>
       <div class="tb-sep-h"></div>
       <button class="tb-btn" id="done-list-btn" title="View completed cards in this project">
@@ -3573,6 +3605,7 @@
       lastIdeaPromptDate: todayStr(),
       fontScale: 1,
       monoTheme: false,
+      lightTheme: false,
       distractionsByDate: {},
       concentrationByDate: {},
       recurringTasks: [],
@@ -3641,6 +3674,7 @@
     if (!d.lastIdeaPromptDate) d.lastIdeaPromptDate = todayStr();
     if (!d.fontScale) d.fontScale = 1;
     if (d.monoTheme === undefined) d.monoTheme = false;
+    if (d.lightTheme === undefined) d.lightTheme = false;
     if (!d.distractionsByDate) d.distractionsByDate = {};
     if (!d.concentrationByDate) d.concentrationByDate = {};
     if (!d.settings) d.settings = { rate: 0, currency: '$' };
@@ -3677,6 +3711,14 @@
   var data = load();
   document.documentElement.style.setProperty('--board-scale', String(data.fontScale));
   document.documentElement.classList.toggle('mono-theme', !!data.monoTheme);
+  document.documentElement.classList.toggle('light-theme', !!data.lightTheme);
+  // Keeps the mobile browser chrome (address bar) matching the theme,
+  // same #bg value the CSS itself switches to.
+  function applyThemeColorMeta() {
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', data.lightTheme ? '#f4f4f2' : '#0d0d0d');
+  }
+  applyThemeColorMeta();
   function save() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -4742,7 +4784,7 @@
       return (
         '<div class="gantt-row" data-card-id="' + c.id + '">' +
           '<div class="gantt-row-label" title="' + esc(c.title || 'Untitled card') + '">' + tagHtml + '<span class="gantt-row-title-text" style="color:' + titleColor + ';">' + esc(c.title || 'Untitled card') + '</span></div>' +
-          '<div class="gantt-track" style="background-image:repeating-linear-gradient(to right, rgba(255,255,255,0.07), rgba(255,255,255,0.07) 1px, transparent 1px, transparent ' + dw + 'px);">' +
+          '<div class="gantt-track" style="background-image:repeating-linear-gradient(to right, rgba(var(--overlay-rgb),0.07), rgba(var(--overlay-rgb),0.07) 1px, transparent 1px, transparent ' + dw + 'px);">' +
             '<div class="gantt-bar" data-card-id="' + c.id + '" style="left:' + left + 'px;width:' + width + 'px;background:' + c.color + ';" title="' + esc(c.title || 'Untitled card') + '">' +
               '<span class="gantt-bar-handle left" data-resize="start"></span>' +
               barPct +
@@ -6856,7 +6898,7 @@
     var proj = activeProject();
     if (!proj.columns.length) proj.columns = defaultColumns();
     var col = proj.columns[0];
-    col.cards.push({ id: uid(), title: idea.text, description: idea.description || '', due: null, start: null, done: false, doneAt: null, checklist: [], cover: null, color: randomColor(), entries: [], billable: true });
+    col.cards.push({ id: uid(), title: idea.text, description: idea.description || '', due: null, start: null, done: false, doneAt: null, checklist: [], cover: null, color: randomColor(), entries: [], billable: false });
     data.ideas = data.ideas.filter(function(i) { return i.id !== id; });
     save();
     currentView = 'board';
@@ -6878,7 +6920,7 @@
     var proj = activeProject();
     if (!proj.columns.length) proj.columns = defaultColumns();
     var col = proj.columns.find(function(c) { return c.id === columnId; }) || proj.columns[0];
-    col.cards.push({ id: uid(), title: idea.text, description: idea.description || '', due: null, start: null, done: false, doneAt: null, checklist: [], cover: null, color: randomColor(), entries: [], billable: true });
+    col.cards.push({ id: uid(), title: idea.text, description: idea.description || '', due: null, start: null, done: false, doneAt: null, checklist: [], cover: null, color: randomColor(), entries: [], billable: false });
     data.ideas = data.ideas.filter(function(i) { return i.id !== id; });
     save();
   }
@@ -7472,7 +7514,7 @@
     if (!col) return;
     var lastColor = col.cards.length ? col.cards[col.cards.length - 1].color : null;
     var newColorChoices = lastColor ? PALETTE.filter(function(c) { return c !== lastColor; }) : PALETTE;
-    col.cards.push({ id: uid(), title: title, description: '', due: null, start: null, done: false, doneAt: null, checklist: [], cover: null, color: newColorChoices[Math.floor(Math.random() * newColorChoices.length)], entries: [], billable: true });
+    col.cards.push({ id: uid(), title: title, description: '', due: null, start: null, done: false, doneAt: null, checklist: [], cover: null, color: newColorChoices[Math.floor(Math.random() * newColorChoices.length)], entries: [], billable: false });
     el.value = '';
     save(); render();
   }
@@ -8527,11 +8569,12 @@
     }
   });
 
-  // Shortcuts: M toggles Masonry, B toggles Monochrome, D toggles Due date
-  // only, S shuffles card colors, I opens the Images view, N opens the
-  // normal Board view, Shift+D logs a distraction (every view, not just
-  // Today), F toggles Today's Focus mode — ignored while typing anywhere
-  // editable so they don't fire mid-title/description.
+  // Shortcuts: M toggles Masonry, B toggles Monochrome, L toggles Light
+  // mode, D toggles Due date only, S shuffles card colors, I opens the
+  // Images view, N opens the normal Board view, Shift+D logs a
+  // distraction (every view, not just Today), F toggles Today's Focus
+  // mode — ignored while typing anywhere editable so they don't fire
+  // mid-title/description.
   document.addEventListener('keydown', function(e) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     var tag = e.target.tagName;
@@ -8540,6 +8583,7 @@
     if (e.shiftKey && key === 'd') { e.preventDefault(); logDistraction(); return; }
     if (key === 'm') document.getElementById('masonry-btn').click();
     else if (key === 'b') document.getElementById('menu-mono').click();
+    else if (key === 'l') document.getElementById('menu-light').click();
     else if (key === 'd') document.getElementById('due-only-btn').click();
     else if (key === 's') document.getElementById('shuffle-btn').click();
     else if (key === 'i') document.getElementById('view-images-btn').click();
@@ -8758,6 +8802,15 @@
     data.monoTheme = !data.monoTheme;
     document.documentElement.classList.toggle('mono-theme', data.monoTheme);
     menuMonoBtn.classList.toggle('active', data.monoTheme);
+    save();
+  });
+  var menuLightBtn = document.getElementById('menu-light');
+  menuLightBtn.classList.toggle('active', !!data.lightTheme);
+  menuLightBtn.addEventListener('click', function() {
+    data.lightTheme = !data.lightTheme;
+    document.documentElement.classList.toggle('light-theme', data.lightTheme);
+    menuLightBtn.classList.toggle('active', data.lightTheme);
+    applyThemeColorMeta();
     save();
   });
   document.getElementById('menu-help').addEventListener('click', function() {
