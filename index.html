@@ -49,6 +49,7 @@
     --overlay-rgb: 255,255,255;
     --dropdown-bg: #1a1a1a;
     --bg-rgb: 13,13,13;
+    --header-bg: #262626;
   }
 
   /* LIGHT THEME — opt-in toggle (menu-light), same idea as mono-theme:
@@ -69,6 +70,7 @@
     --overlay-rgb: 0,0,0;
     --dropdown-bg: #ffffff;
     --bg-rgb: 244,244,242;
+    --header-bg: #e3e3df;
   }
 
   html, body {
@@ -456,7 +458,7 @@
     align-items: center;
     gap: 6px;
     padding: 10px 10px;
-    background: #262626;
+    background: var(--header-bg);
     border-bottom: 1px solid rgba(var(--overlay-rgb),0.14);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     cursor: grab;
@@ -489,6 +491,18 @@
     border-radius: 10px;
     padding: 2px 7px;
   }
+  /* Restore/delete icon buttons in archive, recurring-task, and project
+     rows — was duplicated as an identical inline style attribute at each
+     of those 4 call sites instead of a shared class. Defined before
+     .column-header-btn below so that on the two buttons using both
+     classes, .column-header-btn's circular/hover styling wins for the
+     properties they share (same specificity, later source order). */
+  .row-del {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-dim); padding: 3px; display: flex;
+    transition: color 0.12s;
+  }
+  .row-del:hover { color: var(--text); }
   .column-header-btn {
     width: 22px; height: 22px; border-radius: 50%; border: none; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
@@ -532,7 +546,7 @@
      a box-shadow toggled on a card — cards already stack up to three
      box-shadow states (focus/timing/both) that would otherwise clobber a
      class-based line the same way the Today list's did before that fix. */
-  .card-drop-line { height: 2px; margin: 0 10px; background: #fff; border-radius: 1px; pointer-events: none; flex-shrink: 0; }
+  .card-drop-line { height: 2px; margin: 0 10px; background: var(--text); border-radius: 1px; pointer-events: none; flex-shrink: 0; }
   .card.is-focus { box-shadow: inset 0 0 0 1.5px var(--card-color, #b285f0); background: rgba(var(--overlay-rgb),0.03); }
   .card.is-timing { box-shadow: inset 0 0 0 1.5px #f87171; }
   .card.is-focus.is-timing { box-shadow: inset 0 0 0 1.5px var(--card-color, #b285f0), inset 0 0 0 3px #f87171; }
@@ -644,12 +658,19 @@
   }
   .text-input:hover, .text-input:focus { border-color: var(--border-hover); }
   .text-input::placeholder { color: var(--text-dim); }
-  .text-input[type="date"], .text-input[type="time"] { cursor: pointer; color-scheme: dark; }
+  .text-input[type="date"], .text-input[type="time"] { cursor: pointer; }
+  html:not(.light-theme) .text-input[type="date"], html:not(.light-theme) .text-input[type="time"] { color-scheme: dark; }
   .text-input[type="date"]::-webkit-calendar-picker-indicator,
   .text-input[type="time"]::-webkit-calendar-picker-indicator {
-    filter: invert(0.85);
     cursor: pointer;
     opacity: 0.8;
+  }
+  /* The native icon renders dark-on-transparent by default (fine on our
+     light surface); inverting it to light-on-transparent only makes
+     sense once color-scheme:dark (above) makes the field itself dark. */
+  html:not(.light-theme) .text-input[type="date"]::-webkit-calendar-picker-indicator,
+  html:not(.light-theme) .text-input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
   }
   .text-input[type="date"]::-webkit-calendar-picker-indicator:hover,
   .text-input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
@@ -1326,10 +1347,11 @@
     font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10px; font-weight: 600;
     color: var(--text-dim); background: var(--surface2); border: 0.5px solid var(--border);
     border-radius: 4px; padding: 2px 6px; cursor: pointer;
-    color-scheme: dark;
   }
+  html:not(.light-theme) .today-row-time { color-scheme: dark; }
   .today-row-time:hover, .today-row-time:focus { color: var(--text); border-color: var(--border-hover); }
-  .today-row-time::-webkit-calendar-picker-indicator { opacity: 0.5; filter: invert(1); }
+  .today-row-time::-webkit-calendar-picker-indicator { opacity: 0.5; }
+  html:not(.light-theme) .today-row-time::-webkit-calendar-picker-indicator { filter: invert(1); }
   /* Safari renders an empty <input type="time"> with visible placeholder
      digits (e.g. "12:30 PM") instead of dashes like Chromium — indistinguishable
      from a real value. Hide the text (not the picker icon) until one is set. */
@@ -1509,13 +1531,13 @@
   /* Insertion-line preview while dragging — shows exactly where the row
      will land (before/after the hovered row) instead of just a vague
      highlight, so the drop position is obvious mid-drag. */
-  .today-row.drag-over-before { box-shadow: inset 0 2px 0 0 #fff; }
-  .today-row.drag-over-after { box-shadow: inset 0 -2px 0 0 #fff; }
+  .today-row.drag-over-before { box-shadow: inset 0 2px 0 0 var(--text); }
+  .today-row.drag-over-after { box-shadow: inset 0 -2px 0 0 var(--text); }
   /* Focus's left-edge accent and the drag line both use box-shadow, so on
      a focused row they'd otherwise clobber each other (last rule wins,
      same specificity) — layer them as two shadows instead so both show. */
-  .today-row.is-focus.drag-over-before { box-shadow: inset 2px 0 0 0 #b285f0, inset 0 2px 0 0 #fff; }
-  .today-row.is-focus.drag-over-after { box-shadow: inset 2px 0 0 0 #b285f0, inset 0 -2px 0 0 #fff; }
+  .today-row.is-focus.drag-over-before { box-shadow: inset 2px 0 0 0 #b285f0, inset 0 2px 0 0 var(--text); }
+  .today-row.is-focus.drag-over-after { box-shadow: inset 2px 0 0 0 #b285f0, inset 0 -2px 0 0 var(--text); }
   .today-row.done { opacity: 0.6; }
   .today-row.done .today-row-title { text-decoration: line-through; color: var(--text-muted); }
   /* "Break" personal tasks (quick scroll/social checks) get a dashed edge
@@ -1915,7 +1937,13 @@
   .modal {
     position: relative;
     background: var(--surface);
-    border: 0.5px solid var(--border);
+    /* The 0.5px var(--border) edge (8% white in dark mode) was nearly
+       invisible against the blurred dark backdrop, since --surface and
+       the backdrop are both close to black — needs a much stronger,
+       higher-contrast edge than --border-hover to actually read as a
+       window boundary there, plus a drop shadow for depth. */
+    border: 1.5px solid rgba(var(--overlay-rgb),0.35);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
     border-radius: var(--radius-lg);
     max-width: 360px;
     width: 100%;
@@ -2581,8 +2609,8 @@
   html.mono-theme #today-hero.is-focus { box-shadow: inset 0 0 0 2px var(--mono-accent); }
   html.mono-theme #today-hero.is-focus .today-hero-eyebrow::after { color: var(--mono-accent); }
   html.mono-theme .today-row.is-focus { box-shadow: inset 2px 0 0 0 var(--mono-accent); }
-  html.mono-theme .today-row.is-focus.drag-over-before { box-shadow: inset 2px 0 0 0 var(--mono-accent), inset 0 2px 0 0 #fff; }
-  html.mono-theme .today-row.is-focus.drag-over-after { box-shadow: inset 2px 0 0 0 var(--mono-accent), inset 0 -2px 0 0 #fff; }
+  html.mono-theme .today-row.is-focus.drag-over-before { box-shadow: inset 2px 0 0 0 var(--mono-accent), inset 0 2px 0 0 var(--text); }
+  html.mono-theme .today-row.is-focus.drag-over-after { box-shadow: inset 2px 0 0 0 var(--mono-accent), inset 0 -2px 0 0 var(--text); }
   html.mono-theme .today-hero-btn.done { border-color: var(--mono-accent); color: var(--mono-accent); }
   html.mono-theme .today-hero-btn.done:hover { background: rgba(var(--mono-accent-rgb), 0.15); }
   html.mono-theme #today-distract-box,
@@ -3587,6 +3615,29 @@
     return choices[Math.floor(Math.random() * choices.length)];
   }
 
+  // Single source of truth for a new card's shape — this exact field set
+  // used to be duplicated verbatim at all 3 card-creation call sites,
+  // risking a future field landing in only some of them.
+  function makeCard(title, opts) {
+    opts = opts || {};
+    return {
+      id: uid(),
+      title: title || '',
+      description: opts.description || '',
+      due: null,
+      start: null,
+      done: false,
+      doneAt: null,
+      checklist: [],
+      cover: null,
+      color: opts.color || randomColor(),
+      entries: [],
+      billable: false,
+      links: [],
+      focus: false
+    };
+  }
+
   function defaultColumns() {
     return [
       { id: uid(), name: 'To Do', cards: [] },
@@ -3719,7 +3770,17 @@
     if (meta) meta.setAttribute('content', data.lightTheme ? '#f4f4f2' : '#0d0d0d');
   }
   applyThemeColorMeta();
-  function save() {
+  // save() is called on every keystroke in several places (card title,
+  // column/project rename, checklist items, ...) — JSON.stringify-ing the
+  // entire board on each one causes real input lag once cover images are
+  // in play. Debounce the actual write; the in-memory `data` mutation
+  // (already done by the caller before save() runs) is what the UI reads
+  // from, so nothing but the disk write is delayed. Flushed immediately
+  // on tab hide/unload so a debounce window can't lose an edit.
+  var saveFlushTimer = null;
+  var SAVE_DEBOUNCE_MS = 400;
+  function flushSave() {
+    if (saveFlushTimer) { clearTimeout(saveFlushTimer); saveFlushTimer = null; }
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (e) {
@@ -3732,6 +3793,16 @@
     maybeWriteAutoBackup();
     maybePushHistorySnapshot();
   }
+  function save() {
+    if (saveFlushTimer) clearTimeout(saveFlushTimer);
+    saveFlushTimer = setTimeout(flushSave, SAVE_DEBOUNCE_MS);
+  }
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden' && saveFlushTimer) flushSave();
+  });
+  window.addEventListener('beforeunload', function() {
+    if (saveFlushTimer) flushSave();
+  });
 
   // ---------- BACKUP: folder auto-backup, reminder banner, version history ----------
   // Three independent layers, weakest to strongest guarantee against losing
@@ -3939,12 +4010,29 @@
     } catch (e) { return []; }
   }
 
+  // Cover images are the one field big enough to matter here — up to 10
+  // snapshots each carrying a full copy of every attached image would
+  // multiply storage use ~10x on top of the main board, turning the
+  // quota-exceeded failure mode (see save()) into something version
+  // history itself causes. History exists to recover text/structure, not
+  // images, so strip covers before snapshotting; the live cards keep
+  // theirs regardless — restoring an old snapshot just won't bring back
+  // a since-changed cover image.
+  function snapshotJsonWithoutCovers() {
+    var clone = JSON.parse(JSON.stringify(data));
+    (clone.projects || []).forEach(function(p) {
+      (p.columns || []).forEach(function(col) {
+        (col.cards || []).forEach(function(c) { c.cover = null; });
+      });
+    });
+    return JSON.stringify(clone);
+  }
   function maybePushHistorySnapshot() {
     var now = Date.now();
     if (now - lastHistorySnapshotAt < HISTORY_MIN_GAP_MS) return;
     lastHistorySnapshotAt = now;
     var history = loadHistory();
-    history.push({ at: now, json: JSON.stringify(data) });
+    history.push({ at: now, json: snapshotJsonWithoutCovers() });
     if (history.length > HISTORY_LIMIT) history = history.slice(history.length - HISTORY_LIMIT);
     try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch (e) { /* storage full — skip this snapshot */ }
   }
@@ -3971,7 +4059,7 @@
     list.querySelectorAll('[data-history-restore]').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var entry = history[parseInt(btn.getAttribute('data-history-restore'), 10)];
-        if (!confirm('Restore the board to how it was on ' + formatHistoryStamp(entry.at) + '? Your current state will be replaced (it stays in history itself).')) return;
+        if (!confirm('Restore the board to how it was on ' + formatHistoryStamp(entry.at) + '? Your current state will be replaced (it stays in history itself). Note: cover images aren\'t stored in history snapshots, so cards will lose their covers.')) return;
         var restored = normalizeData(JSON.parse(entry.json));
         if (!restored) { alert('This snapshot could not be restored.'); return; }
         data = restored;
@@ -4953,8 +5041,8 @@
         '<span class="today-row-color" style="background:' + c.color + ';"></span>' +
         '<span class="today-row-title">' + esc(c.title || 'Untitled card') + '</span>' +
         '<span class="today-row-tag">' + esc(c.fromColumn || '') + '</span>' +
-        '<button type="button" class="row-del" data-action="restore-card" data-card="' + c.id + '" title="Restore to board" style="background:none;border:none;cursor:pointer;color:var(--text-dim);padding:3px;display:flex;">' + svgIcon('restore') + '</button>' +
-        '<button type="button" class="row-del" data-action="delete-archived-card" data-card="' + c.id + '" title="Delete permanently" style="background:none;border:none;cursor:pointer;color:var(--text-dim);padding:3px;display:flex;">' + svgIcon('trash') + '</button>' +
+        '<button type="button" class="row-del" data-action="restore-card" data-card="' + c.id + '" title="Restore to board">' + svgIcon('restore') + '</button>' +
+        '<button type="button" class="row-del" data-action="delete-archived-card" data-card="' + c.id + '" title="Delete permanently">' + svgIcon('trash') + '</button>' +
       '</div>'
     );
   }
@@ -5014,7 +5102,7 @@
         '<span class="today-row-color" style="background:' + rt.color + ';"></span>' +
         '<input class="repeat-row-title" data-action="rename-recurring" value="' + esc(rt.title) + '" placeholder="Untitled task">' +
         renderRepeatDayPicker(rt.days, 'repeat-row-days') +
-        '<button type="button" class="row-del" data-action="delete-recurring" title="Delete this repeating task" style="background:none;border:none;cursor:pointer;color:var(--text-dim);padding:3px;display:flex;">' + svgIcon('trash') + '</button>' +
+        '<button type="button" class="row-del" data-action="delete-recurring" title="Delete this repeating task">' + svgIcon('trash') + '</button>' +
       '</div>'
     );
   }
@@ -5777,7 +5865,9 @@
     return { start: 9 * 60, mid: 12 * 60, end: 17 * 60, extraEnabled: false, extraStart: 20 * 60, extraEnd: 24 * 60 };
   }
   var dayTimes = loadDayTimes();
-  function saveDayTimes() { localStorage.setItem(DAY_TIMES_KEY, JSON.stringify(dayTimes)); }
+  function saveDayTimes() {
+    try { localStorage.setItem(DAY_TIMES_KEY, JSON.stringify(dayTimes)); } catch (e) { /* storage full — skip */ }
+  }
 
   function formatTimeMinutes(mins) {
     mins = ((mins % 1440) + 1440) % 1440;
@@ -6159,7 +6249,7 @@
     var minutes = parseFloat(input);
     if (!isFinite(minutes) || minutes <= 0) return;
     customTimerTotalSec = Math.round(minutes * 60);
-    localStorage.setItem(CUSTOM_TIMER_KEY, String(minutes));
+    try { localStorage.setItem(CUSTOM_TIMER_KEY, String(minutes)); } catch (e) { /* storage full — skip */ }
     stopCustomTimer();
     customTimerRemainingSec = customTimerTotalSec;
     renderCustomTimer();
@@ -6750,7 +6840,7 @@
           '<span class="project-row-handle" title="Drag to reorder">' + svgIcon('grip') + '</span>' +
           '<button type="button" class="project-dot' + (isActive ? ' active' : '') + '" data-action="select-project" data-project="' + p.id + '" title="Switch to this project">' + (isActive ? svgIcon('check') : '') + '</button>' +
           '<input class="text-input" value="' + esc(p.name) + '" data-action="rename-project" data-project="' + p.id + '" placeholder="Project name">' +
-          (canDelete ? '<button type="button" class="row-del" data-action="delete-project" data-project="' + p.id + '" style="background:none;border:none;cursor:pointer;color:var(--text-dim);padding:3px;display:flex;">' + svgIcon('trash') + '</button>' : '') +
+          (canDelete ? '<button type="button" class="row-del" data-action="delete-project" data-project="' + p.id + '">' + svgIcon('trash') + '</button>' : '') +
         '</div>'
       );
     }).join('');
@@ -6898,7 +6988,7 @@
     var proj = activeProject();
     if (!proj.columns.length) proj.columns = defaultColumns();
     var col = proj.columns[0];
-    col.cards.push({ id: uid(), title: idea.text, description: idea.description || '', due: null, start: null, done: false, doneAt: null, checklist: [], cover: null, color: randomColor(), entries: [], billable: false });
+    col.cards.push(makeCard(idea.text, { description: idea.description }));
     data.ideas = data.ideas.filter(function(i) { return i.id !== id; });
     save();
     currentView = 'board';
@@ -6920,7 +7010,7 @@
     var proj = activeProject();
     if (!proj.columns.length) proj.columns = defaultColumns();
     var col = proj.columns.find(function(c) { return c.id === columnId; }) || proj.columns[0];
-    col.cards.push({ id: uid(), title: idea.text, description: idea.description || '', due: null, start: null, done: false, doneAt: null, checklist: [], cover: null, color: randomColor(), entries: [], billable: false });
+    col.cards.push(makeCard(idea.text, { description: idea.description }));
     data.ideas = data.ideas.filter(function(i) { return i.id !== id; });
     save();
   }
@@ -7514,7 +7604,7 @@
     if (!col) return;
     var lastColor = col.cards.length ? col.cards[col.cards.length - 1].color : null;
     var newColorChoices = lastColor ? PALETTE.filter(function(c) { return c !== lastColor; }) : PALETTE;
-    col.cards.push({ id: uid(), title: title, description: '', due: null, start: null, done: false, doneAt: null, checklist: [], cover: null, color: newColorChoices[Math.floor(Math.random() * newColorChoices.length)], entries: [], billable: false });
+    col.cards.push(makeCard(title, { color: newColorChoices[Math.floor(Math.random() * newColorChoices.length)] }));
     el.value = '';
     save(); render();
   }
