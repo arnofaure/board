@@ -682,6 +682,14 @@
   #card-focus-toggle.active-focus { color: #b285f0; border-color: rgba(178,133,240,0.4); background: rgba(178,133,240,0.08); }
   #card-billable-toggle.active-billable { color: #4ade80; border-color: rgba(74,222,128,0.4); background: rgba(74,222,128,0.08); }
   #card-billable-toggle:not(.active-billable) { color: var(--text-dim); }
+  /* Same problem as #today-hero's green wash: these light pastel accents
+     read fine against a dark surface but wash out against a light one —
+     deepen each to a darker shade of the same hue for light mode. */
+  html.light-theme #card-today-toggle.active-today { color: #b45309; border-color: rgba(180,83,9,0.5); background: rgba(180,83,9,0.1); }
+  html.light-theme #card-tomorrow-toggle.active-tomorrow { color: #1d4ed8; border-color: rgba(29,78,216,0.5); background: rgba(29,78,216,0.1); }
+  html.light-theme #card-done-toggle.active-done { color: #15803d; border-color: rgba(21,128,61,0.5); background: rgba(21,128,61,0.1); }
+  html.light-theme #card-focus-toggle.active-focus { color: #6d28d9; border-color: rgba(109,40,217,0.5); background: rgba(109,40,217,0.1); }
+  html.light-theme #card-billable-toggle.active-billable { color: #15803d; border-color: rgba(21,128,61,0.5); background: rgba(21,128,61,0.1); }
   .card-time-summary {
     display: flex; align-items: center; gap: 10px;
     font-family: ui-monospace, monospace; font-size: 13px; font-variant-numeric: tabular-nums;
@@ -1737,6 +1745,23 @@
      it explicitly instead. */
   .ach-day.ach-today { outline-color: var(--text-muted); }
 
+  /* UNDO TOAST — replaces confirm()-before-delete for card/column/project
+     with delete-immediately-and-offer-undo, a real recovery path instead
+     of just a click-through dialog that offers nothing once confirmed. */
+  #undo-toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(0);
+    display: flex; align-items: center; gap: 14px;
+    background: var(--dropdown-bg); color: var(--text);
+    border: 1px solid var(--border-hover); border-radius: var(--radius-lg);
+    padding: 10px 16px; box-shadow: 0 16px 36px rgba(0,0,0,0.45);
+    z-index: 500; font-size: 12.5px;
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transition: opacity 0.15s, transform 0.15s;
+  }
+  #undo-toast.show { opacity: 1; visibility: visible; pointer-events: auto; transform: translateX(-50%) translateY(-6px); }
+  #undo-toast-btn { background: none; border: none; color: #60a5fa; font-weight: 700; font-size: 12.5px; cursor: pointer; }
+  #undo-toast-btn:hover { text-decoration: underline; }
+
   #ach-tooltip {
     position: fixed; pointer-events: none; z-index: 400;
     background: var(--dropdown-bg); border: 0.5px solid var(--border-hover); border-radius: var(--radius);
@@ -2039,6 +2064,15 @@
     margin-right: 2px;
   }
   #help-modal { max-width: 440px; }
+  #shortcuts-modal { max-width: 360px; }
+  #shortcuts-list { display: flex; flex-direction: column; gap: 9px; }
+  .shortcut-row { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-muted); }
+  .shortcut-row span { margin-left: 4px; }
+  .shortcut-row kbd {
+    font-family: ui-monospace, monospace; font-size: 11px; color: var(--text);
+    background: var(--surface2); border: 0.5px solid var(--border-hover);
+    border-radius: 4px; padding: 2px 6px;
+  }
   #help-modal ol {
     display: flex;
     flex-direction: column;
@@ -2768,6 +2802,11 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         Help
       </button>
+      <button class="tb-btn" id="menu-shortcuts" title="See every keyboard shortcut (?)">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="10"/><line x1="10" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="14" y2="10"/><line x1="18" y1="10" x2="18" y2="10"/><line x1="7" y1="14" x2="17" y2="14"/></svg>
+        Keyboard shortcuts
+        <span class="tb-shortcut">?</span>
+      </button>
       <div class="tb-sep-h"></div>
       <a class="tb-btn" href="https://storyboard.arnofaure.com/" target="_blank" rel="noopener noreferrer" title="Open the Storyboard app">
         <svg width="13" height="13" viewBox="0 0 144 263" xmlns="http://www.w3.org/2000/svg">
@@ -3238,6 +3277,32 @@
   </div>
 </div>
 
+<!-- SHORTCUTS MODAL -->
+<div class="modal-overlay" id="shortcuts-overlay">
+  <div class="modal" id="shortcuts-modal">
+    <button class="modal-close" id="shortcuts-close">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h2>Keyboard shortcuts</h2>
+    <div id="shortcuts-list">
+      <div class="shortcut-row"><kbd>⌘K</kbd><span>Search tasks</span></div>
+      <div class="shortcut-row"><kbd>⌘S</kbd><span>Export (JSON)</span></div>
+      <div class="shortcut-row"><kbd>N</kbd><span>Board view</span></div>
+      <div class="shortcut-row"><kbd>I</kbd><span>Images view</span></div>
+      <div class="shortcut-row"><kbd>M</kbd><span>Toggle masonry layout</span></div>
+      <div class="shortcut-row"><kbd>D</kbd><span>Due date only filter</span></div>
+      <div class="shortcut-row"><kbd>S</kbd><span>Shuffle card colors</span></div>
+      <div class="shortcut-row"><kbd>B</kbd><span>Monochrome theme</span></div>
+      <div class="shortcut-row"><kbd>L</kbd><span>Light / dark mode</span></div>
+      <div class="shortcut-row"><kbd>F</kbd><span>Focus mode (Today view)</span></div>
+      <div class="shortcut-row"><kbd>Shift</kbd><kbd>D</kbd><span>Log a distraction</span></div>
+      <div class="shortcut-row"><kbd>Esc</kbd><span>Close any open dialog</span></div>
+      <div class="shortcut-row"><kbd>?</kbd><span>Show this list</span></div>
+    </div>
+    <p style="margin-top:14px;font-size:11px;color:var(--text-dim);line-height:1.6;">All ignored while typing in a text field, so they never fire mid-title/description.</p>
+  </div>
+</div>
+
 <!-- VERSION HISTORY MODAL -->
 <div class="modal-overlay" id="history-overlay">
   <div class="modal" id="history-modal">
@@ -3566,6 +3631,12 @@
 </div>
 
 <input type="file" id="import-file" accept="application/json" style="display:none">
+
+<!-- UNDO TOAST — shown after a destructive delete (card/column/project) -->
+<div id="undo-toast">
+  <span id="undo-toast-msg"></span>
+  <button type="button" id="undo-toast-btn">Undo</button>
+</div>
 
 <script>
 (function() {
@@ -3982,9 +4053,14 @@
     banner = document.createElement('div');
     banner.id = 'backup-banner';
     banner.className = 'backup-banner';
+    // Chrome/Edge users who haven't set up the silent folder auto-backup
+    // yet get nudged toward it here — Export is a one-off, auto-backup
+    // means never seeing this banner again.
+    var offerAutoBackup = !!window.showDirectoryPicker && !backupDirHandle;
     banner.innerHTML =
       '<span>You haven\'t backed up this board in a while.</span>' +
       '<button type="button" class="kb-mini-btn" id="backup-banner-export">Export now</button>' +
+      (offerAutoBackup ? '<button type="button" class="kb-mini-btn" id="backup-banner-setup">Set up auto-backup</button>' : '') +
       '<button type="button" class="kb-mini-btn" id="backup-banner-snooze">Remind me in 3 days</button>' +
       '<button type="button" class="backup-banner-dismiss" id="backup-banner-dismiss" title="Dismiss">' + svgIcon('close') + '</button>';
     document.body.appendChild(banner);
@@ -3992,6 +4068,12 @@
       document.getElementById('menu-export').click();
       hideBackupBanner();
     });
+    if (offerAutoBackup) {
+      document.getElementById('backup-banner-setup').addEventListener('click', function() {
+        document.getElementById('menu-backup-folder').click();
+        hideBackupBanner();
+      });
+    }
     document.getElementById('backup-banner-snooze').addEventListener('click', function() {
       try { localStorage.setItem(BACKUP_SNOOZE_KEY, String(Date.now() + REMINDER_SNOOZE_MS)); } catch (e) { /* storage unavailable */ }
       hideBackupBanner();
@@ -4621,6 +4703,17 @@
     renderIdeas();
     renderAchievements();
     updateTotals();
+    syncAriaLabels();
+  }
+
+  // Most icon-only buttons across the app already carry a `title` for the
+  // mouse-hover tooltip but nothing for screen readers — rather than hand-
+  // editing every render*() template that builds one, mirror title into
+  // aria-label here once per full render instead.
+  function syncAriaLabels() {
+    document.querySelectorAll('button[title]:not([aria-label])').forEach(function(btn) {
+      btn.setAttribute('aria-label', btn.getAttribute('title'));
+    });
   }
 
   function renderBoard() {
@@ -6873,10 +6966,16 @@
     } else if (action === 'delete-project') {
       if (data.projects.length <= 1) return;
       var proj = data.projects.find(function(x) { return x.id === pid; });
-      if (!confirm('Delete project "' + (proj.name || 'Untitled project') + '" and all its boards and cards?')) return;
+      var projIdx = data.projects.indexOf(proj);
+      var wasActive = data.activeProjectId === pid;
       data.projects = data.projects.filter(function(x) { return x.id !== pid; });
-      if (data.activeProjectId === pid) data.activeProjectId = data.projects[0].id;
+      if (wasActive) data.activeProjectId = data.projects[0].id;
       save(); render();
+      showUndoToast('Project "' + (proj.name || 'Untitled project') + '" deleted.', function() {
+        data.projects.splice(projIdx, 0, proj);
+        if (wasActive) data.activeProjectId = pid;
+        save(); render();
+      });
     }
   });
   document.getElementById('project-list').addEventListener('input', function(e) {
@@ -7582,11 +7681,14 @@
     if (action === 'delete-column') {
       var colId = btn.getAttribute('data-column');
       var col = findColumn(colId);
-      if (confirm('Delete column "' + col.name + '" and all its cards?')) {
-        var proj = activeProject();
-        proj.columns = proj.columns.filter(function(c) { return c.id !== colId; });
+      var proj = activeProject();
+      var colIdx = proj.columns.indexOf(col);
+      proj.columns = proj.columns.filter(function(c) { return c.id !== colId; });
+      save(); render();
+      showUndoToast('Column "' + (col.name || 'Untitled') + '" and its cards deleted.', function() {
+        proj.columns.splice(colIdx, 0, col);
         save(); render();
-      }
+      });
     } else if (action === 'toggle-card-done') {
       toggleCardDone(btn.getAttribute('data-card'));
     } else if (action === 'toggle-today-from-card') {
@@ -8303,11 +8405,14 @@
 
   document.getElementById('card-delete').addEventListener('click', function() {
     var found = findCard(editingCardId); if (!found) return;
-    if (!confirm('Delete this card?')) return;
-    found.column.cards = found.column.cards.filter(function(x) { return x.id !== editingCardId; });
+    var card = found.card, column = found.column, idx = column.cards.indexOf(card);
+    column.cards.splice(idx, 1);
     save();
     closeCardModal();
-    render();
+    showUndoToast('Card deleted.', function() {
+      column.cards.splice(idx, 0, card);
+      save(); render();
+    });
   });
 
   function closeCardModal() {
@@ -8675,8 +8780,8 @@
   // mode, D toggles Due date only, S shuffles card colors, I opens the
   // Images view, N opens the normal Board view, Shift+D logs a
   // distraction (every view, not just Today), F toggles Today's Focus
-  // mode — ignored while typing anywhere editable so they don't fire
-  // mid-title/description.
+  // mode, ? opens the shortcuts cheat sheet — ignored while typing
+  // anywhere editable so they don't fire mid-title/description.
   document.addEventListener('keydown', function(e) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     var tag = e.target.tagName;
@@ -8690,6 +8795,7 @@
     else if (key === 's') document.getElementById('shuffle-btn').click();
     else if (key === 'i') document.getElementById('view-images-btn').click();
     else if (key === 'n') document.getElementById('view-board-btn').click();
+    else if (key === '?') openShortcutsModal();
     else if (key === 'f' && currentView === 'today') setFocusMode(!focusModeOn);
   });
 
@@ -8926,6 +9032,29 @@
   document.getElementById('help-overlay').addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('show');
   });
+  function openShortcutsModal() { document.getElementById('shortcuts-overlay').classList.add('show'); }
+  document.getElementById('menu-shortcuts').addEventListener('click', function() {
+    openShortcutsModal();
+    logoBtn.classList.remove('open');
+    logoDropdown.classList.remove('open');
+  });
+  document.getElementById('shortcuts-close').addEventListener('click', function() {
+    document.getElementById('shortcuts-overlay').classList.remove('show');
+  });
+  document.getElementById('shortcuts-overlay').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('show');
+  });
+  // help/shortcuts are plain classList.add/remove('show') with no extra
+  // state to clean up (unlike e.g. the card modal's Escape handler, which
+  // also resets editingCardId) — safe to close both generically here
+  // instead of needing their own dedicated Escape listeners.
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape') return;
+    ['help-overlay', 'shortcuts-overlay'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el && el.classList.contains('show')) el.classList.remove('show');
+    });
+  });
 
   // ---------- TEXT SIZE ----------
   var fontsizeSlider = document.getElementById('fontsize-slider');
@@ -8938,6 +9067,69 @@
     fontsizeValue.textContent = this.value + '%';
     save();
   });
+
+  // ---------- UNDO TOAST ----------
+  var undoToastTimer = null;
+  var undoToastAction = null;
+  function showUndoToast(message, undoFn) {
+    var el = document.getElementById('undo-toast');
+    document.getElementById('undo-toast-msg').textContent = message;
+    undoToastAction = undoFn;
+    el.classList.add('show');
+    if (undoToastTimer) clearTimeout(undoToastTimer);
+    undoToastTimer = setTimeout(function() {
+      el.classList.remove('show');
+      undoToastAction = null;
+      undoToastTimer = null;
+    }, 6000);
+  }
+  document.getElementById('undo-toast-btn').addEventListener('click', function() {
+    if (undoToastAction) undoToastAction();
+    document.getElementById('undo-toast').classList.remove('show');
+    undoToastAction = null;
+    if (undoToastTimer) { clearTimeout(undoToastTimer); undoToastTimer = null; }
+  });
+
+  // ---------- ACCESSIBILITY: focus trap + return-focus for modals ----------
+  // Every modal-overlay opens/closes independently (classList.add/remove
+  // 'show') rather than through one shared function, so this hooks in via
+  // a MutationObserver instead of touching every individual open/close
+  // call site — keeps Tab from escaping into the board behind an open
+  // dialog, and returns focus to whatever triggered it once it closes.
+  (function initModalFocusTrap() {
+    var lastFocused = null;
+    function getFocusable(container) {
+      return Array.prototype.filter.call(
+        container.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'),
+        function(el) { return el.offsetParent !== null; }
+      );
+    }
+    document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
+      new MutationObserver(function() {
+        if (overlay.classList.contains('show')) {
+          lastFocused = document.activeElement;
+          var focusable = getFocusable(overlay);
+          if (focusable.length) focusable[0].focus();
+        } else if (lastFocused) {
+          if (document.body.contains(lastFocused)) lastFocused.focus();
+          lastFocused = null;
+        }
+      }).observe(overlay, { attributes: true, attributeFilter: ['class'] });
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key !== 'Tab') return;
+      var openOverlay = document.querySelector('.modal-overlay.show');
+      if (!openOverlay) return;
+      var focusable = getFocusable(openOverlay);
+      if (!focusable.length) return;
+      var first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first || !openOverlay.contains(document.activeElement)) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last || !openOverlay.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+      }
+    });
+  })();
 
   // ---------- INIT ----------
   checkDailyShuffle(activeProject());
