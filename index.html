@@ -601,6 +601,15 @@
   }
   .card-checklist-badge svg { flex-shrink: 0; opacity: 0.95; }
   .card-checklist-badge.complete { color: #4ade80; }
+  /* Same icon+count pattern as .card-checklist-badge above, but used in
+     the Today list rows — never had its own CSS at all, so the icon and
+     "x/x" text sat glued together with no gap. */
+  .card-checklist-pct {
+    display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+    font-family: ui-monospace, monospace; font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums;
+  }
+  .card-checklist-pct svg { flex-shrink: 0; opacity: 0.95; }
+  .card-checklist-pct.complete { color: #4ade80; }
   .card-time-badge {
     display: flex; align-items: center; gap: 4px;
     font-family: ui-monospace, monospace; font-size: calc(12px * var(--board-scale)); color: var(--text-muted); font-variant-numeric: tabular-nums;
@@ -5926,18 +5935,21 @@
     if (!chimeAudioCtx) return;
     var ctx = chimeAudioCtx;
     var now = ctx.currentTime;
-    [{ freq: 880, start: 0 }, { freq: 1174.66, start: 0.18 }].forEach(function(note) {
+    // Classic kitchen-timer "beep beep beep" — three short, crisp
+    // square-wave beeps at the same pitch, sharp on/off envelope.
+    [0, 0.22, 0.44].forEach(function(start) {
       var osc = ctx.createOscillator();
       var gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = note.freq;
-      gain.gain.setValueAtTime(0, now + note.start);
-      gain.gain.linearRampToValueAtTime(0.25, now + note.start + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + note.start + 0.5);
+      osc.type = 'square';
+      osc.frequency.value = 1000;
+      gain.gain.setValueAtTime(0, now + start);
+      gain.gain.linearRampToValueAtTime(0.16, now + start + 0.01);
+      gain.gain.setValueAtTime(0.16, now + start + 0.11);
+      gain.gain.linearRampToValueAtTime(0, now + start + 0.13);
       osc.connect(gain);
       gain.connect(ctx.destination);
-      osc.start(now + note.start);
-      osc.stop(now + note.start + 0.55);
+      osc.start(now + start);
+      osc.stop(now + start + 0.14);
     });
   }
 
