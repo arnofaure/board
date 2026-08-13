@@ -1728,16 +1728,26 @@
   #idea-review-btn { white-space: nowrap; flex-shrink: 0; }
   #idea-tag-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
   #idea-tag-filter:empty { margin-bottom: 0; }
+  /* Tags used to be colored via pale hue-tinted text on a pale hue-tinted
+     background (hsl(hue,75%,68%) text on hsla(hue,75%,50%,0.16) bg) —
+     both parts too light to read against each other on a light surface,
+     and not great on dark either. A neutral pill with a small solid-color
+     dot keeps the per-tag color coding without needing the text itself
+     to carry contrast. */
   .idea-tag-filter-btn {
+    display: inline-flex; align-items: center; gap: 6px;
     font-size: 11px;
     font-weight: 600;
-    border: 0.5px solid var(--border);
+    color: var(--text-muted);
+    background: var(--surface2);
+    border: 1px solid var(--border-hover);
     border-radius: 4px;
     padding: 3px 9px;
     cursor: pointer;
-    transition: filter 0.1s;
+    transition: background 0.1s, color 0.1s;
   }
-  .idea-tag-filter-btn:hover { filter: brightness(1.15); }
+  .idea-tag-filter-btn:hover { background: var(--border-hover); color: var(--text); }
+  .idea-tag-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
   .idea-tag-filter-clear {
     font-size: 11px;
     color: var(--text-dim);
@@ -1938,10 +1948,12 @@
   .idea-tag {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
     font-size: 10px;
     font-weight: 600;
-    border: 0.5px solid var(--border);
+    color: var(--text-muted);
+    background: var(--surface2);
+    border: 1px solid var(--border-hover);
     border-radius: 4px;
     padding: 2px 3px 2px 6px;
     white-space: nowrap;
@@ -7298,8 +7310,7 @@
   function renderIdeaRow(idea) {
     var tagsHtml = idea.tags.map(function(t) {
       var hue = tagHue(t);
-      var style = 'color:hsl(' + hue + ',75%,68%);background:hsla(' + hue + ',75%,50%,0.16);border-color:hsla(' + hue + ',75%,50%,0.4);';
-      return '<span class="idea-tag" style="' + style + '">' + esc(t) + '<button type="button" data-action="remove-tag" data-idea="' + idea.id + '" data-tag="' + esc(t) + '">' + svgIcon('close') + '</button></span>';
+      return '<span class="idea-tag"><span class="idea-tag-dot" style="background:hsl(' + hue + ',65%,45%);"></span>' + esc(t) + '<button type="button" data-action="remove-tag" data-idea="' + idea.id + '" data-tag="' + esc(t) + '">' + svgIcon('close') + '</button></span>';
     }).join('');
 
     if (idea.id !== expandedIdeaId) {
@@ -7353,10 +7364,11 @@
     el.innerHTML = tags.map(function(t) {
       var hue = tagHue(t);
       var active = activeIdeaTagFilters.indexOf(t) !== -1;
-      var style = active
-        ? 'color:#fff;background:hsl(' + hue + ',60%,42%);border-color:hsl(' + hue + ',60%,42%);'
-        : 'color:hsl(' + hue + ',75%,68%);background:hsla(' + hue + ',75%,50%,0.16);border-color:hsla(' + hue + ',75%,50%,0.4);';
-      return '<button type="button" class="idea-tag-filter-btn" data-action="filter-tag" data-tag="' + esc(t) + '" style="' + style + '">' + esc(t) + '</button>';
+      if (active) {
+        var style = 'color:#fff;background:hsl(' + hue + ',60%,42%);border-color:hsl(' + hue + ',60%,42%);';
+        return '<button type="button" class="idea-tag-filter-btn" data-action="filter-tag" data-tag="' + esc(t) + '" style="' + style + '">' + esc(t) + '</button>';
+      }
+      return '<button type="button" class="idea-tag-filter-btn" data-action="filter-tag" data-tag="' + esc(t) + '"><span class="idea-tag-dot" style="background:hsl(' + hue + ',65%,45%);"></span>' + esc(t) + '</button>';
     }).join('') + (activeIdeaTagFilters.length ? '<button type="button" class="idea-tag-filter-clear" data-action="clear-tag-filters">Clear filter</button>' : '');
   }
 
