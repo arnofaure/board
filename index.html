@@ -5931,12 +5931,33 @@
   }
   document.addEventListener('click', ensureChimeAudioCtx, { once: true });
 
+  // Soft two-note sine chime — day checkpoints (noon/day-end/extra block)
+  // use this one, kept as it originally was.
   function playChime() {
     if (!chimeAudioCtx) return;
     var ctx = chimeAudioCtx;
     var now = ctx.currentTime;
-    // Classic kitchen-timer "beep beep beep" — three short, crisp
-    // square-wave beeps at the same pitch, sharp on/off envelope.
+    [{ freq: 880, start: 0 }, { freq: 1174.66, start: 0.18 }].forEach(function(note) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = note.freq;
+      gain.gain.setValueAtTime(0, now + note.start);
+      gain.gain.linearRampToValueAtTime(0.25, now + note.start + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + note.start + 0.5);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + note.start);
+      osc.stop(now + note.start + 0.55);
+    });
+  }
+
+  // Classic kitchen-timer "beep beep beep" — three short, crisp
+  // square-wave beeps, used only by the custom countdown Timer.
+  function playTimerBeep() {
+    if (!chimeAudioCtx) return;
+    var ctx = chimeAudioCtx;
+    var now = ctx.currentTime;
     [0, 0.22, 0.44].forEach(function(start) {
       var osc = ctx.createOscillator();
       var gain = ctx.createGain();
@@ -6339,7 +6360,7 @@
     if (customTimerRemainingSec <= 0) {
       customTimerRemainingSec = 0;
       stopCustomTimer();
-      playChime();
+      playTimerBeep();
       return;
     }
     renderCustomTimer();
