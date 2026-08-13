@@ -1703,30 +1703,6 @@
   #today-tomorrow-box:not(.collapsed) #today-tomorrow-box-title { margin-bottom: 10px; }
   #today-tomorrow-box.collapsed #today-tomorrow-list { display: none; }
   #today-tomorrow-list { display: flex; flex-direction: column; gap: 6px; }
-  /* Held box — same look as Tomorrow's, just a different parking spot:
-     items pulled off today's active queue via "Hold" still count toward
-     today's total (they're not postponed, not done, not removed), just
-     hidden from Up Now until brought back. */
-  #today-held-box {
-    background: var(--surface2);
-    border: 1px solid rgba(var(--overlay-rgb),0.25);
-    border-radius: var(--radius-lg);
-    padding: 14px 16px;
-  }
-  #today-held-box.hide { display: none; }
-  #today-held-box-title {
-    display: flex; align-items: center; gap: 6px; width: 100%; text-align: left;
-    background: none; border: none; padding: 0; cursor: pointer;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-dim);
-  }
-  #today-held-box-title:hover { color: var(--text-muted); }
-  #today-held-box:not(.collapsed) #today-held-box-title { margin-bottom: 10px; }
-  #today-held-box.collapsed #today-held-list { display: none; }
-  #today-held-list { display: flex; flex-direction: column; gap: 6px; }
   .today-tomorrow-row {
     display: flex;
     align-items: center;
@@ -3172,7 +3148,7 @@
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                 Done
               </button>
-              <button type="button" id="today-hero-hold" class="today-hero-btn" title="Off today's list — not done, pick it back up whenever">
+              <button type="button" id="today-hero-hold" class="today-hero-btn" title="Off today's list and counted toward today's done tally — you'll pick it up another day">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
                 Hold
               </button>
@@ -3251,10 +3227,6 @@
         <div id="today-tomorrow-list"></div>
       </div>
 
-      <div id="today-held-box" class="hide collapsed">
-        <button type="button" id="today-held-box-title" data-action="toggle-held-collapse"></button>
-        <div id="today-held-list"></div>
-      </div>
     </div>
   </div>
 
@@ -5648,16 +5620,22 @@
   // its own rollover, so the Achievements calendar has something to show.
   // Items postponed away are excluded: they were never actually attempted
   // that day, so counting them would unfairly tank the day's ratio.
-  function recordHistoryDay(dateStr, items) {
+  function recordHistoryDay(dateStr, items, heldCount) {
     if (!dateStr) return;
     var relevant = (items || []).filter(function(i) {
       return !!todayEntryInfo(i) && !i.postponedTo;
     });
-    if (!relevant.length) return;
-    var done = relevant.filter(function(i) { return todayEntryInfo(i).done; }).length;
+    heldCount = heldCount || 0;
+    // Held items were already removed from `items` when Hold was clicked
+    // (see holdTodayItem), so they'd otherwise vanish from the archived
+    // day's tally entirely — heldCount carries their +1/+1 contribution
+    // to done/total through to history.
+    if (!relevant.length && !heldCount) return;
+    var done = relevant.filter(function(i) { return todayEntryInfo(i).done; }).length + heldCount;
+    var total = relevant.length + heldCount;
     var entry = data.history.find(function(h) { return h.date === dateStr; });
-    if (entry) { entry.done = done; entry.total = relevant.length; }
-    else data.history.push({ date: dateStr, done: done, total: relevant.length });
+    if (entry) { entry.done = done; entry.total = total; }
+    else data.history.push({ date: dateStr, done: done, total: total });
   }
 
   // Rolls the Today list over to a new day: only items already checked off
@@ -5724,10 +5702,11 @@
     var today = todayStr();
     var changed = false;
     if (data.today.date !== today) {
-      recordHistoryDay(data.today.date, data.today.items);
+      recordHistoryDay(data.today.date, data.today.items, data.today.heldCount);
       data.today.date = today;
       data.today.heroId = null;
       data.today.dismissedDue = [];
+      data.today.heldCount = 0;
       data.today.items = data.today.items.filter(function(i) {
         var info = todayEntryInfo(i);
         return !info || !info.done;
@@ -5788,29 +5767,25 @@
     save();
     render();
   }
-  // "Hold" used to just call removeFromToday — identical to actually
-  // deleting it, despite the button's own tooltip promising "not done,
-  // pick it back up whenever". Held items stay in the list (and keep
-  // counting toward today's total) instead of being wiped, same idea as
-  // postponing to tomorrow but parked in today's own Held box.
+  // Hold = "I'm done deciding on this one for today, I'll pick it up
+  // another day" — counts toward today's done tally (like actually
+  // finishing something would) without marking the underlying card done
+  // on the board, then leaves today's list entirely, same as Remove.
+  // heldCount is a running per-day tally (reset at day rollover) added
+  // to both the numerator and denominator of "done/total" everywhere
+  // that ratio is shown, so holding something doesn't shrink the total
+  // the way a plain removal would.
   function holdTodayItem(itemId) {
     var list = ensureTodayList();
     var item = list.items.find(function(i) { return i.id === itemId; });
     if (!item) return;
-    item.held = true;
-    stopCardTimerIfRunning(item.cardId);
+    list.heldCount = (list.heldCount || 0) + 1;
+    if (item.cardId) { list.dismissedDue.push(item.cardId); stopCardTimerIfRunning(item.cardId); }
+    list.items = list.items.filter(function(i) { return i.id !== itemId; });
     if (list.heroId === itemId) {
       var order = computeTodayTodo(list).todo.filter(function(e) { return e.item.id !== itemId; });
       list.heroId = order.length ? order[0].item.id : null;
     }
-    save();
-    render();
-  }
-  function unholdTodayItem(itemId) {
-    var list = ensureTodayList();
-    var item = list.items.find(function(i) { return i.id === itemId; });
-    if (!item) return;
-    item.held = false;
     save();
     render();
   }
@@ -6528,7 +6503,6 @@
   var heroCurrentItemId = null;
   var todayDoneCollapsed = true;
   var todayTomorrowCollapsed = true;
-  var todayHeldCollapsed = true;
 
   function sendTodayItemToBack(itemId) {
     var list = ensureTodayList();
@@ -6569,16 +6543,11 @@
     var tomorrow = tomorrowStr();
     var postponed = allEntries.filter(function(e) { return e.item.postponedTo === tomorrow; });
     var entries = allEntries.filter(function(e) { return e.item.postponedTo !== tomorrow; });
-    // Held items stay in `entries` (and so still count toward today's
-    // total/ratio) but are pulled out of the active queue and can't
-    // become Up Now until brought back — "not done, pick it back up
-    // whenever" per Hold's own tooltip, not a removal.
-    var held = entries.filter(function(e) { return e.item.held && !e.info.done; });
-    var todo = entries.filter(function(e) { return !e.info.done && !e.item.held; });
+    var todo = entries.filter(function(e) { return !e.info.done; });
     var done = entries.filter(function(e) { return e.info.done; });
     var todoTimed = todo.filter(function(e) { return e.info.time; })
       .sort(function(a, b) { return a.info.time < b.info.time ? -1 : a.info.time > b.info.time ? 1 : 0; });
-    return { entries: entries, postponed: postponed, done: done, todo: todo, todoTimed: todoTimed, held: held };
+    return { entries: entries, postponed: postponed, done: done, todo: todo, todoTimed: todoTimed };
   }
 
   function renderToday() {
@@ -6591,15 +6560,16 @@
     var computed = computeTodayTodo(list);
     var entries = computed.entries, postponed = computed.postponed, done = computed.done, todo = computed.todo;
     var doneToday = entries.filter(function(e) { return e.info.done && e.info.doneAt === todayStr(); });
+    var heldCount = list.heldCount || 0;
     todayTimeDots = computed.todoTimed.map(function(e) { return { time: e.info.time, title: e.info.title }; });
     renderTaskDots();
 
-    document.getElementById('today-empty').classList.toggle('show', entries.length === 0 && postponed.length === 0);
+    document.getElementById('today-empty').classList.toggle('show', entries.length === 0 && postponed.length === 0 && heldCount === 0);
 
     var summaryBoxEl = document.getElementById('today-summary-box');
-    summaryBoxEl.classList.toggle('hide', entries.length === 0);
-    if (entries.length) {
-      document.getElementById('today-summary-count').textContent = doneToday.length + '/' + entries.length;
+    summaryBoxEl.classList.toggle('hide', entries.length === 0 && heldCount === 0);
+    if (entries.length || heldCount) {
+      document.getElementById('today-summary-count').textContent = (doneToday.length + heldCount) + '/' + (entries.length + heldCount);
     }
 
     var heroEl = document.getElementById('today-hero');
@@ -6657,16 +6627,6 @@
         svgIcon(todayTomorrowCollapsed ? 'expand' : 'collapse') + '<span>Tomorrow · ' + postponed.length + '</span>';
       document.getElementById('today-tomorrow-list').innerHTML = postponed.map(renderTomorrowRow).join('');
     }
-
-    var held = computed.held;
-    var heldBox = document.getElementById('today-held-box');
-    heldBox.classList.toggle('hide', held.length === 0);
-    heldBox.classList.toggle('collapsed', todayHeldCollapsed);
-    if (held.length) {
-      document.getElementById('today-held-box-title').innerHTML =
-        svgIcon(todayHeldCollapsed ? 'expand' : 'collapse') + '<span>Held · ' + held.length + '</span>';
-      document.getElementById('today-held-list').innerHTML = held.map(renderHeldRow).join('');
-    }
   }
 
   function renderTodayRow(entry) {
@@ -6720,19 +6680,6 @@
         '<span class="today-row-tag">' + esc(info.tag) + '</span>' +
         '<button type="button" class="today-row-action-btn" data-action="unpostpone-today" data-item="' + item.id + '" title="Move back to today">' + svgIcon('restore') + '</button>' +
         '<button type="button" class="today-row-action-btn" data-action="remove-today" data-item="' + item.id + '" title="Remove from today/tomorrow">' + svgIcon('trash') + '</button>' +
-      '</div>'
-    );
-  }
-
-  function renderHeldRow(entry) {
-    var item = entry.item, info = entry.info;
-    return (
-      '<div class="today-tomorrow-row" data-item="' + item.id + '">' +
-        '<span class="today-row-color" style="background:' + info.color + ';"></span>' +
-        '<span class="today-tomorrow-row-title">' + esc(info.title || 'Untitled card') + '</span>' +
-        '<span class="today-row-tag">' + esc(info.tag) + '</span>' +
-        '<button type="button" class="today-row-action-btn" data-action="unhold-today" data-item="' + item.id + '" title="Move back to today">' + svgIcon('restore') + '</button>' +
-        '<button type="button" class="today-row-action-btn" data-action="remove-today" data-item="' + item.id + '" title="Remove from today">' + svgIcon('trash') + '</button>' +
       '</div>'
     );
   }
@@ -6870,16 +6817,6 @@
   });
   document.getElementById('today-tomorrow-box-title').addEventListener('click', function() {
     todayTomorrowCollapsed = !todayTomorrowCollapsed;
-    renderToday();
-  });
-  document.getElementById('today-held-list').addEventListener('click', function(e) {
-    var restoreBtn = e.target.closest('[data-action="unhold-today"]');
-    if (restoreBtn) { unholdTodayItem(restoreBtn.getAttribute('data-item')); return; }
-    var removeBtn = e.target.closest('[data-action="remove-today"]');
-    if (removeBtn) removeFromToday(removeBtn.getAttribute('data-item'));
-  });
-  document.getElementById('today-held-box-title').addEventListener('click', function() {
-    todayHeldCollapsed = !todayHeldCollapsed;
     renderToday();
   });
 
@@ -7492,9 +7429,11 @@
     // and the "today" stat update as tasks get checked off.
     var todayList = ensureTodayList();
     var todayRelevant = todayList.items.filter(function(i) { return !!todayEntryInfo(i) && !i.postponedTo; });
-    var todayDone = todayRelevant.filter(function(i) { return todayEntryInfo(i).done; }).length;
-    historyMap[todayStr()] = { done: todayDone, total: todayRelevant.length };
-    document.getElementById('achievements-today-ratio').textContent = todayDone + '/' + todayRelevant.length;
+    var todayHeldCount = todayList.heldCount || 0;
+    var todayDone = todayRelevant.filter(function(i) { return todayEntryInfo(i).done; }).length + todayHeldCount;
+    var todayTotal = todayRelevant.length + todayHeldCount;
+    historyMap[todayStr()] = { done: todayDone, total: todayTotal };
+    document.getElementById('achievements-today-ratio').textContent = todayDone + '/' + todayTotal;
 
     var streak = 0;
     var cursor = new Date();
@@ -7516,7 +7455,7 @@
     var level = 1 + Math.floor(successfulDays / 5);
     document.getElementById('achievements-level').textContent = level;
 
-    document.getElementById('achievements-empty').classList.toggle('hide', data.history.length > 0 || todayRelevant.length > 0);
+    document.getElementById('achievements-empty').classList.toggle('hide', data.history.length > 0 || todayTotal > 0);
     renderAchievementsCalendar(historyMap);
 
     // The trend chart/quality bars stay a short, readable 30-day window,
