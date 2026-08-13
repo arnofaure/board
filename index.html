@@ -73,6 +73,59 @@
     --header-bg: #e3e3df;
   }
 
+  /* LIGHT THEME — readability fixes for pastel accent colors. Every one
+     of these was tuned to read against a near-black surface (green
+     #4ade80, amber #fbbf24, red #f87171, purple #b285f0, blue #60a5fa,
+     teal #5fc9c0, gold #e8cf7c, coral #ef6b5c) — fine there, but too
+     light to read as plain text on a white one. Deepened to a darker
+     shade of the same hue, grouped here by color rather than scattered
+     as one-off overrides next to each original (much smaller than) rule. */
+  html.light-theme .card-checklist-badge.complete,
+  html.light-theme .card-checklist-pct.complete,
+  html.light-theme .cal-header-cell.today,
+  html.light-theme .cal-header-cell.today .cal-date-num,
+  html.light-theme .gantt-day.today,
+  html.light-theme .gantt-day.today .gantt-day-num,
+  html.light-theme .today-done-badge,
+  html.light-theme .achievements-stat {
+    color: #15803d;
+  }
+  html.light-theme .today-done-badge {
+    border-color: rgba(21,128,61,0.4);
+    background: rgba(21,128,61,0.1);
+  }
+  html.light-theme .card-due .end.due-today,
+  html.light-theme .tl-group-title.today,
+  html.light-theme .today-focus-value,
+  html.light-theme .today-focus-pick-btn:hover,
+  html.light-theme .today-row-break-icon {
+    color: #b45309;
+  }
+  html.light-theme #card-total .overdue,
+  html.light-theme .card-due .end.due-overdue,
+  html.light-theme .card-time-badge.is-running,
+  html.light-theme .tl-group-title.overdue,
+  html.light-theme .today-hero-timer-time.is-running,
+  html.light-theme .today-row-timer-time.is-running {
+    color: #c8402f;
+  }
+  html.light-theme #card-total .overdue:not(:empty):hover { text-decoration-color: #c8402f; }
+  html.light-theme .cp-hour-label.pm,
+  html.light-theme .cp-remaining-label.pm,
+  html.light-theme #today-hero.is-focus .today-hero-eyebrow::after {
+    color: #6d28d9;
+  }
+  html.light-theme #undo-toast-btn { color: #1d4ed8; }
+  html.light-theme .cp-hour-label.extra,
+  html.light-theme .cp-remaining-label.extra {
+    color: #0f766e;
+  }
+  html.light-theme .cp-hour-label.noon,
+  html.light-theme .cp-remaining-label.noon {
+    color: #a16207;
+  }
+  html.light-theme #today-timer-box.running #today-timer-line-label { color: #c2410c; }
+
   html, body {
     background: var(--bg);
     color: var(--text);
