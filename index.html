@@ -29,9 +29,17 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #0d0d0d;
-    --surface: #161616;
-    --surface2: #1f1f1f;
+    /* Page vs. box separation was too subtle to read as distinct
+       elevation (bg #0d0d0d → surface #161616 → surface2 #1f1f1f was
+       three shades ~9 points apart each, out of 255) — widened each step
+       so a column/card/modal actually pops off the page instead of
+       nearly disappearing into it. Dropdowns/floating panels use
+       whichever surface is most elevated per theme (surface2 here,
+       darkest-available reasoning doesn't apply — this is the *lightest*
+       available tone, which reads as "closest to the light source"). */
+    --bg: #0a0a0a;
+    --surface: #1a1a1a;
+    --surface2: #262626;
     --border: rgba(var(--overlay-rgb),0.08);
     --border-hover: rgba(var(--overlay-rgb),0.18);
     --text: #e8e8e8;
@@ -47,9 +55,8 @@
        rgba(var(--overlay-rgb),X) — one variable flip adapts all of them
        for light mode instead of hunting down ~35 individual literals. */
     --overlay-rgb: 255,255,255;
-    --dropdown-bg: #1a1a1a;
-    --bg-rgb: 13,13,13;
-    --header-bg: #262626;
+    --dropdown-bg: #262626;
+    --bg-rgb: 10,10,10;
   }
 
   /* LIGHT THEME — opt-in toggle (menu-light), same idea as mono-theme:
@@ -57,9 +64,14 @@
      Saturated accent colors (task colors, done/distraction/focus/etc.)
      are left as-is since they already read fine on a light surface. */
   html.light-theme {
-    --bg: #f4f4f2;
+    /* Same elevation-separation fix as dark mode's :root above — white
+       surface (255) was only 11 points off the page bg (244), and
+       surface2 (238) sat *between* the two instead of reading as a
+       clearly distinct tone. Page now a visible light grey, surface
+       stays crisp white, surface2 a step down from both. */
+    --bg: #ececea;
     --surface: #ffffff;
-    --surface2: #eeeeec;
+    --surface2: #e2e2de;
     --border: rgba(0,0,0,0.1);
     --border-hover: rgba(0,0,0,0.22);
     --text: #1c1c1c;
@@ -69,8 +81,7 @@
     --danger: #c8402f;
     --overlay-rgb: 0,0,0;
     --dropdown-bg: #ffffff;
-    --bg-rgb: 244,244,242;
-    --header-bg: #e3e3df;
+    --bg-rgb: 236,236,234;
   }
 
   /* LIGHT THEME — readability fixes for pastel accent colors. Every one
@@ -511,7 +522,7 @@
     align-items: center;
     gap: 6px;
     padding: 10px 10px;
-    background: var(--header-bg);
+    background: var(--surface2);
     border-bottom: 1px solid rgba(var(--overlay-rgb),0.14);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     cursor: grab;
