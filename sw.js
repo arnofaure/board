@@ -1,7 +1,7 @@
 // Board — offline app-shell cache. Bump CACHE_VERSION whenever the shell
 // files change so old clients pick up the new version instead of serving
 // a stale cache forever.
-const CACHE_VERSION = 'board-v1';
+const CACHE_VERSION = 'board-v2';
 const SHELL_FILES = [
   './',
   './index.html',
