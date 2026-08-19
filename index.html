@@ -8,7 +8,7 @@
 
 <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0d0d0d">
+<meta name="theme-color" content="#0a0a0a">
 
 <!-- Installable as a standalone app (desktop/Android "Install", iOS "Add to Home Screen") -->
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -2823,10 +2823,8 @@
   <div class="tb-menu">
     <button id="logo-btn" class="tb-menu-btn">
       <span class="tb-logo-square">
-        <svg class="tb-logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="4" width="6" height="16" rx="1.2"/>
-          <rect x="9.5" y="4" width="6" height="10" rx="1.2"/>
-          <rect x="16" y="4" width="5" height="13" rx="1.2"/>
+        <svg class="tb-logo" viewBox="0 0 362 661" fill="currentColor">
+          <path d="M970.241,440.544L953.481,440.489L953.481,366.666L970.734,366.666L970.515,376.142L970.022,382.221L970.515,382.221L975.17,366.666L992.916,366.666L983.879,385.946L993.902,440.544L974.677,440.544L970.515,393.285L970.022,393.285L970.241,440.544Z" transform="matrix(8.945739,0,0,8.945739,-8529.588686,-3280.101343)"/>
         </svg>
       </span>
       <span class="tb-beta">BETA</span>
@@ -3936,7 +3934,7 @@
   // same #bg value the CSS itself switches to.
   function applyThemeColorMeta() {
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', data.lightTheme ? '#f4f4f2' : '#0d0d0d');
+    if (meta) meta.setAttribute('content', data.lightTheme ? '#ececea' : '#0a0a0a');
   }
   applyThemeColorMeta();
   // save() is called on every keystroke in several places (card title,
