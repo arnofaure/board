@@ -1,8 +1,8 @@
-# Board
+# K-Board
 
 A 100% free, single-file kanban board web app — created by [Arno Faure](https://arnofaure.com).
 
-**[board.arnofaure.com](https://board.arnofaure.com)** · [Changelog](CHANGELOG.md)
+**[kboard.arnofaure.com](https://kboard.arnofaure.com)** · [Changelog](CHANGELOG.md)
 
 ## Features
 

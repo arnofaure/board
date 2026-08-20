@@ -1,6 +1,6 @@
 {
- "name": "Board",
- "short_name": "Board",
+ "name": "K-Board",
+ "short_name": "K-Board",
  "description": "A 100% free, single-file kanban board web app",
  "display": "standalone",
  "start_url": "/",
