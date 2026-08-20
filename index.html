@@ -450,22 +450,30 @@
   .project-carousel-arrow.hide { display: none; }
   .project-carousel-track {
     display: flex; align-items: center; justify-content: center; gap: 10px;
-    overflow: hidden;
+    /* Was overflow:hidden, which clipped the hover-scale pop on items
+       right at the track's edge — a little vertical breathing room
+       instead, so the scaled-up pill has somewhere to grow into. */
+    padding: 10px 0;
   }
   /* Pill/button-outline look — a colored border instead of giant bold
      text carrying all the weight, so the active project reads as "the
-     selected button" rather than a page title. */
+     selected button" rather than a page title. Active gets a solid
+     fill (projectFillColor) instead of just an outline, so it's
+     obviously *the* selected one, not just another item in the row. */
   .project-carousel-item {
     background: none; border: 1.5px solid currentColor; border-radius: 999px;
     cursor: pointer; font-weight: 600;
     white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis;
     padding: 6px 16px;
     transform: scale(1);
-    transition: opacity 0.15s, font-size 0.15s, padding 0.15s, background 0.15s, transform 0.18s ease;
+    transition: opacity 0.15s, font-size 0.15s, padding 0.15s, background 0.15s, transform 0.18s ease, box-shadow 0.15s;
   }
   .project-carousel-item:hover:not(.active) { opacity: 0.95 !important; transform: scale(1.08); }
   .project-carousel-item.active { font-size: 18px; font-weight: 700; opacity: 1; }
-  .project-carousel.open .project-carousel-item.active { background: var(--surface2); }
+  /* Active already has an inline background (its solid fill color),
+     which an external stylesheet rule can never out-specificity — a
+     ring instead of a background swap signals the dropdown is open. */
+  .project-carousel.open .project-carousel-item.active { box-shadow: 0 0 0 3px rgba(var(--overlay-rgb),0.3); }
   /* Dim, but not so much they're hard to make out — especially in dark
      mode, where the pastel project colors already lose a lot of punch
      at low opacity against a near-black background. */
@@ -3797,6 +3805,16 @@
   function projectColor(project) {
     var lightness = document.documentElement.classList.contains('light-theme') ? 42 : 65;
     return 'hsl(' + tagHue(project.id) + ',70%,' + lightness + '%)';
+  }
+
+  // Solid-fill version for the carousel's active project (a filled pill,
+  // not just an outline) — a fixed medium-dark lightness that works with
+  // white text in both themes, same convention as the idea-tag filter's
+  // "selected" state, instead of projectColor()'s theme-flipped lightness
+  // (which is tuned for use as plain text on the page background, not as
+  // a background color itself).
+  function projectFillColor(project) {
+    return 'hsl(' + tagHue(project.id) + ',60%,42%)';
   }
 
   // Picks a color for the card at `index` in `col.cards`, avoiding the color
@@ -7134,7 +7152,10 @@
       var p = projects[idx];
       var dist = Math.abs(idx - activeIndex);
       var cls = 'project-carousel-item' + (dist === 0 ? ' active' : dist === 1 ? ' near' : ' far');
-      return '<button type="button" class="' + cls + '" data-project="' + p.id + '" style="color:' + projectColor(p) + ';" title="' + esc(p.name || 'Untitled project') + '">' + esc(p.name || 'Untitled project') + '</button>';
+      var style = dist === 0
+        ? 'background:' + projectFillColor(p) + ';border-color:' + projectFillColor(p) + ';color:#fff;'
+        : 'color:' + projectColor(p) + ';';
+      return '<button type="button" class="' + cls + '" data-project="' + p.id + '" style="' + style + '" title="' + esc(p.name || 'Untitled project') + '">' + esc(p.name || 'Untitled project') + '</button>';
     }).join('');
     var showArrows = projects.length > 5;
     document.getElementById('project-carousel-prev').classList.toggle('hide', !showArrows);
