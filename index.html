@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Board — 100% Free Kanban Board Web App</title>
+<title>K-Board — 100% Free Kanban Board Web App</title>
 <meta name="description" content="A 100% free, local kanban board: columns, cards with due dates, checklists and cover images, a due-date timeline view, and shuffleable card colors. Created by Arno Faure.">
 
 <link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
@@ -15,15 +15,15 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Board">
+<meta name="apple-mobile-web-app-title" content="K-Board">
 
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://board.arnofaure.com">
-<meta property="og:title" content="Board — 100% Free Kanban Board Web App">
+<meta property="og:url" content="https://kboard.arnofaure.com">
+<meta property="og:title" content="K-Board — 100% Free Kanban Board Web App">
 <meta property="og:description" content="A 100% free, local kanban board: columns, cards with due dates, checklists and cover images, a due-date timeline view, and shuffleable card colors.">
 
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Board — 100% Free Kanban Board Web App">
+<meta name="twitter:title" content="K-Board — 100% Free Kanban Board Web App">
 <meta name="twitter:description" content="A 100% free, local kanban board: columns, cards with due dates, checklists and cover images, a due-date timeline view, and shuffleable card colors.">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -426,30 +426,47 @@
 
   /* BOARD */
   #board-title-header {
-    font-size: 36px;
     font-weight: 800;
     letter-spacing: -0.01em;
     text-align: center;
     margin-bottom: 32px;
   }
-  .title-project-wrap { position: relative; display: inline-block; }
-  .title-project-btn {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 10px;
-    border-radius: var(--radius);
-    font: inherit;
-    color: inherit;
-    letter-spacing: inherit;
-    transition: background 0.15s;
+  .title-project-wrap { position: relative; display: inline-flex; flex-direction: column; align-items: center; }
+  /* PROJECT CAROUSEL — the active project sits centered and full-size/
+     opacity; up to two neighbors on each side (by data.projects order,
+     which is already user-reorderable via the management dropdown below)
+     shade out with distance so the strip reads as "here's what's nearby"
+     rather than a plain list. Clicking a neighbor switches straight to
+     it; clicking the already-active center item opens the same
+     rename/reorder/delete dropdown the old single button used to. */
+  .project-carousel { display: flex; align-items: center; gap: 4px; max-width: 100%; }
+  .project-carousel-arrow {
+    background: transparent; border: none; cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 50%; color: var(--text-dim);
+    transition: background 0.15s, color 0.15s;
   }
-  .title-project-btn:hover, .title-project-btn.open { background: var(--surface2); }
-  .title-project-btn svg.tb-chevron { color: var(--text-dim); flex-shrink: 0; transition: transform 0.15s; }
-  .title-project-btn.open svg.tb-chevron { transform: rotate(180deg); }
+  .project-carousel-arrow:hover { background: var(--surface2); color: var(--text); }
+  .project-carousel-arrow.hide { display: none; }
+  .project-carousel-track {
+    display: flex; align-items: baseline; justify-content: center; gap: 20px;
+    overflow: hidden;
+  }
+  .project-carousel-item {
+    background: none; border: none; cursor: pointer; font-weight: 800;
+    white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis;
+    padding: 3px 6px; border-radius: var(--radius);
+    transform: scale(1);
+    transition: opacity 0.15s, font-size 0.15s, background 0.15s, transform 0.18s ease;
+  }
+  .project-carousel-item:hover:not(.active) { opacity: 0.95 !important; transform: scale(1.12); }
+  .project-carousel-item.active { font-size: 36px; opacity: 1; letter-spacing: -0.01em; }
+  .project-carousel.open .project-carousel-item.active { background: var(--surface2); }
+  /* Dim, but not so much they're hard to make out — especially in dark
+     mode, where the pastel project colors already lose a lot of punch
+     at low opacity against a near-black background. */
+  .project-carousel-item.near { font-size: 20px; opacity: 0.65; }
+  .project-carousel-item.far { font-size: 15px; opacity: 0.42; }
   #board-options-btn svg.tb-chevron { color: var(--text-dim); flex-shrink: 0; transition: transform 0.15s; }
   #board-options-btn.open svg.tb-chevron { transform: rotate(180deg); }
   /* Sits inside the view-switch pill next to the Board tab — border: none
@@ -2708,7 +2725,7 @@
   html.mono-theme .color-swatch,
   html.mono-theme .idea-tag,
   html.mono-theme .idea-tag-filter-btn,
-  html.mono-theme #title-project-btn,
+  html.mono-theme .project-carousel-item,
   html.mono-theme .tl-row,
   html.mono-theme .card.is-focus,
   html.mono-theme .card.is-timing,
@@ -2831,7 +2848,7 @@
       <svg class="tb-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
     </button>
     <div class="tb-dropdown" id="logo-dropdown">
-      <div class="tb-menu-heading">Board</div>
+      <div class="tb-menu-heading">K-Board</div>
       <button class="tb-btn" id="menu-focus" title="Strip the Today view down to the timeline, timer, and current task">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
         Focus mode
@@ -2881,7 +2898,7 @@
         Clear all
       </button>
       <div class="tb-sep-h"></div>
-      <button class="tb-btn" id="menu-help" title="Quick guide to using Board">
+      <button class="tb-btn" id="menu-help" title="Quick guide to using K-Board">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         Help
       </button>
@@ -3009,10 +3026,15 @@
   <div id="board-view">
     <h1 id="board-title-header">
       <span class="title-project-wrap" id="title-project-wrap">
-        <button type="button" id="title-project-btn" class="title-project-btn" title="Switch project">
-          <span id="title-project-label"></span>
-          <svg class="tb-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
+        <div class="project-carousel" id="project-carousel">
+          <button type="button" class="project-carousel-arrow hide" id="project-carousel-prev" title="Previous project" aria-label="Previous project">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div class="project-carousel-track" id="project-carousel-track"></div>
+          <button type="button" class="project-carousel-arrow hide" id="project-carousel-next" title="Next project" aria-label="Next project">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
         <div class="tb-dropdown" id="project-dropdown">
           <div class="tb-menu-heading">Projects</div>
           <div id="project-list"></div>
@@ -3318,7 +3340,7 @@
 </div>
 
 <div id="page-footer">
-  Board — 100% local and free. Your data stays in this browser (remember to export regularly).
+  K-Board — 100% local and free. Your data stays in this browser (remember to export regularly).
   <span class="footer-credit">© 2026 Concept by <a href="https://arnofaure.com" target="_blank" rel="noopener">Arno Faure</a> · Licensed under <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener">CC BY-NC 4.0</a></span>
 </div>
 
@@ -3344,9 +3366,9 @@
     <button class="modal-close" id="help-close">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
-    <h2>How to use Board</h2>
+    <h2>How to use K-Board</h2>
     <ol>
-      <li><strong>Everything stays on your device.</strong> Board runs entirely in your browser — your boards are never uploaded, no account needed.</li>
+      <li><strong>Everything stays on your device.</strong> K-Board runs entirely in your browser — your boards are never uploaded, no account needed.</li>
       <li><strong>Multiple projects.</strong> Use the project switcher (top bar) to create and switch between separate boards — each keeps its own columns, cards and colors.</li>
       <li><strong>Add columns and cards</strong>, then drag cards between columns (or drag a column's header to reorder columns).</li>
       <li><strong>Click a card</strong> to set a description, a start/due date (click the field to open a calendar), a checklist, a cover image, or a color.</li>
@@ -3764,9 +3786,13 @@
   }
 
   // Deterministic color per project (by id, so it's stable across renames),
-  // used to tell projects apart at a glance in the "all projects" Timeline view.
+  // used to tell projects apart at a glance in the "all projects" Timeline
+  // view and the project carousel. 65% lightness reads fine on a dark
+  // surface but is too pale for light mode (same issue the rest of the
+  // pastel accents had), so light mode uses a darker lightness instead.
   function projectColor(project) {
-    return 'hsl(' + tagHue(project.id) + ',70%,65%)';
+    var lightness = document.documentElement.classList.contains('light-theme') ? 42 : 65;
+    return 'hsl(' + tagHue(project.id) + ',70%,' + lightness + '%)';
   }
 
   // Picks a color for the card at `index` in `col.cards`, avoiding the color
@@ -4070,7 +4096,7 @@
     lastAutoBackupAt = now;
     backupDirHandle.queryPermission({ mode: 'readwrite' }).then(function(state) {
       if (state !== 'granted') { refreshBackupFolderLabel('needs-permission'); return; }
-      var name = 'board-backup-' + nowStamp() + '.json';
+      var name = 'k-board-backup-' + nowStamp() + '.json';
       return backupDirHandle.getFileHandle(name, { create: true }).then(function(fileHandle) {
         return fileHandle.createWritable();
       }).then(function(writable) {
@@ -4802,9 +4828,7 @@
 
   function renderBoard() {
     var proj = activeProject();
-    var titleProjectBtn = document.getElementById('title-project-btn');
-    document.getElementById('title-project-label').textContent = proj.name || 'Untitled project';
-    titleProjectBtn.style.color = projectColor(proj);
+    renderProjectCarousel();
     var boardEl = document.getElementById('board');
     var emptyEl = document.getElementById('board-empty');
     var columns = proj.columns;
@@ -7052,26 +7076,88 @@
 
   // ---------- PROJECT MENU ----------
   var projectDropdown = document.getElementById('project-dropdown');
-  var titleProjectBtn = document.getElementById('title-project-btn');
+  var projectCarouselEl = document.getElementById('project-carousel');
 
   function closeProjectMenu() {
-    titleProjectBtn.classList.remove('open');
+    projectCarouselEl.classList.remove('open');
     projectDropdown.classList.remove('open');
   }
-
-  titleProjectBtn.addEventListener('click', function(e) {
-    e.stopPropagation();
-    var wasOpen = titleProjectBtn.classList.contains('open');
+  function toggleProjectMenu() {
+    var wasOpen = projectCarouselEl.classList.contains('open');
     closeProjectMenu();
     if (!wasOpen) {
-      titleProjectBtn.classList.add('open');
+      projectCarouselEl.classList.add('open');
       projectDropdown.classList.add('open');
     }
-  });
+  }
   document.addEventListener('click', function(e) {
-    if (!projectDropdown.contains(e.target) && e.target !== titleProjectBtn && !titleProjectBtn.contains(e.target)) {
+    if (!projectDropdown.contains(e.target) && !projectCarouselEl.contains(e.target)) {
       closeProjectMenu();
     }
+  });
+
+  function switchActiveProject(pid) {
+    if (pid === data.activeProjectId) return;
+    data.activeProjectId = pid;
+    checkDailyShuffle(activeProject());
+    checkDailyArchive(activeProject());
+    save();
+    render();
+  }
+
+  // Shows the active project centered/full-size, up to two neighbors on
+  // each side (by data.projects order) fading out with distance, and
+  // scroll arrows only once there are more than 5 to fit — see the CSS
+  // comment above .project-carousel for the interaction model. The list
+  // wraps cyclically (mod count) so the active one is always dead center
+  // — even the first/last project — instead of the window just clamping
+  // and sliding off-center near the array's edges.
+  function computeCarouselWindow(count, activeIndex) {
+    var size = Math.min(5, count);
+    var half = Math.floor(size / 2);
+    var out = [];
+    for (var i = -half; i < size - half; i++) {
+      out.push(((activeIndex + i) % count + count) % count);
+    }
+    return out;
+  }
+  function renderProjectCarousel() {
+    var projects = data.projects;
+    var activeIndex = projects.findIndex(function(p) { return p.id === data.activeProjectId; });
+    if (activeIndex === -1) activeIndex = 0;
+    var indices = computeCarouselWindow(projects.length, activeIndex);
+    document.getElementById('project-carousel-track').innerHTML = indices.map(function(idx) {
+      var p = projects[idx];
+      var dist = Math.abs(idx - activeIndex);
+      var cls = 'project-carousel-item' + (dist === 0 ? ' active' : dist === 1 ? ' near' : ' far');
+      return '<button type="button" class="' + cls + '" data-project="' + p.id + '" style="color:' + projectColor(p) + ';" title="' + esc(p.name || 'Untitled project') + '">' + esc(p.name || 'Untitled project') + '</button>';
+    }).join('');
+    var showArrows = projects.length > 5;
+    document.getElementById('project-carousel-prev').classList.toggle('hide', !showArrows);
+    document.getElementById('project-carousel-next').classList.toggle('hide', !showArrows);
+  }
+  document.getElementById('project-carousel-track').addEventListener('click', function(e) {
+    var btn = e.target.closest('.project-carousel-item');
+    if (!btn) return;
+    var pid = btn.getAttribute('data-project');
+    if (pid === data.activeProjectId) { toggleProjectMenu(); return; }
+    switchActiveProject(pid);
+    closeProjectMenu();
+  });
+  function stepActiveProject(delta) {
+    var projects = data.projects;
+    var idx = projects.findIndex(function(p) { return p.id === data.activeProjectId; });
+    if (idx === -1) return;
+    idx = (idx + delta + projects.length) % projects.length;
+    switchActiveProject(projects[idx].id);
+  }
+  document.getElementById('project-carousel-prev').addEventListener('click', function(e) {
+    e.stopPropagation();
+    stepActiveProject(-1);
+  });
+  document.getElementById('project-carousel-next').addEventListener('click', function(e) {
+    e.stopPropagation();
+    stepActiveProject(1);
   });
 
   function renderProjectMenu() {
@@ -7095,11 +7181,7 @@
     var action = btn.getAttribute('data-action');
     var pid = btn.getAttribute('data-project');
     if (action === 'select-project') {
-      data.activeProjectId = pid;
-      checkDailyShuffle(activeProject());
-      checkDailyArchive(activeProject());
-      save();
-      render();
+      switchActiveProject(pid);
       closeProjectMenu();
     } else if (action === 'delete-project') {
       if (data.projects.length <= 1) return;
@@ -7124,9 +7206,7 @@
     if (action === 'rename-project') {
       proj.name = el.value;
       save();
-      if (proj.id === data.activeProjectId) {
-        document.getElementById('title-project-label').textContent = proj.name || 'Untitled project';
-      }
+      if (proj.id === data.activeProjectId) renderProjectCarousel();
     }
   });
 
@@ -8905,7 +8985,7 @@
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = 'board-export-' + nowStamp() + '.json';
+    a.download = 'k-board-export-' + nowStamp() + '.json';
     a.click();
     URL.revokeObjectURL(url);
   });
@@ -8954,7 +9034,7 @@
         timelineFilter = 'all';
         save(); render();
       } catch (e) {
-        alert('Could not import this file — it doesn\'t look like a valid Board export.');
+        alert('Could not import this file — it doesn\'t look like a valid K-Board export.');
       }
     };
     reader.readAsText(file);
