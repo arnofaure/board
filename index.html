@@ -7152,9 +7152,12 @@
       var p = projects[idx];
       var dist = Math.abs(idx - activeIndex);
       var cls = 'project-carousel-item' + (dist === 0 ? ' active' : dist === 1 ? ' near' : ' far');
+      // Text stays the plain theme color (white in dark, near-black in
+      // light) for readability — only the outline carries the per-project
+      // color now, so it no longer relies on currentColor for the border.
       var style = dist === 0
         ? 'background:' + projectFillColor(p) + ';border-color:' + projectFillColor(p) + ';color:#fff;'
-        : 'color:' + projectColor(p) + ';';
+        : 'border-color:' + projectColor(p) + ';color:var(--text);';
       return '<button type="button" class="' + cls + '" data-project="' + p.id + '" style="' + style + '" title="' + esc(p.name || 'Untitled project') + '">' + esc(p.name || 'Untitled project') + '</button>';
     }).join('');
     var showArrows = projects.length > 5;
