@@ -5925,6 +5925,7 @@
         doneAt: found.card.doneAt,
         color: found.card.color,
         tag: (found.project.name || 'Untitled') + ' · ' + found.column.name,
+        columnTag: found.column.name,
         tagColor: projectColor(found.project),
         projectId: found.project.id,
         projectName: found.project.name || 'Untitled',
@@ -5941,6 +5942,7 @@
       doneAt: item.doneAt || null,
       color: item.color || '#999999',
       tag: 'Personal task',
+      columnTag: null,
       tagColor: 'var(--text-dim)',
       projectId: '__personal__',
       projectName: 'Personal',
@@ -6778,6 +6780,11 @@
           (secs > 0 || running ? '<span class="today-row-timer-time' + (running ? ' is-running' : '') + '" data-role="card-timer" data-card="' + item.cardId + '">' + formatHMS(secs) + '</span>' : '');
       }
     }
+    // Grouped by board, the subheader already names the board — repeating
+    // it in every row's tag is noise, so the tag shrinks to just the
+    // column (and disappears entirely for personal tasks, which have no
+    // column to show once "Personal" is already the subheader).
+    var tagText = todayGroupByBoard ? info.columnTag : info.tag;
     return (
       '<div class="today-row' + (info.done ? ' done' : '') + (info.isBreak ? ' today-row-break' : '') + (info.focus ? ' is-focus' : '') + '" data-card="' + (item.cardId || '') + '" data-item="' + item.id + '">' +
         '<span class="today-row-handle" title="Drag to reorder">' + svgIcon('grip') + '</span>' +
@@ -6789,7 +6796,7 @@
         timerHtml +
         '<input type="time" class="today-row-time' + (info.time ? '' : ' time-unset') + '" data-action="set-time" data-item="' + item.id + '" value="' + (info.time || '') + '" title="Schedule this task">' +
         (info.time ? '<button type="button" class="today-row-action-btn" data-action="clear-time" data-item="' + item.id + '" title="Clear time">' + svgIcon('close') + '</button>' : '') +
-        '<span class="today-row-tag" style="color:' + info.tagColor + ';">' + esc(info.tag) + '</span>' +
+        (tagText ? '<span class="today-row-tag" style="color:' + info.tagColor + ';">' + esc(tagText) + '</span>' : '') +
         (info.done ? '' : '<button type="button" class="today-row-action-btn" data-action="make-hero" data-item="' + item.id + '" title="Make this Up Now">' + svgIcon('arrowUp') + '</button>') +
         '<button type="button" class="today-row-action-btn" data-action="postpone-today" data-item="' + item.id + '" title="Postpone to tomorrow">' + svgIcon('tomorrow') + '</button>' +
         '<button type="button" class="today-row-action-btn" data-action="remove-today" data-item="' + item.id + '" title="Remove from today">' + svgIcon('trash') + '</button>' +
