@@ -1613,6 +1613,21 @@
     color: var(--text-dim); cursor: pointer; width: 100%; text-align: left;
   }
   .today-group-title-toggle:hover { color: var(--text-muted); }
+  #today-list-toolbar { display: flex; justify-content: flex-end; margin-bottom: -4px; }
+  #today-list-toolbar.hide { display: none; }
+  .today-group-toggle-btn {
+    display: flex; align-items: center; gap: 5px;
+    background: none; border: 1px solid rgba(var(--overlay-rgb),0.2); border-radius: 100px;
+    padding: 4px 10px; font-size: 11px; font-weight: 600;
+    color: var(--text-dim); cursor: pointer;
+  }
+  .today-group-toggle-btn:hover { color: var(--text-muted); border-color: var(--border-hover); }
+  .today-group-toggle-btn.active { color: var(--text); border-color: var(--border-hover); background: var(--surface2); }
+  .today-board-subheader {
+    font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 2px 2px 0; margin-top: 4px; opacity: 0.9;
+  }
+  .today-board-subheader:first-child { margin-top: 0; }
   .today-row {
     display: flex;
     align-items: center;
@@ -3251,6 +3266,12 @@
           </div>
         </div>
 
+        <div id="today-list-toolbar" class="hide">
+          <button type="button" id="today-group-toggle-btn" class="today-group-toggle-btn" title="Group tasks by board — purely visual, drag and reorder still work">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="10" rx="1"/></svg>
+            <span>Group by board</span>
+          </button>
+        </div>
         <div id="today-todo-list"></div>
       </div>
 
@@ -5904,6 +5925,9 @@
         doneAt: found.card.doneAt,
         color: found.card.color,
         tag: (found.project.name || 'Untitled') + ' · ' + found.column.name,
+        tagColor: projectColor(found.project),
+        projectId: found.project.id,
+        projectName: found.project.name || 'Untitled',
         checklistPct: checklistPct(found.card),
         standalone: false,
         isBreak: false,
@@ -5917,6 +5941,9 @@
       doneAt: item.doneAt || null,
       color: item.color || '#999999',
       tag: 'Personal task',
+      tagColor: 'var(--text-dim)',
+      projectId: '__personal__',
+      projectName: 'Personal',
       checklistPct: null,
       standalone: true,
       isBreak: isBreakTitle(item.title),
@@ -6561,6 +6588,41 @@
   var heroCurrentItemId = null;
   var todayDoneCollapsed = true;
   var todayTomorrowCollapsed = true;
+  var todayGroupByBoard = false;
+
+  // Purely visual re-ordering of a today entries list into per-board
+  // clusters (deterministically colored via projectColor, same as the
+  // Timeline's project tags) — the underlying list.items order, and thus
+  // drag-and-drop, is untouched by this.
+  function groupTodayEntriesByBoard(entries) {
+    var groups = [];
+    entries.forEach(function(e) {
+      var key = e.info.projectId;
+      var g = groups.filter(function(x) { return x.key === key; })[0];
+      if (!g) {
+        g = { key: key, name: e.info.projectName, color: e.info.tagColor, entries: [] };
+        groups.push(g);
+      }
+      g.entries.push(e);
+    });
+    var order = data.projects.map(function(p) { return p.id; });
+    groups.sort(function(a, b) {
+      var ai = a.key === '__personal__' ? order.length : order.indexOf(a.key);
+      var bi = b.key === '__personal__' ? order.length : order.indexOf(b.key);
+      return ai - bi;
+    });
+    return groups;
+  }
+
+  function renderTodayEntries(entries) {
+    if (!todayGroupByBoard) return entries.map(renderTodayRow).join('');
+    var groups = groupTodayEntriesByBoard(entries);
+    if (groups.length <= 1) return entries.map(renderTodayRow).join('');
+    return groups.map(function(g) {
+      return '<div class="today-board-subheader" style="color:' + g.color + ';">' + esc(g.name) + '</div>' +
+        g.entries.map(renderTodayRow).join('');
+    }).join('');
+  }
 
   function sendTodayItemToBack(itemId) {
     var list = ensureTodayList();
@@ -6666,16 +6728,22 @@
     }
 
     document.getElementById('today-todo-list').innerHTML = rest.length
-      ? '<div class="today-group"><div class="today-group-title">Up next · ' + rest.length + '</div>' + rest.map(renderTodayRow).join('') + '</div>'
+      ? '<div class="today-group"><div class="today-group-title">Up next · ' + rest.length + '</div>' + renderTodayEntries(rest) + '</div>'
       : '';
     document.getElementById('today-done-list').innerHTML = done.length
       ? '<div class="today-group today-group-done' + (todayDoneCollapsed ? ' collapsed' : '') + '">' +
           '<button type="button" class="today-group-title today-group-title-toggle" data-action="toggle-done-collapse">' +
             svgIcon(todayDoneCollapsed ? 'expand' : 'collapse') + '<span>Done · ' + done.length + '</span>' +
           '</button>' +
-          '<div class="today-group-rows">' + done.map(renderTodayRow).join('') + '</div>' +
+          '<div class="today-group-rows">' + renderTodayEntries(done) + '</div>' +
         '</div>'
       : '';
+
+    var toolbarEl = document.getElementById('today-list-toolbar');
+    var distinctBoards = {};
+    entries.forEach(function(e) { distinctBoards[e.info.projectId] = true; });
+    toolbarEl.classList.toggle('hide', Object.keys(distinctBoards).length <= 1);
+    document.getElementById('today-group-toggle-btn').classList.toggle('active', todayGroupByBoard);
 
     var tomorrowBox = document.getElementById('today-tomorrow-box');
     tomorrowBox.classList.toggle('hide', postponed.length === 0);
@@ -6721,7 +6789,7 @@
         timerHtml +
         '<input type="time" class="today-row-time' + (info.time ? '' : ' time-unset') + '" data-action="set-time" data-item="' + item.id + '" value="' + (info.time || '') + '" title="Schedule this task">' +
         (info.time ? '<button type="button" class="today-row-action-btn" data-action="clear-time" data-item="' + item.id + '" title="Clear time">' + svgIcon('close') + '</button>' : '') +
-        '<span class="today-row-tag">' + esc(info.tag) + '</span>' +
+        '<span class="today-row-tag" style="color:' + info.tagColor + ';">' + esc(info.tag) + '</span>' +
         (info.done ? '' : '<button type="button" class="today-row-action-btn" data-action="make-hero" data-item="' + item.id + '" title="Make this Up Now">' + svgIcon('arrowUp') + '</button>') +
         '<button type="button" class="today-row-action-btn" data-action="postpone-today" data-item="' + item.id + '" title="Postpone to tomorrow">' + svgIcon('tomorrow') + '</button>' +
         '<button type="button" class="today-row-action-btn" data-action="remove-today" data-item="' + item.id + '" title="Remove from today">' + svgIcon('trash') + '</button>' +
@@ -6735,7 +6803,7 @@
       '<div class="today-tomorrow-row" data-item="' + item.id + '">' +
         '<span class="today-row-color" style="background:' + info.color + ';"></span>' +
         '<span class="today-tomorrow-row-title">' + esc(info.title || 'Untitled card') + '</span>' +
-        '<span class="today-row-tag">' + esc(info.tag) + '</span>' +
+        '<span class="today-row-tag" style="color:' + info.tagColor + ';">' + esc(info.tag) + '</span>' +
         '<button type="button" class="today-row-action-btn" data-action="unpostpone-today" data-item="' + item.id + '" title="Move back to today">' + svgIcon('restore') + '</button>' +
         '<button type="button" class="today-row-action-btn" data-action="remove-today" data-item="' + item.id + '" title="Remove from today/tomorrow">' + svgIcon('trash') + '</button>' +
       '</div>'
@@ -6790,6 +6858,10 @@
         setTodayItemTime(e.target.getAttribute('data-item'), e.target.value);
       }
     });
+  });
+  document.getElementById('today-group-toggle-btn').addEventListener('click', function() {
+    todayGroupByBoard = !todayGroupByBoard;
+    renderToday();
   });
   document.getElementById('today-hero-time').addEventListener('change', function(e) {
     if (heroCurrentItemId) setTodayItemTime(heroCurrentItemId, e.target.value);
