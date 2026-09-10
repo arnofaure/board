@@ -151,6 +151,36 @@
   #main { flex: 1 0 auto; }
   #page-footer { flex-shrink: 0; }
 
+  @property --p-hue {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 220;
+  }
+
+  /* Per-project mesh gradient, sitting behind the whole app. --p-hue is set
+     in JS from the same deterministic per-project hue used elsewhere
+     (tagHue), so each board reads as a subtly different color without
+     needing a color picker. Kept very low-opacity so it never competes
+     with card colors or text. */
+  #mesh-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease, --p-hue 0.5s ease;
+    background-image:
+      radial-gradient(at 12% 15%, hsla(var(--p-hue, 220), 85%, 60%, 0.16) 0, transparent 48%),
+      radial-gradient(at 88% 10%, hsla(calc(var(--p-hue, 220) + 45), 85%, 60%, 0.12) 0, transparent 45%),
+      radial-gradient(at 80% 88%, hsla(calc(var(--p-hue, 220) - 35), 85%, 60%, 0.14) 0, transparent 50%),
+      radial-gradient(at 15% 90%, hsla(calc(var(--p-hue, 220) + 20), 85%, 60%, 0.10) 0, transparent 48%);
+  }
+  html.light-theme #mesh-bg {
+    background-image:
+      radial-gradient(at 12% 15%, hsla(var(--p-hue, 220), 75%, 50%, 0.10) 0, transparent 48%),
+      radial-gradient(at 88% 10%, hsla(calc(var(--p-hue, 220) + 45), 75%, 50%, 0.08) 0, transparent 45%),
+      radial-gradient(at 80% 88%, hsla(calc(var(--p-hue, 220) - 35), 75%, 50%, 0.09) 0, transparent 50%),
+      radial-gradient(at 15% 90%, hsla(calc(var(--p-hue, 220) + 20), 75%, 50%, 0.07) 0, transparent 48%);
+  }
+
   button, input, textarea, select { font-family: inherit; }
   body.no-select, body.no-select * {
     -webkit-user-select: none !important;
@@ -878,6 +908,8 @@
   #board-empty.show { display: block; }
 
   /* TIMELINE VIEW */
+  /* Nav entry hidden (unused) — view/data/logic kept intact, only the tab is unreachable. */
+  #view-timeline-btn { display: none; }
   #timeline-main { max-width: 960px; margin: 0 auto; }
   #timeline-toolbar {
     display: flex;
@@ -2862,6 +2894,8 @@
 </style>
 </head>
 <body>
+
+<div id="mesh-bg"></div>
 
 <div id="toolbar">
   <div class="tb-menu">
@@ -4874,6 +4908,7 @@
 
   function renderBoard() {
     var proj = activeProject();
+    document.getElementById('mesh-bg').style.setProperty('--p-hue', tagHue(proj.id));
     renderProjectCarousel();
     var boardEl = document.getElementById('board');
     var emptyEl = document.getElementById('board-empty');
