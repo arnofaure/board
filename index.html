@@ -892,6 +892,7 @@
   .recap-card-row { display: flex; align-items: center; gap: 6px; font-size: 12px; position: relative; padding-bottom: 5px; }
   .recap-card-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
   .recap-card-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+  .recap-card-archived { flex-shrink: 0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); border: 1px solid var(--border); border-radius: 3px; padding: 1px 4px; }
   .recap-card-time { flex-shrink: 0; font-family: ui-monospace, monospace; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   .recap-card-pct { flex-shrink: 0; min-width: 34px; text-align: right; color: var(--text-muted); font-weight: 600; font-variant-numeric: tabular-nums; }
   .recap-card-pct-bar-track { position: absolute; left: 13px; right: 0; bottom: 0; height: 3px; background: rgba(var(--overlay-rgb),0.1); border-radius: 1.5px; overflow: hidden; }
@@ -4419,6 +4420,17 @@
     });
     return out;
   }
+  // Same as allCardsInProject but also includes archived cards. Cards get
+  // auto-archived a day after being marked done (see checkDailyArchive),
+  // and their tracked entries[] survive that move — but every billing
+  // total (project time/cost, the Recap breakdown) needs to keep counting
+  // them, or hours quietly vanish from what a client gets billed for the
+  // moment their card ages off the board.
+  function allCardsInProjectWithArchive(project) {
+    var out = allCardsInProject(project);
+    project.archive.forEach(function(c) { out.push({ card: c, column: null, project: project, archived: true }); });
+    return out;
+  }
   function allCardsFiltered(filter) {
     if (filter && filter !== 'all') {
       var p = data.projects.find(function(x) { return x.id === filter; });
@@ -4426,6 +4438,19 @@
     }
     var out = [];
     data.projects.forEach(function(p) { out = out.concat(allCardsInProject(p)); });
+    return out;
+  }
+  // Archive-inclusive counterpart of allCardsFiltered, for the same reason
+  // allCardsInProjectWithArchive exists: the Calendar view bills by
+  // real calendar week, so a card archiving mid-week must not drop the
+  // hours it already logged earlier that same week.
+  function allCardsFilteredWithArchive(filter) {
+    if (filter && filter !== 'all') {
+      var p = data.projects.find(function(x) { return x.id === filter; });
+      return p ? allCardsInProjectWithArchive(p) : [];
+    }
+    var out = [];
+    data.projects.forEach(function(p) { out = out.concat(allCardsInProjectWithArchive(p)); });
     return out;
   }
 
@@ -4496,10 +4521,10 @@
     return (cardSeconds(c) / 3600) * cardRate(project);
   }
   function projectSeconds(project) {
-    return allCardsInProject(project).reduce(function(sum, item) { return sum + cardSeconds(item.card); }, 0);
+    return allCardsInProjectWithArchive(project).reduce(function(sum, item) { return sum + cardSeconds(item.card); }, 0);
   }
   function projectCost(project) {
-    return allCardsInProject(project).reduce(function(sum, item) { return sum + cardCost(item.card, project); }, 0);
+    return allCardsInProjectWithArchive(project).reduce(function(sum, item) { return sum + cardCost(item.card, project); }, 0);
   }
   // Share of the project's total tracked time this one card accounts for —
   // same "percentage of project total" concept as Time Tracker's taskPct.
@@ -5573,7 +5598,7 @@
 
   function collectBoardEntries(filter) {
     var out = [];
-    allCardsFiltered(filter).forEach(function(item) {
+    allCardsFilteredWithArchive(filter).forEach(function(item) {
       var c = item.card, p = item.project;
       c.entries.forEach(function(e) {
         out.push({
@@ -5687,7 +5712,7 @@
     });
 
     var weekCost = 0;
-    allCardsFiltered(calendarFilter).forEach(function(item) {
+    allCardsFilteredWithArchive(calendarFilter).forEach(function(item) {
       var c = item.card, p = item.project;
       if (c.billable === false) return;
       var rate = cardRate(p);
@@ -9212,12 +9237,13 @@
     recapClientFilter = select.value;
   }
 
-  function renderRecapCardRow(card, project) {
+  function renderRecapCardRow(card, project, archived) {
     var pct = cardPctOfProject(card, project);
     return (
       '<div class="recap-card-row">' +
         '<span class="recap-card-dot" style="background:' + card.color + ';"></span>' +
         '<span class="recap-card-title">' + esc(card.title || 'Untitled card') + '</span>' +
+        (archived ? '<span class="recap-card-archived" title="This card has been archived, but its tracked time still counts toward the totals above">Archived</span>' : '') +
         '<span class="recap-card-time">' + formatHMS(cardSeconds(card)) + '</span>' +
         '<span class="recap-card-pct">' + Math.round(pct) + '%</span>' +
         '<div class="recap-card-pct-bar-track"><div class="recap-card-pct-bar-fill" style="width:' + pct + '%;"></div></div>' +
@@ -9226,10 +9252,9 @@
   }
 
   function renderRecapProject(project) {
-    var cardsWithTime = allCardsInProject(project)
-      .map(function(item) { return item.card; })
-      .filter(function(c) { return cardSeconds(c) > 0; })
-      .sort(function(a, b) { return cardSeconds(b) - cardSeconds(a); });
+    var cardsWithTime = allCardsInProjectWithArchive(project)
+      .filter(function(item) { return cardSeconds(item.card) > 0; })
+      .sort(function(a, b) { return cardSeconds(b.card) - cardSeconds(a.card); });
     var seconds = projectSeconds(project);
     var cost = projectCost(project);
     var gauge = projectGaugeInfo(project);
@@ -9243,7 +9268,7 @@
       : '';
 
     var cardsHtml = cardsWithTime.length
-      ? cardsWithTime.map(function(c) { return renderRecapCardRow(c, project); }).join('')
+      ? cardsWithTime.map(function(item) { return renderRecapCardRow(item.card, project, item.archived); }).join('')
       : '<div class="recap-cards-empty">No time logged on any card yet.</div>';
 
     return (
