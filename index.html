@@ -3938,6 +3938,25 @@
     };
   }
 
+  // Same per-card defaults for both a project's live column cards and its
+  // archived cards (see normalizeData below) — kept as one function so the
+  // two lists can never drift out of sync on which fields get defaulted.
+  function normalizeCard(c) {
+    if (!c.id) c.id = uid();
+    if (!c.color) c.color = randomColor();
+    if (!c.checklist) c.checklist = [];
+    if (c.cover === undefined) c.cover = null;
+    if (c.due === undefined) c.due = null;
+    if (c.start === undefined) c.start = null;
+    if (c.description === undefined) c.description = '';
+    if (!c.links) c.links = [];
+    if (c.done === undefined) c.done = false;
+    if (c.doneAt === undefined) c.doneAt = null;
+    if (c.focus === undefined) c.focus = false;
+    if (!c.entries) c.entries = [];
+    if (c.billable === undefined) c.billable = true;
+  }
+
   // Fills in missing fields and migrates the old single-board format
   // (a bare `data.columns` array) into the projects-based format.
   // Returns null if `d` isn't usable at all.
@@ -3963,22 +3982,16 @@
         if (!col.id) col.id = uid();
         if (!col.cards) col.cards = [];
         if (col.collapsed === undefined) col.collapsed = false;
-        col.cards.forEach(function(c) {
-          if (!c.id) c.id = uid();
-          if (!c.color) c.color = randomColor();
-          if (!c.checklist) c.checklist = [];
-          if (c.cover === undefined) c.cover = null;
-          if (c.due === undefined) c.due = null;
-          if (c.start === undefined) c.start = null;
-          if (c.description === undefined) c.description = '';
-          if (!c.links) c.links = [];
-          if (c.done === undefined) c.done = false;
-          if (c.doneAt === undefined) c.doneAt = null;
-          if (c.focus === undefined) c.focus = false;
-          if (!c.entries) c.entries = [];
-          if (c.billable === undefined) c.billable = true;
-        });
+        col.cards.forEach(normalizeCard);
       });
+      // Archived cards go through the same per-card defaults as board cards.
+      // They're written with Object.assign(c, {...}) at archive time (see
+      // checkDailyArchive), so they normally already carry every field —
+      // but an archived card from before some field existed (entries,
+      // billable, ...) would otherwise stay missing it forever, and
+      // cardSeconds()/cardCost() throw on a missing entries[] the moment
+      // anything (e.g. the Time Tracker recap) tries to total it up.
+      p.archive.forEach(normalizeCard);
     });
     if (!d.activeProjectId || !d.projects.some(function(p) { return p.id === d.activeProjectId; })) {
       d.activeProjectId = d.projects[0].id;
