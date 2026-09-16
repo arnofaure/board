@@ -899,6 +899,13 @@
   .recap-card-pct-bar-track { position: absolute; left: 13px; right: 0; bottom: 0; height: 3px; background: rgba(var(--overlay-rgb),0.1); border-radius: 1.5px; overflow: hidden; }
   .recap-card-pct-bar-fill { height: 100%; background: var(--text-muted); border-radius: 1.5px; }
   .recap-cards-empty { color: var(--text-muted); font-size: 12px; padding: 2px 0; }
+  .recap-card-hide-btn { flex-shrink: 0; }
+  .recap-card-row.hidden-from-recap { opacity: 0.5; padding-bottom: 0; }
+  .recap-hidden-toggle {
+    background: none; border: none; cursor: pointer; padding: 4px 0 0;
+    color: var(--text-dim); font-size: 11px; text-align: left;
+  }
+  .recap-hidden-toggle:hover { color: var(--text-muted); }
 
   #board-empty {
     display: none;
@@ -3956,6 +3963,7 @@
     if (c.focus === undefined) c.focus = false;
     if (!c.entries) c.entries = [];
     if (c.billable === undefined) c.billable = true;
+    if (c.excludedFromRecap === undefined) c.excludedFromRecap = false;
   }
 
   // Fills in missing fields and migrates the old single-board format
@@ -4534,11 +4542,20 @@
     if (c.billable === false) return 0;
     return (cardSeconds(c) / 3600) * cardRate(project);
   }
+  // A card marked excludedFromRecap (see the hide toggle in the Time
+  // Tracker recap) keeps its entries[] forever, but stops contributing to
+  // every billing total — project time/cost here, and Calendar's weekly
+  // time/cost (see collectBoardEntries / the weekCost loop) — which is the
+  // point: a task you no longer want counted, without deleting its history.
   function projectSeconds(project) {
-    return allCardsInProjectWithArchive(project).reduce(function(sum, item) { return sum + cardSeconds(item.card); }, 0);
+    return allCardsInProjectWithArchive(project)
+      .filter(function(item) { return !item.card.excludedFromRecap; })
+      .reduce(function(sum, item) { return sum + cardSeconds(item.card); }, 0);
   }
   function projectCost(project) {
-    return allCardsInProjectWithArchive(project).reduce(function(sum, item) { return sum + cardCost(item.card, project); }, 0);
+    return allCardsInProjectWithArchive(project)
+      .filter(function(item) { return !item.card.excludedFromRecap; })
+      .reduce(function(sum, item) { return sum + cardCost(item.card, project); }, 0);
   }
   // Share of the project's total tracked time this one card accounts for —
   // same "percentage of project total" concept as Time Tracker's taskPct.
@@ -5124,7 +5141,9 @@
       clock: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>',
       arrowUp: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>',
       link: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.5-1.5"/></svg>',
-      archive: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9"/><line x1="10" y1="13" x2="14" y2="13"/></svg>'
+      archive: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9"/><line x1="10" y1="13" x2="14" y2="13"/></svg>',
+      eyeOff: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.3 20.3 0 0 1 5.06-5.94M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 8 11 8a20.4 20.4 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>',
+      eye: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>'
     };
     return icons[name] || '';
   }
@@ -5636,6 +5655,7 @@
     var out = [];
     allCardsFilteredWithArchive(filter).forEach(function(item) {
       var c = item.card, p = item.project;
+      if (c.excludedFromRecap) return;
       c.entries.forEach(function(e) {
         out.push({
           cardId: c.id,
@@ -5750,7 +5770,7 @@
     var weekCost = 0;
     allCardsFilteredWithArchive(calendarFilter).forEach(function(item) {
       var c = item.card, p = item.project;
-      if (c.billable === false) return;
+      if (c.billable === false || c.excludedFromRecap) return;
       var rate = cardRate(p);
       c.entries.forEach(function(e) {
         var s = Math.max(e.start, weekStart.getTime());
@@ -9273,31 +9293,40 @@
     recapClientFilter = select.value;
   }
 
-  function renderRecapCardRow(card, project, archived) {
+  function renderRecapCardRow(card, project, archived, hidden) {
     var pct = cardPctOfProject(card, project);
-    var archiveBtn = archived ? '' :
+    var archiveBtn = (archived || hidden) ? '' :
       '<button type="button" class="row-del recap-card-archive-btn" data-action="archive-card-from-recap" data-project="' + project.id + '" data-card="' + card.id + '" title="Archive this card — keeps its tracked time in the totals, just gets it off the board">' + svgIcon('archive') + '</button>';
+    var hideBtn = '<button type="button" class="row-del recap-card-hide-btn" data-action="' + (hidden ? 'unhide-card-from-recap' : 'hide-card-from-recap') + '" data-project="' + project.id + '" data-card="' + card.id + '" title="' + (hidden ? 'Count this card back into the totals' : 'Hide this card and exclude its time from the totals — keeps the record, just stops counting it') + '">' + svgIcon(hidden ? 'eye' : 'eyeOff') + '</button>';
     return (
-      '<div class="recap-card-row">' +
+      '<div class="recap-card-row' + (hidden ? ' hidden-from-recap' : '') + '">' +
         '<span class="recap-card-dot" style="background:' + card.color + ';"></span>' +
         '<span class="recap-card-title">' + esc(card.title || 'Untitled card') + '</span>' +
         (archived ? '<span class="recap-card-archived" title="This card has been archived, but its tracked time still counts toward the totals above">Archived</span>' : '') +
         '<span class="recap-card-time">' + formatHMS(cardSeconds(card)) + '</span>' +
-        '<span class="recap-card-pct">' + Math.round(pct) + '%</span>' +
+        (hidden ? '' : '<span class="recap-card-pct">' + Math.round(pct) + '%</span>') +
         archiveBtn +
-        '<div class="recap-card-pct-bar-track"><div class="recap-card-pct-bar-fill" style="width:' + pct + '%;"></div></div>' +
+        hideBtn +
+        (hidden ? '' : '<div class="recap-card-pct-bar-track"><div class="recap-card-pct-bar-fill" style="width:' + pct + '%;"></div></div>') +
       '</div>'
     );
   }
 
+  var recapHiddenShown = {}; // projectId -> true, ephemeral UI state only, not persisted
+
   function renderRecapProject(project) {
-    var cardsWithTime = allCardsInProjectWithArchive(project)
-      .filter(function(item) { return cardSeconds(item.card) > 0; })
+    var withTime = allCardsInProjectWithArchive(project).filter(function(item) { return cardSeconds(item.card) > 0; });
+    var cardsWithTime = withTime
+      .filter(function(item) { return !item.card.excludedFromRecap; })
+      .sort(function(a, b) { return cardSeconds(b.card) - cardSeconds(a.card); });
+    var hiddenCards = withTime
+      .filter(function(item) { return item.card.excludedFromRecap; })
       .sort(function(a, b) { return cardSeconds(b.card) - cardSeconds(a.card); });
     var seconds = projectSeconds(project);
     var cost = projectCost(project);
     var gauge = projectGaugeInfo(project);
     var collapsed = !!recapCollapsed[project.id];
+    var hiddenShown = !!recapHiddenShown[project.id];
 
     var gaugeRow = project.estimate
       ? '<div class="recap-gauge-row" title="' + esc(gauge.title) + '">' +
@@ -9307,8 +9336,16 @@
       : '';
 
     var cardsHtml = cardsWithTime.length
-      ? cardsWithTime.map(function(item) { return renderRecapCardRow(item.card, project, item.archived); }).join('')
+      ? cardsWithTime.map(function(item) { return renderRecapCardRow(item.card, project, item.archived, false); }).join('')
       : '<div class="recap-cards-empty">No time logged on any card yet.</div>';
+
+    var hiddenHtml = '';
+    if (hiddenCards.length) {
+      hiddenHtml = '<button type="button" class="recap-hidden-toggle" data-action="toggle-recap-hidden" data-project="' + project.id + '">' +
+        (hiddenShown ? 'Hide' : 'Show') + ' ' + hiddenCards.length + ' hidden card' + (hiddenCards.length === 1 ? '' : 's') +
+        '</button>' +
+        (hiddenShown ? hiddenCards.map(function(item) { return renderRecapCardRow(item.card, project, item.archived, true); }).join('') : '');
+    }
 
     return (
       '<div class="recap-project' + (collapsed ? ' collapsed' : '') + '" data-project="' + project.id + '">' +
@@ -9323,7 +9360,7 @@
           '<input class="text-input recap-estimate-input" type="number" step="0.5" min="0" value="' + (project.estimate !== null && project.estimate !== undefined ? project.estimate : '') + '" data-action="set-project-estimate" data-project="' + project.id + '" placeholder="Est. hours">' +
         '</div>' +
         gaugeRow +
-        '<div class="recap-cards">' + cardsHtml + '</div>' +
+        '<div class="recap-cards">' + cardsHtml + hiddenHtml + '</div>' +
       '</div>'
     );
   }
@@ -9403,6 +9440,25 @@
       archiveCardNow(archiveBtn.getAttribute('data-project'), archiveBtn.getAttribute('data-card'));
       refreshRecapList();
       render();
+      return;
+    }
+    var hideBtn = e.target.closest('[data-action="hide-card-from-recap"], [data-action="unhide-card-from-recap"]');
+    if (hideBtn) {
+      var project = data.projects.find(function(p) { return p.id === hideBtn.getAttribute('data-project'); });
+      var cardId = hideBtn.getAttribute('data-card');
+      var found = project && allCardsInProjectWithArchive(project).find(function(item) { return item.card.id === cardId; });
+      if (found) {
+        found.card.excludedFromRecap = hideBtn.getAttribute('data-action') === 'hide-card-from-recap';
+        save();
+      }
+      refreshRecapList();
+      return;
+    }
+    var hiddenToggle = e.target.closest('[data-action="toggle-recap-hidden"]');
+    if (hiddenToggle) {
+      var hpid = hiddenToggle.getAttribute('data-project');
+      recapHiddenShown[hpid] = !recapHiddenShown[hpid];
+      refreshRecapList();
       return;
     }
     var btn = e.target.closest('[data-action="toggle-recap-project"]');
