@@ -893,6 +893,7 @@
   .recap-card-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
   .recap-card-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
   .recap-card-archived { flex-shrink: 0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); border: 1px solid var(--border); border-radius: 3px; padding: 1px 4px; }
+  .recap-card-archive-btn { flex-shrink: 0; }
   .recap-card-time { flex-shrink: 0; font-family: ui-monospace, monospace; color: var(--text-muted); font-variant-numeric: tabular-nums; }
   .recap-card-pct { flex-shrink: 0; min-width: 34px; text-align: right; color: var(--text-muted); font-weight: 600; font-variant-numeric: tabular-nums; }
   .recap-card-pct-bar-track { position: absolute; left: 13px; right: 0; bottom: 0; height: 3px; background: rgba(var(--overlay-rgb),0.1); border-radius: 1.5px; overflow: hidden; }
@@ -4922,6 +4923,27 @@
     save();
   }
 
+  // Manual, on-demand version of the same move for a single card — lets a
+  // card be archived (keeping its tracked entries[] for billing, see
+  // allCardsInProjectWithArchive) straight from the Time Tracker recap,
+  // without waiting for it to be marked done and for checkDailyArchive to
+  // sweep it up the next day.
+  function archiveCardNow(projectId, cardId) {
+    var project = data.projects.find(function(p) { return p.id === projectId; });
+    if (!project) return;
+    var col = null, idx = -1;
+    project.columns.some(function(c) {
+      var i = c.cards.findIndex(function(card) { return card.id === cardId; });
+      if (i !== -1) { col = c; idx = i; return true; }
+      return false;
+    });
+    if (!col) return;
+    stopCardTimerIfRunning(cardId);
+    var card = col.cards.splice(idx, 1)[0];
+    project.archive.unshift(Object.assign({}, card, { archivedAt: todayStr(), fromColumn: col.name }));
+    save();
+  }
+
   // ---------- RENDER: BOARD ----------
   function render() {
     renderProjectMenu();
@@ -5101,7 +5123,8 @@
       dollarOff: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/><line x1="3" y1="3" x2="21" y2="21" stroke="#e0584a"/></svg>',
       clock: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>',
       arrowUp: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>',
-      link: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.5-1.5"/></svg>'
+      link: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.5-1.5"/></svg>',
+      archive: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9"/><line x1="10" y1="13" x2="14" y2="13"/></svg>'
     };
     return icons[name] || '';
   }
@@ -9252,6 +9275,8 @@
 
   function renderRecapCardRow(card, project, archived) {
     var pct = cardPctOfProject(card, project);
+    var archiveBtn = archived ? '' :
+      '<button type="button" class="row-del recap-card-archive-btn" data-action="archive-card-from-recap" data-project="' + project.id + '" data-card="' + card.id + '" title="Archive this card — keeps its tracked time in the totals, just gets it off the board">' + svgIcon('archive') + '</button>';
     return (
       '<div class="recap-card-row">' +
         '<span class="recap-card-dot" style="background:' + card.color + ';"></span>' +
@@ -9259,6 +9284,7 @@
         (archived ? '<span class="recap-card-archived" title="This card has been archived, but its tracked time still counts toward the totals above">Archived</span>' : '') +
         '<span class="recap-card-time">' + formatHMS(cardSeconds(card)) + '</span>' +
         '<span class="recap-card-pct">' + Math.round(pct) + '%</span>' +
+        archiveBtn +
         '<div class="recap-card-pct-bar-track"><div class="recap-card-pct-bar-fill" style="width:' + pct + '%;"></div></div>' +
       '</div>'
     );
@@ -9372,6 +9398,13 @@
   });
 
   document.getElementById('recap-list').addEventListener('click', function(e) {
+    var archiveBtn = e.target.closest('[data-action="archive-card-from-recap"]');
+    if (archiveBtn) {
+      archiveCardNow(archiveBtn.getAttribute('data-project'), archiveBtn.getAttribute('data-card'));
+      refreshRecapList();
+      render();
+      return;
+    }
     var btn = e.target.closest('[data-action="toggle-recap-project"]');
     if (!btn) return;
     var pid = btn.getAttribute('data-project');
