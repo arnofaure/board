@@ -848,12 +848,6 @@
     display: flex; align-items: center; justify-content: center;
   }
   .entry-row .icon-btn:hover { border-color: var(--border-hover); color: var(--text); }
-  .entry-row .icon-btn.active { color: #f0b90b; border-color: rgba(240,185,11,0.4); background: rgba(240,185,11,0.08); }
-  .entry-row.excluded { opacity: 0.55; }
-  .entry-row-excluded-tag {
-    display: inline-block; margin-left: 6px; font-size: 10px; text-transform: uppercase;
-    letter-spacing: 0.04em; color: var(--text-dim); border: 1px solid var(--border); border-radius: 3px; padding: 1px 4px;
-  }
 
   /* TIME TRACKER VIEW — global settings, per-project client/rate/estimate, and per-card share recap */
   #timetracker-main { max-width: 720px; margin: 0 auto; }
@@ -4485,7 +4479,6 @@
   function runningCardEntry(c) { return c.entries.find(function(e) { return e.end === null; }); }
   function cardSeconds(c) {
     return c.entries.reduce(function(sum, e) {
-      if (e.excluded) return sum;
       var end = e.end === null ? Date.now() : e.end;
       return sum + Math.max(0, (end - e.start) / 1000);
     }, 0);
@@ -5644,7 +5637,6 @@
     allCardsFilteredWithArchive(filter).forEach(function(item) {
       var c = item.card, p = item.project;
       c.entries.forEach(function(e) {
-        if (e.excluded) return;
         out.push({
           cardId: c.id,
           start: e.start,
@@ -5761,7 +5753,6 @@
       if (c.billable === false) return;
       var rate = cardRate(p);
       c.entries.forEach(function(e) {
-        if (e.excluded) return;
         var s = Math.max(e.start, weekStart.getTime());
         var end = e.end === null ? Date.now() : e.end;
         var eEnd = Math.min(end, weekStart.getTime() + 7 * DAY_MS);
@@ -8330,16 +8321,14 @@
     var timeLabel = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
       (entry.end === null ? ' – running' : ' – ' + new Date(entry.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     return (
-      '<div class="entry-row' + (entry.excluded ? ' excluded' : '') + '" data-entry="' + entry.id + '">' +
+      '<div class="entry-row" data-entry="' + entry.id + '">' +
         '<div class="entry-row-info">' +
           '<span class="entry-row-date">' + esc(dateLabel) + '</span>' +
           '<span class="entry-row-time">' + esc(timeLabel) + '</span>' +
           '<span class="entry-row-dur">' + formatHMS(durSec) + '</span>' +
-          (entry.excluded ? '<span class="entry-row-excluded-tag">Excluded</span>' : '') +
         '</div>' +
         '<div class="entry-row-actions">' +
           (entry.end === null ? '' :
-            '<button type="button" class="icon-btn' + (entry.excluded ? ' active' : '') + '" data-action="toggle-entry-excluded" data-card="' + cardId + '" data-entry="' + entry.id + '" title="' + (entry.excluded ? 'Count this entry back in the tracked time' : 'Exclude this entry from tracked time — keeps it, just stops counting it') + '">' + svgIcon('archive') + '</button>' +
             '<button type="button" class="icon-btn" data-action="edit-entry" data-card="' + cardId + '" data-entry="' + entry.id + '" title="Edit this entry">' + svgIcon('edit') + '</button>' +
             '<button type="button" class="icon-btn" data-action="delete-entry" data-card="' + cardId + '" data-entry="' + entry.id + '" title="Delete this entry">' + svgIcon('trash') + '</button>') +
         '</div>' +
@@ -8362,13 +8351,6 @@
     if (!found) return;
     if (btn.getAttribute('data-action') === 'delete-entry') {
       found.card.entries = found.card.entries.filter(function(en) { return en.id !== entryId; });
-      save();
-      renderCardTimeSummary(cardId);
-      renderCardEntriesList(cardId);
-      render();
-    } else if (btn.getAttribute('data-action') === 'toggle-entry-excluded') {
-      var toggled = found.card.entries.find(function(en) { return en.id === entryId; });
-      if (toggled) toggled.excluded = !toggled.excluded;
       save();
       renderCardTimeSummary(cardId);
       renderCardEntriesList(cardId);
