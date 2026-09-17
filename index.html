@@ -4140,7 +4140,7 @@
   var HISTORY_KEY = 'kanban.v1.history';
   var HISTORY_LIMIT = 10;
   var HISTORY_MIN_GAP_MS = 5 * 60 * 1000;
-  var AUTO_BACKUP_MIN_GAP_MS = 60 * 1000;
+  var AUTO_BACKUP_MIN_GAP_MS = 15 * 60 * 1000;
   var AUTO_BACKUP_FILE_LIMIT = 20;
   var REMINDER_DUE_MS = 7 * 24 * 60 * 60 * 1000;
   var REMINDER_SNOOZE_MS = 3 * 24 * 60 * 60 * 1000;
@@ -4197,20 +4197,33 @@
     else label.textContent = 'Auto-backup: Off';
   }
 
-  function pruneOldBackups(handle) {
+  // Filenames are written as "k-board-backup-<stamp>.json" (see
+  // maybeWriteAutoBackup) — matched here with the same prefix so pruning
+  // actually finds them. Timestamp-formatted names sort chronologically.
+  var AUTO_BACKUP_NAME_RE = /^k-board-backup-.*\.json$/;
+  // Reads the epoch ms back out of a "k-board-backup-YYYY-M-D_HH-MM-SS.json"
+  // name (the exact shape nowStamp() produces). Returns NaN if the name
+  // doesn't match, so callers can fall back to "no known timestamp".
+  function parseBackupStamp(name) {
+    var m = name.match(/^k-board-backup-(\d{4})-(\d{1,2})-(\d{1,2})_(\d{2})-(\d{2})-(\d{2})\.json$/);
+    if (!m) return NaN;
+    return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])).getTime();
+  }
+  function listBackupFileNames(handle) {
     var entries = [];
-    return (function collect() {
-      var iterator = handle.values();
-      function step() {
-        return iterator.next().then(function(res) {
-          if (res.done) return;
-          if (res.value.kind === 'file' && /^board-backup-.*\.json$/.test(res.value.name)) entries.push(res.value.name);
-          return step();
-        });
-      }
-      return step();
-    })().then(function() {
-      entries.sort(); // timestamp-formatted names sort chronologically
+    var iterator = handle.values();
+    function step() {
+      return iterator.next().then(function(res) {
+        if (res.done) return entries;
+        if (res.value.kind === 'file' && AUTO_BACKUP_NAME_RE.test(res.value.name)) entries.push(res.value.name);
+        return step();
+      });
+    }
+    return step().then(function() { entries.sort(); return entries; });
+  }
+
+  function pruneOldBackups(handle) {
+    return listBackupFileNames(handle).then(function(entries) {
       var excess = entries.length - AUTO_BACKUP_FILE_LIMIT;
       if (excess <= 0) return;
       var toRemove = entries.slice(0, excess);
@@ -4224,17 +4237,30 @@
     if (!backupDirHandle) return;
     var now = Date.now();
     if (now - lastAutoBackupAt < AUTO_BACKUP_MIN_GAP_MS) return;
-    lastAutoBackupAt = now;
     backupDirHandle.queryPermission({ mode: 'readwrite' }).then(function(state) {
       if (state !== 'granted') { refreshBackupFolderLabel('needs-permission'); return; }
-      var name = 'k-board-backup-' + nowStamp() + '.json';
-      return backupDirHandle.getFileHandle(name, { create: true }).then(function(fileHandle) {
-        return fileHandle.createWritable();
-      }).then(function(writable) {
-        return writable.write(JSON.stringify(data, null, 2)).then(function() { return writable.close(); });
-      }).then(function() {
-        markBackedUp();
-        return pruneOldBackups(backupDirHandle);
+      // Gate on the newest file actually on disk, not just this tab's own
+      // in-memory clock — two tabs sharing the same backup folder each
+      // throttle themselves individually otherwise, and together still
+      // write far more often than AUTO_BACKUP_MIN_GAP_MS intends.
+      return listBackupFileNames(backupDirHandle).then(function(entries) {
+        var latest = entries.length ? entries[entries.length - 1] : null;
+        var latestAt = latest ? parseBackupStamp(latest) : NaN;
+        if (!isNaN(latestAt) && now - latestAt < AUTO_BACKUP_MIN_GAP_MS) return;
+        lastAutoBackupAt = now;
+        var name = 'k-board-backup-' + nowStamp() + '.json';
+        return backupDirHandle.getFileHandle(name, { create: true }).then(function(fileHandle) {
+          return fileHandle.createWritable();
+        }).then(function(writable) {
+          // Cover images aren't worth keeping in a rolling safety-net backup
+          // — they're the bulk of the file size for basically no recovery
+          // value (same tradeoff already made for the in-browser history
+          // snapshots, see snapshotJsonWithoutCovers).
+          return writable.write(snapshotJsonWithoutCovers()).then(function() { return writable.close(); });
+        }).then(function() {
+          markBackedUp();
+          return pruneOldBackups(backupDirHandle);
+        });
       });
     }).catch(function() { /* permission revoked or disk error — silently skip, next save retries */ });
   }
