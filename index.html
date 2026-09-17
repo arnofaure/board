@@ -906,6 +906,17 @@
     color: var(--text-dim); font-size: 11px; text-align: left;
   }
   .recap-hidden-toggle:hover { color: var(--text-muted); }
+  #recap-deleted-wrap { margin-top: 18px; }
+  #recap-deleted-wrap.hide { display: none; }
+  .recap-deleted-row {
+    display: flex; align-items: center; gap: 8px; font-size: 12px;
+    padding: 8px 10px; background: var(--surface2); border: 0.5px solid var(--border);
+    border-radius: var(--radius); opacity: 0.75;
+  }
+  .recap-deleted-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+  .recap-deleted-client { color: var(--text-dim); font-weight: 400; }
+  .recap-deleted-time { flex-shrink: 0; font-family: ui-monospace, monospace; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .recap-deleted-time .cost { color: var(--text-dim); margin-left: 8px; }
 
   #board-empty {
     display: none;
@@ -3164,6 +3175,10 @@
         </div>
         <div class="recap-list" id="recap-list"></div>
         <div id="recap-empty" style="text-align:center;color:var(--text-dim);font-size:12.5px;padding:24px 0;">No projects yet.</div>
+        <div id="recap-deleted-wrap" class="hide">
+          <button type="button" class="recap-hidden-toggle" id="recap-deleted-toggle">Show deleted boards</button>
+          <div class="recap-list" id="recap-deleted-list" style="margin-top:8px;"></div>
+        </div>
       </div>
     </div>
 
@@ -3942,7 +3957,8 @@
       distractionsByDate: {},
       concentrationByDate: {},
       recurringTasks: [],
-      settings: { rate: 0, currency: '$' }
+      settings: { rate: 0, currency: '$' },
+      deletedProjects: []
     };
   }
 
@@ -3966,6 +3982,38 @@
     if (c.excludedFromRecap === undefined) c.excludedFromRecap = false;
   }
 
+  // Same per-project defaults for both data.projects (live boards) and
+  // data.deletedProjects (see normalizeData below) — one function so the
+  // two lists can't drift on which fields get defaulted, same reasoning
+  // as normalizeCard for live vs. archived cards.
+  function normalizeProject(p) {
+    if (!p.id) p.id = uid();
+    if (!p.name) p.name = 'Untitled project';
+    if (!p.columns) p.columns = [];
+    if (!p.lastShuffleDate) p.lastShuffleDate = todayStr();
+    if (!p.lastArchiveDate) p.lastArchiveDate = todayStr();
+    if (!p.archive) p.archive = [];
+    if (p.masonryLayout === undefined) p.masonryLayout = false;
+    if (p.dueOnlyFilter === undefined) p.dueOnlyFilter = false;
+    if (p.client === undefined) p.client = '';
+    if (p.rate === undefined) p.rate = null;
+    if (p.estimate === undefined) p.estimate = null;
+    p.columns.forEach(function(col) {
+      if (!col.id) col.id = uid();
+      if (!col.cards) col.cards = [];
+      if (col.collapsed === undefined) col.collapsed = false;
+      col.cards.forEach(normalizeCard);
+    });
+    // Archived cards go through the same per-card defaults as board cards.
+    // They're written with Object.assign(c, {...}) at archive time (see
+    // checkDailyArchive), so they normally already carry every field —
+    // but an archived card from before some field existed (entries,
+    // billable, ...) would otherwise stay missing it forever, and
+    // cardSeconds()/cardCost() throw on a missing entries[] the moment
+    // anything (e.g. the Time Tracker recap) tries to total it up.
+    p.archive.forEach(normalizeCard);
+  }
+
   // Fills in missing fields and migrates the old single-board format
   // (a bare `data.columns` array) into the projects-based format.
   // Returns null if `d` isn't usable at all.
@@ -3975,33 +4023,13 @@
       d = { projects: [{ id: uid(), name: 'Project 1', columns: d.columns, lastShuffleDate: d.lastShuffleDate || todayStr() }], activeProjectId: null };
     }
     if (!d.projects || !d.projects.length) return null;
-    d.projects.forEach(function(p) {
-      if (!p.id) p.id = uid();
-      if (!p.name) p.name = 'Untitled project';
-      if (!p.columns) p.columns = [];
-      if (!p.lastShuffleDate) p.lastShuffleDate = todayStr();
-      if (!p.lastArchiveDate) p.lastArchiveDate = todayStr();
-      if (!p.archive) p.archive = [];
-      if (p.masonryLayout === undefined) p.masonryLayout = false;
-      if (p.dueOnlyFilter === undefined) p.dueOnlyFilter = false;
-      if (p.client === undefined) p.client = '';
-      if (p.rate === undefined) p.rate = null;
-      if (p.estimate === undefined) p.estimate = null;
-      p.columns.forEach(function(col) {
-        if (!col.id) col.id = uid();
-        if (!col.cards) col.cards = [];
-        if (col.collapsed === undefined) col.collapsed = false;
-        col.cards.forEach(normalizeCard);
-      });
-      // Archived cards go through the same per-card defaults as board cards.
-      // They're written with Object.assign(c, {...}) at archive time (see
-      // checkDailyArchive), so they normally already carry every field —
-      // but an archived card from before some field existed (entries,
-      // billable, ...) would otherwise stay missing it forever, and
-      // cardSeconds()/cardCost() throw on a missing entries[] the moment
-      // anything (e.g. the Time Tracker recap) tries to total it up.
-      p.archive.forEach(normalizeCard);
-    });
+    d.projects.forEach(normalizeProject);
+    // Deleted boards (see deleteProjectNow) — kept around forever so their
+    // tracked time survives a board deletion instead of vanishing with it,
+    // same "the data outlives the board" idea as card archiving. Never
+    // shown in the board switcher/carousel, only in the Time Tracker recap.
+    if (!d.deletedProjects) d.deletedProjects = [];
+    d.deletedProjects.forEach(normalizeProject);
     if (!d.activeProjectId || !d.projects.some(function(p) { return p.id === d.activeProjectId; })) {
       d.activeProjectId = d.projects[0].id;
     }
@@ -7422,9 +7450,17 @@
       var projIdx = data.projects.indexOf(proj);
       var wasActive = data.activeProjectId === pid;
       data.projects = data.projects.filter(function(x) { return x.id !== pid; });
+      // Parked in deletedProjects rather than discarded — its tracked time
+      // needs to survive the board being gone (see normalizeProject /
+      // the Time Tracker recap's "deleted boards" section), same as an
+      // archived card's time survives leaving the board.
+      proj.deletedAt = todayStr();
+      data.deletedProjects.unshift(proj);
       if (wasActive) data.activeProjectId = data.projects[0].id;
       save(); render();
       showUndoToast('Project "' + (proj.name || 'Untitled project') + '" deleted.', function() {
+        data.deletedProjects = data.deletedProjects.filter(function(x) { return x.id !== proj.id; });
+        delete proj.deletedAt;
         data.projects.splice(projIdx, 0, proj);
         if (wasActive) data.activeProjectId = pid;
         save(); render();
@@ -9281,7 +9317,7 @@
   function renderClientFilterOptions() {
     var select = document.getElementById('recap-client-filter');
     var clients = [];
-    data.projects.forEach(function(p) {
+    data.projects.concat(data.deletedProjects).forEach(function(p) {
       if (p.client && clients.indexOf(p.client) === -1) clients.push(p.client);
     });
     clients.sort(function(a, b) { return a.localeCompare(b); });
@@ -9365,6 +9401,21 @@
     );
   }
 
+  function renderDeletedProjectRow(project) {
+    var seconds = projectSeconds(project);
+    var cost = projectCost(project);
+    return (
+      '<div class="recap-deleted-row" data-project="' + project.id + '">' +
+        '<span class="recap-deleted-name">' + esc(project.name || 'Untitled project') +
+          (project.client ? ' <span class="recap-deleted-client">— ' + esc(project.client) + '</span>' : '') + '</span>' +
+        '<span class="recap-deleted-time">' + formatHMS(seconds) + (cost > 0 ? '<span class="cost">' + formatMoney(cost) + '</span>' : '') + '</span>' +
+        '<button type="button" class="row-del" data-action="restore-deleted-project" data-project="' + project.id + '" title="Restore this board">' + svgIcon('restore') + '</button>' +
+        '<button type="button" class="row-del" data-action="delete-project-forever" data-project="' + project.id + '" title="Delete permanently — this cannot be undone">' + svgIcon('trash') + '</button>' +
+      '</div>'
+    );
+  }
+  var recapDeletedShown = false; // ephemeral UI state only, not persisted
+
   function refreshRecapList() {
     var projects = recapClientFilter === 'all'
       ? data.projects
@@ -9372,6 +9423,17 @@
     document.getElementById('recap-empty').style.display = projects.length ? 'none' : 'block';
     document.getElementById('recap-empty').textContent = data.projects.length ? 'No projects for this client.' : 'No projects yet.';
     document.getElementById('recap-list').innerHTML = projects.map(renderRecapProject).join('');
+
+    // Deleted boards keep their tracked time forever (see deleteProjectNow)
+    // so it stays part of billing history even once the board itself is
+    // gone — shown collapsed here rather than mixed into the live list.
+    var deleted = recapClientFilter === 'all'
+      ? data.deletedProjects
+      : data.deletedProjects.filter(function(p) { return p.client === recapClientFilter; });
+    var wrap = document.getElementById('recap-deleted-wrap');
+    wrap.classList.toggle('hide', !deleted.length);
+    document.getElementById('recap-deleted-toggle').textContent = (recapDeletedShown ? 'Hide' : 'Show') + ' ' + deleted.length + ' deleted board' + (deleted.length === 1 ? '' : 's');
+    document.getElementById('recap-deleted-list').innerHTML = recapDeletedShown ? deleted.map(renderDeletedProjectRow).join('') : '';
   }
   // Updates just one project's read-only figures (time/cost/gauge) in place,
   // leaving its Client/Rate/Estimate inputs untouched — a full refreshRecapList()
@@ -9466,6 +9528,31 @@
     var pid = btn.getAttribute('data-project');
     recapCollapsed[pid] = !recapCollapsed[pid];
     refreshRecapList();
+  });
+  document.getElementById('recap-deleted-toggle').addEventListener('click', function() {
+    recapDeletedShown = !recapDeletedShown;
+    refreshRecapList();
+  });
+  document.getElementById('recap-deleted-list').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    var pid = btn.getAttribute('data-project');
+    var idx = data.deletedProjects.findIndex(function(p) { return p.id === pid; });
+    if (idx === -1) return;
+    if (btn.getAttribute('data-action') === 'restore-deleted-project') {
+      var proj = data.deletedProjects.splice(idx, 1)[0];
+      delete proj.deletedAt;
+      data.projects.push(proj);
+      save();
+      renderClientFilterOptions();
+      refreshRecapList();
+      render();
+    } else if (btn.getAttribute('data-action') === 'delete-project-forever') {
+      if (!confirm('Permanently delete this board? Its tracked time will no longer count toward any total. This cannot be undone.')) return;
+      data.deletedProjects.splice(idx, 1);
+      save();
+      refreshRecapList();
+    }
   });
   document.getElementById('recap-list').addEventListener('input', function(e) {
     var el = e.target;
