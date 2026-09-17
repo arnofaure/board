@@ -4028,7 +4028,12 @@
     // tracked time survives a board deletion instead of vanishing with it,
     // same "the data outlives the board" idea as card archiving. Never
     // shown in the board switcher/carousel, only in the Time Tracker recap.
-    if (!d.archivedProjects) d.archivedProjects = [];
+    // Field used to be named deletedProjects — migrate any data saved under
+    // that name (including a JSON import from before the rename) instead of
+    // silently orphaning it, which would otherwise make an already-archived
+    // board's tracked time invisible again.
+    if (!d.archivedProjects) d.archivedProjects = d.deletedProjects || [];
+    delete d.deletedProjects;
     d.archivedProjects.forEach(normalizeProject);
     if (!d.activeProjectId || !d.projects.some(function(p) { return p.id === d.activeProjectId; })) {
       d.activeProjectId = d.projects[0].id;
