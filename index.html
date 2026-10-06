@@ -717,6 +717,30 @@
   .card:hover .card-due, .card.drag-open .card-due { opacity: 0; }
   .card:hover .card-row-actions, .card.drag-open .card-row-actions { opacity: 1; }
 
+  .card-status-badge {
+    display: inline-flex; align-items: center; gap: 5px; max-width: 100%;
+    font-size: calc(10.5px * var(--board-scale)); font-weight: 600; letter-spacing: 0.02em;
+    color: var(--status-color); background: color-mix(in srgb, var(--status-color) 14%, transparent);
+    border: 0.5px solid color-mix(in srgb, var(--status-color) 45%, transparent);
+    border-radius: 999px; padding: 1px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .card-status-badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--status-color); flex-shrink: 0; }
+  .card.has-status:not(.is-done) { opacity: 0.88; }
+  .status-picker { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 12px; }
+  .status-chip {
+    --status-color: var(--text-muted);
+    display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+    font-size: 12px; color: var(--text-muted); background: none;
+    border: 0.5px solid var(--border-hover); border-radius: 999px; padding: 3px 10px;
+  }
+  .status-chip::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--status-color); }
+  .status-chip:hover { color: var(--text); }
+  .status-chip.active { color: var(--status-color); border-color: var(--status-color); background: color-mix(in srgb, var(--status-color) 14%, transparent); }
+  .status-chip.add::before { display: none; }
+  .status-chip-del { margin-left: 2px; opacity: 0.5; font-size: 13px; line-height: 1; }
+  .status-chip-del:hover { opacity: 1; color: #f87171; }
+  #card-total { white-space: nowrap; }
+  #status-filter { font-size: 12px; padding: 4px 8px; max-width: 150px; margin-right: 10px; }
   .card-row-meta { display: flex; align-items: center; gap: 10px; padding-left: calc(16px * var(--board-scale)); }
   .card-checklist-badge {
     display: flex; align-items: center; gap: 4px;
@@ -3137,6 +3161,7 @@
     <button class="tb-btn view-btn" id="view-achievements-btn" data-view="achievements" title="Streaks, tasks done, distractions and focus difficulty over time">Achievements</button>
   </div>
   <div class="tb-right">
+    <select id="status-filter" class="text-input" title="Show only cards with a given status"></select>
     <span id="card-total">0 cards<span class="overdue" id="overdue-count" role="button" tabindex="0" title="Show overdue cards"></span></span>
   </div>
 </div>
@@ -3779,6 +3804,9 @@
             </button>
           </div>
 
+          <label>Status</label>
+          <div class="status-picker" id="card-status-picker"></div>
+
           <label>Time tracked</label>
           <div id="card-time-summary" class="card-time-summary">
             <span id="card-time-total">0:00:00</span>
@@ -3892,6 +3920,15 @@
 
   var PALETTE = ['#ec4899', '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#06b6d4', '#84cc16'];
 
+  var STATUS_COLORS = ['#fbbf24', '#60a5fa', '#a78bfa', '#34d399', '#f472b6', '#fb923c', '#22d3ee', '#f87171'];
+  function defaultStatuses() {
+    return [
+      { id: 'st-requested', name: 'Request sent', color: '#60a5fa' },
+      { id: 'st-waiting', name: 'Waiting', color: '#fbbf24' },
+      { id: 'st-paused', name: 'On hold', color: '#a78bfa' },
+      { id: 'st-review', name: 'To validate', color: '#34d399' }
+    ];
+  }
   function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
   function todayStr() {
     var d = new Date();
@@ -3975,6 +4012,7 @@
       color: opts.color || randomColor(),
       entries: [],
       estimate: null,
+      status: null,
       billable: false,
       links: [],
       focus: false
@@ -4003,7 +4041,7 @@
       distractionsByDate: {},
       concentrationByDate: {},
       recurringTasks: [],
-      settings: { rate: 0, currency: '$' },
+      settings: { rate: 0, currency: '$', statuses: defaultStatuses() },
       archivedProjects: []
     };
   }
@@ -4025,6 +4063,7 @@
     if (c.focus === undefined) c.focus = false;
     if (!c.entries) c.entries = [];
     if (c.estimate === undefined) c.estimate = null;
+    if (c.status === undefined) c.status = null;
     if (c.billable === undefined) c.billable = true;
     if (c.excludedFromRecap === undefined) c.excludedFromRecap = false;
   }
@@ -4105,6 +4144,7 @@
     if (!d.distractionsByDate) d.distractionsByDate = {};
     if (!d.concentrationByDate) d.concentrationByDate = {};
     if (!d.settings) d.settings = { rate: 0, currency: '$' };
+    if (!d.settings.statuses) d.settings.statuses = defaultStatuses();
     if (d.settings.rate === undefined) d.settings.rate = 0;
     if (!d.settings.currency) d.settings.currency = '$';
     if (!d.recurringTasks) d.recurringTasks = [];
@@ -5084,6 +5124,7 @@
 
   // ---------- RENDER: BOARD ----------
   function render() {
+    refreshStatusFilter();
     renderProjectMenu();
     renderBoard();
     renderTimeline();
@@ -5159,8 +5200,10 @@
   function renderColumn(col) {
     var dueOnly = !!activeProject().dueOnlyFilter;
     var cards = dueOnly ? col.cards.filter(function(c) { return !!c.due; }) : col.cards;
+    var statusFilter = activeProject().statusFilter || null;
+    if (statusFilter) cards = cards.filter(function(c) { return statusFilter === 'any' ? !!c.status : c.status === statusFilter; });
     cards = sortCardsByDue(cards);
-    var countLabel = dueOnly ? (cards.length + '/' + col.cards.length) : col.cards.length;
+    var countLabel = (dueOnly || statusFilter) ? (cards.length + '/' + col.cards.length) : col.cards.length;
 
     var cardsHtml = cards.map(function(c) { return renderCard(c); }).join('');
     return (
@@ -5195,6 +5238,15 @@
     return '<span class="none">—</span>';
   }
 
+  function statusById(id) {
+    return id ? data.settings.statuses.find(function(st) { return st.id === id; }) || null : null;
+  }
+  function renderStatusBadge(c) {
+    var st = statusById(c.status);
+    if (!st) return '';
+    return '<span class="card-status-badge" style="--status-color:' + st.color + ';">' + esc(st.name) + '</span>';
+  }
+
   function renderCard(c) {
     var titleCls = c.title ? 'card-title' : 'card-title untitled';
     var titleTxt = c.title ? esc(c.title) : 'Untitled card';
@@ -5225,12 +5277,14 @@
     // Second line only when there's a checklist and/or tracked time — a
     // lone due date (or none) already fits on the title line.
     var metaParts = [];
+    var statusBadge = renderStatusBadge(c);
+    if (statusBadge) metaParts.push(statusBadge);
     if (pct) metaParts.push('<span class="card-checklist-badge' + (pct.pct === 100 ? ' complete' : '') + '">' + svgIcon('checklist') + pct.done + '/' + pct.total + '</span>');
     if (secs > 0 || running) metaParts.push('<span class="card-time-badge' + (running ? ' is-running' : '') + '" data-role="card-timer" data-card="' + c.id + '">' + svgIcon('clock') + formatHMS(secs) + '</span>');
     var rowMeta = metaParts.length ? '<div class="card-row-meta">' + metaParts.join('') + '</div>' : '';
 
     return (
-      '<div class="card' + (c.done ? ' is-done' : '') + (c.focus ? ' is-focus' : '') + (running ? ' is-timing' : '') + '" data-card-id="' + c.id + '" style="--card-color:' + c.color + ';">' +
+      '<div class="card' + (c.done ? ' is-done' : '') + (c.focus ? ' is-focus' : '') + (c.status ? ' has-status' : '') + (running ? ' is-timing' : '') + '" data-card-id="' + c.id + '" style="--card-color:' + c.color + ';">' +
         rowTop + rowMeta +
       '</div>'
     );
@@ -8324,6 +8378,7 @@
     updateCardDoneToggleUI(cardId);
     updateCardFocusToggleUI(cardId);
     updateCardBillableToggleUI(cardId);
+    renderStatusPicker();
     renderCardTimeSummary(cardId);
     renderCardEntriesList(cardId);
     document.getElementById('card-estimate-input').value = c.estimate !== null && c.estimate !== undefined ? c.estimate : '';
@@ -8452,6 +8507,62 @@
     save();
     updateCardBillableToggleUI(editingCardId);
     renderCardTimeSummary(editingCardId);
+  });
+
+  // ---------- CARDS: status (waiting, on hold, ...) ----------
+  function renderStatusPicker() {
+    var c = currentCard();
+    var picker = document.getElementById('card-status-picker');
+    picker.innerHTML = data.settings.statuses.map(function(st) {
+      return '<span class="status-chip' + (c && c.status === st.id ? ' active' : '') + '" style="--status-color:' + st.color + ';" data-status="' + st.id + '">' +
+        esc(st.name) + '<span class="status-chip-del" data-del-status="' + st.id + '" title="Delete this status">×</span></span>';
+    }).join('') + '<span class="status-chip add" data-add-status="1">+ New status</span>';
+  }
+  function refreshStatusFilter() {
+    var sel = document.getElementById('status-filter');
+    var cur = activeProject().statusFilter || '';
+    sel.innerHTML = '<option value="">All statuses</option><option value="any">Any status</option>' +
+      data.settings.statuses.map(function(st) { return '<option value="' + st.id + '">' + esc(st.name) + '</option>'; }).join('');
+    sel.value = cur;
+    if (sel.value !== cur) { activeProject().statusFilter = null; sel.value = ''; }
+  }
+  document.getElementById('status-filter').addEventListener('change', function() {
+    activeProject().statusFilter = this.value || null;
+    save(); render();
+  });
+  document.getElementById('card-status-picker').addEventListener('click', function(e) {
+    var c = currentCard();
+    if (!c) return;
+    var del = e.target.closest('[data-del-status]');
+    if (del) {
+      var delId = del.getAttribute('data-del-status');
+      var st = statusById(delId);
+      if (!st || !confirm('Delete the status "' + st.name + '"? Cards using it will lose it.')) return;
+      data.settings.statuses = data.settings.statuses.filter(function(x) { return x.id !== delId; });
+      data.projects.concat(data.archivedProjects).forEach(function(p) {
+        allCardsInProjectWithArchive(p).forEach(function(item) { if (item.card.status === delId) item.card.status = null; });
+        if (p.statusFilter === delId) p.statusFilter = null;
+      });
+      save(); renderStatusPicker(); refreshStatusFilter(); render();
+      return;
+    }
+    if (e.target.closest('[data-add-status]')) {
+      var name = (prompt('Name of the new status:') || '').trim();
+      if (!name) return;
+      var ns = { id: 'st-' + uid(), name: name, color: STATUS_COLORS[data.settings.statuses.length % STATUS_COLORS.length] };
+      data.settings.statuses.push(ns);
+      c.status = ns.id;
+      stopCardTimerIfRunning(c.id);
+      save(); renderStatusPicker(); refreshStatusFilter(); renderCardTimeSummary(editingCardId); render();
+      return;
+    }
+    var chip = e.target.closest('[data-status]');
+    if (!chip) return;
+    var id = chip.getAttribute('data-status');
+    c.status = c.status === id ? null : id;
+    // A card put aside shouldn't keep racking up time in the background.
+    if (c.status) stopCardTimerIfRunning(c.id);
+    save(); renderStatusPicker(); renderCardTimeSummary(editingCardId); render();
   });
 
   // ---------- CARDS: time tracked (summary + manual entries) ----------
