@@ -455,60 +455,39 @@
   .board-only.hide { display: none; }
 
   /* BOARD */
-  #board-title-header {
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    text-align: center;
-    margin-bottom: 32px;
-  }
-  .title-project-wrap { position: relative; display: inline-flex; flex-direction: column; align-items: center; }
-  /* PROJECT CAROUSEL — the active project sits centered and full-size/
-     opacity; up to two neighbors on each side (by data.projects order,
-     which is already user-reorderable via the management dropdown below)
-     shade out with distance so the strip reads as "here's what's nearby"
-     rather than a plain list. Clicking a neighbor switches straight to
-     it; clicking the already-active center item opens the same
-     rename/reorder/delete dropdown the old single button used to. */
-  .project-carousel { display: flex; align-items: center; gap: 4px; max-width: 100%; }
+  /* PROJECT BAR — a second header row living inside the sticky #toolbar
+     (so it never scrolls away), with every board as a pill in one
+     left-aligned row. The track scrolls sideways when there are more
+     boards than fit; the "+" / manage button stays pinned at the right.
+     Clicking the active pill opens the rename/reorder/archive dropdown. */
+  #project-bar { flex: 0 0 calc(100% + 40px); min-width: 0; margin: 0 -20px -10px; padding: 7px 20px; border-top: 0.5px solid var(--border); }
+  #project-bar.hide { display: none; }
+  .title-project-wrap { position: relative; flex-shrink: 0; display: flex; }
+  .project-carousel { display: flex; align-items: center; gap: 6px; min-width: 0; }
   .project-carousel-arrow {
     background: transparent; border: none; cursor: pointer; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
-    width: 30px; height: 30px; border-radius: 50%; color: var(--text-dim);
+    width: 28px; height: 28px; border-radius: 50%; color: var(--text-dim);
     transition: background 0.15s, color 0.15s;
   }
   .project-carousel-arrow:hover { background: var(--surface2); color: var(--text); }
-  .project-carousel-arrow.hide { display: none; }
   .project-carousel-track {
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-    /* Was overflow:hidden, which clipped the hover-scale pop on items
-       right at the track's edge — a little vertical breathing room
-       instead, so the scaled-up pill has somewhere to grow into. */
-    padding: 10px 0;
+    flex: 1; min-width: 0;
+    display: flex; align-items: center; justify-content: flex-start; gap: 8px;
+    overflow-x: auto; padding: 3px 2px; scrollbar-width: none;
   }
-  /* Pill/button-outline look, plain theme colors throughout (no more
-     per-project hue on the outline or the active fill either) — same
-     inverted-pill convention as .tb-btn.active elsewhere: a neutral
-     outline at rest, solid var(--text)-on-var(--bg) once active, so it
-     reads as "the selected button" rather than a page title. */
+  .project-carousel-track::-webkit-scrollbar { display: none; }
   .project-carousel-item {
-    background: none; border: 1.5px solid var(--border-hover); border-radius: 999px;
-    cursor: pointer; font-weight: 600; color: var(--text);
+    flex-shrink: 0;
+    background: none; border: 1px solid var(--border-hover); border-radius: 999px;
+    cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--text-muted);
     white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis;
-    padding: 6px 16px;
-    transform: scale(1);
-    transition: opacity 0.15s, font-size 0.15s, padding 0.15s, background 0.15s, color 0.15s, border-color 0.15s, transform 0.18s ease, box-shadow 0.15s;
+    padding: 4px 13px;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
   }
-  .project-carousel-item:hover:not(.active) { opacity: 0.95 !important; transform: scale(1.08); border-color: var(--text); }
-  .project-carousel-item.active {
-    font-size: 18px; font-weight: 700; opacity: 1;
-    background: var(--text); border-color: var(--text); color: var(--bg);
-  }
+  .project-carousel-item:hover:not(.active) { color: var(--text); border-color: var(--text); }
+  .project-carousel-item.active { background: var(--text); border-color: var(--text); color: var(--bg); }
   .project-carousel.open .project-carousel-item.active { box-shadow: 0 0 0 3px rgba(var(--overlay-rgb),0.3); }
-  /* Dim, but not so much they're hard to make out — especially in dark
-     mode, where low opacity against a near-black background already
-     costs a lot of legibility. */
-  .project-carousel-item.near { font-size: 13px; padding: 5px 12px; opacity: 0.65; }
-  .project-carousel-item.far { font-size: 11.5px; padding: 4px 10px; opacity: 0.42; }
   #board-options-btn svg.tb-chevron { color: var(--text-dim); flex-shrink: 0; transition: transform 0.15s; }
   #board-options-btn.open svg.tb-chevron { transform: rotate(180deg); }
   /* Sits inside the view-switch pill next to the Board tab — border: none
@@ -517,7 +496,7 @@
   #board-options-btn { border: none; background: transparent; color: var(--text-muted); }
   #board-options-btn:hover, #board-options-btn.open { background: var(--surface); color: var(--text); }
   #board-options-wrap .tb-dropdown { left: auto; right: 0; }
-  .title-project-wrap #project-dropdown { left: 50%; transform: translateX(-50%); }
+  .title-project-wrap #project-dropdown { left: auto; right: 0; }
   #board {
     display: flex;
     align-items: flex-start;
@@ -3178,33 +3157,27 @@
     <select id="status-filter" class="text-input" title="Show only cards with a given status"></select>
     <span id="card-total">0 cards<span class="overdue" id="overdue-count" role="button" tabindex="0" title="Show overdue cards"></span></span>
   </div>
-</div>
-
-<div id="main">
-
-  <div id="board-view">
-    <h1 id="board-title-header">
-      <span class="title-project-wrap" id="title-project-wrap">
-        <div class="project-carousel" id="project-carousel">
-          <button type="button" class="project-carousel-arrow hide" id="project-carousel-prev" title="Previous project" aria-label="Previous project">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <div class="project-carousel-track" id="project-carousel-track"></div>
-          <button type="button" class="project-carousel-arrow hide" id="project-carousel-next" title="Next project" aria-label="Next project">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-          <button type="button" class="project-carousel-arrow" id="project-carousel-add" title="Add / manage projects" aria-label="Add or manage projects">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-        </div>
+  <div id="project-bar" class="board-only">
+    <div class="project-carousel" id="project-carousel">
+      <div class="project-carousel-track" id="project-carousel-track"></div>
+      <div class="title-project-wrap" id="title-project-wrap">
+        <button type="button" class="project-carousel-arrow" id="project-carousel-add" title="Add / manage projects" aria-label="Add or manage projects">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
         <div class="tb-dropdown" id="project-dropdown">
           <div class="tb-menu-heading">Projects</div>
           <div id="project-list"></div>
           <div class="tb-sep-h"></div>
           <input id="new-project-input" class="text-input" placeholder="+ New project…">
         </div>
-      </span>
-    </h1>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="main">
+
+  <div id="board-view">
     <div id="collapsed-strip" class="hide"></div>
     <div id="board"></div>
     <div id="board-empty">No columns yet.<br>Add a column below to start building your board.</div>
@@ -7531,40 +7504,26 @@
     render();
   }
 
-  // Shows the active project centered/full-size, up to two neighbors on
-  // each side (by data.projects order) fading out with distance, and
-  // scroll arrows only once there are more than 5 to fit — see the CSS
-  // comment above .project-carousel for the interaction model. The
-  // window clamps at the array's edges (not cyclic) — wrapping made the
-  // first/last project's "neighbors" jump to the opposite end of the
-  // list, which read as confusing rather than helpful.
-  function computeCarouselWindow(count, activeIndex) {
-    var size = Math.min(5, count);
-    var start = activeIndex - Math.floor(size / 2);
-    if (start < 0) start = 0;
-    if (start + size > count) start = count - size;
-    var out = [];
-    for (var i = 0; i < size; i++) out.push(start + i);
-    return out;
-  }
+  // Every board as a pill, in data.projects order, left-aligned (see the
+  // CSS comment above #project-bar). The active one is scrolled into view
+  // when the row overflows.
   function renderProjectCarousel() {
-    var projects = data.projects;
-    var activeIndex = projects.findIndex(function(p) { return p.id === data.activeProjectId; });
-    if (activeIndex === -1) activeIndex = 0;
-    var indices = computeCarouselWindow(projects.length, activeIndex);
-    document.getElementById('project-carousel-track').innerHTML = indices.map(function(idx) {
-      var p = projects[idx];
-      var dist = Math.abs(idx - activeIndex);
-      var cls = 'project-carousel-item' + (dist === 0 ? ' active' : dist === 1 ? ' near' : ' far');
-      // Plain theme colors throughout now (text, outline, and the
-      // active fill) — no more per-project hue, same inverted-pill look
-      // as .tb-btn.active elsewhere (dark pill/light text either way).
+    var track = document.getElementById('project-carousel-track');
+    track.innerHTML = data.projects.map(function(p) {
+      var cls = 'project-carousel-item' + (p.id === data.activeProjectId ? ' active' : '');
       return '<button type="button" class="' + cls + '" data-project="' + p.id + '" title="' + esc(p.name || 'Untitled project') + '">' + esc(p.name || 'Untitled project') + '</button>';
     }).join('');
-    var showArrows = projects.length > 5;
-    document.getElementById('project-carousel-prev').classList.toggle('hide', !showArrows);
-    document.getElementById('project-carousel-next').classList.toggle('hide', !showArrows);
+    var active = track.querySelector('.active');
+    if (active && track.scrollWidth > track.clientWidth) {
+      track.scrollLeft = Math.max(0, active.offsetLeft - track.clientWidth / 2 + active.offsetWidth / 2);
+    }
   }
+  // Vertical wheel over the row scrolls it sideways when it overflows.
+  document.getElementById('project-carousel-track').addEventListener('wheel', function(e) {
+    if (this.scrollWidth <= this.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    this.scrollLeft += e.deltaY;
+    e.preventDefault();
+  }, { passive: false });
   document.getElementById('project-carousel-track').addEventListener('click', function(e) {
     var btn = e.target.closest('.project-carousel-item');
     if (!btn) return;
@@ -7573,22 +7532,6 @@
     switchActiveProject(pid);
     closeProjectMenu();
   });
-  function stepActiveProject(delta) {
-    var projects = data.projects;
-    var idx = projects.findIndex(function(p) { return p.id === data.activeProjectId; });
-    if (idx === -1) return;
-    idx = (idx + delta + projects.length) % projects.length;
-    switchActiveProject(projects[idx].id);
-  }
-  document.getElementById('project-carousel-prev').addEventListener('click', function(e) {
-    e.stopPropagation();
-    stepActiveProject(-1);
-  });
-  document.getElementById('project-carousel-next').addEventListener('click', function(e) {
-    e.stopPropagation();
-    stepActiveProject(1);
-  });
-
   function renderProjectMenu() {
     var canArchive = data.projects.length > 1;
     document.getElementById('project-list').innerHTML = data.projects.map(function(p) {
