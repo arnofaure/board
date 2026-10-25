@@ -1098,6 +1098,17 @@
   .cal-block.non-billable { opacity: 0.5; }
   .cal-block-title { font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .cal-block-time { display: block; opacity: 0.85; font-size: 9px; white-space: nowrap; overflow: hidden; }
+  .cal-block-dur { display: block; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  /* Blocks too short for three lines: title and duration share one row. */
+  .cal-block.short { display: flex; align-items: center; gap: 6px; padding-top: 0; padding-bottom: 0; }
+  .cal-block.short .cal-block-title { flex: 1; min-width: 0; }
+  .cal-block.short .cal-block-time { display: none; }
+  .cal-block.short .cal-block-dur { flex-shrink: 0; font-size: 10px; }
+  .cal-day-total { display: block; margin-top: 3px; font-size: 12px; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--text); font-variant-numeric: tabular-nums; }
+  .cal-day-total.empty { color: var(--text-dim); font-weight: 400; }
+  .cal-day-split { display: flex; flex-direction: column; gap: 1px; margin-top: 4px; padding: 0 4px; font-size: 10px; text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--text-muted); }
+  .cal-day-split-row { display: flex; justify-content: space-between; gap: 6px; font-variant-numeric: tabular-nums; }
+  .cal-day-split-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
 
   .cal-now-line {
     position: absolute;
@@ -5833,6 +5844,8 @@
           running: e.end === null,
           billable: c.billable !== false,
           title: c.title || 'Untitled card',
+          projectId: p.id,
+          projectName: p.name || 'Untitled project',
           subLabel: (p.name || 'Untitled project') + (p.client ? ' — ' + p.client : ''),
           color: c.color
         });
@@ -5882,14 +5895,35 @@
     document.getElementById('cal-range-label').textContent = rangeLabel;
 
     var dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    var allEntries = collectBoardEntries(calendarFilter);
+
+    // Per-day totals (and, on "All projects", a per-project split) so the
+    // header can say how long each day was without adding blocks up by eye.
+    var dayTotals = days.map(function(dayDate) {
+      var dayStart = dayDate.getTime(), dayEnd = dayStart + DAY_MS;
+      var total = 0, byProject = {};
+      allEntries.forEach(function(entry) {
+        var secs = (Math.min(entry.end, dayEnd) - Math.max(entry.start, dayStart)) / 1000;
+        if (secs <= 0) return;
+        total += secs;
+        byProject[entry.projectId] = byProject[entry.projectId] || { name: entry.projectName, secs: 0 };
+        byProject[entry.projectId].secs += secs;
+      });
+      return { total: total, projects: Object.keys(byProject).map(function(k) { return byProject[k]; }).sort(function(a, b) { return b.secs - a.secs; }) };
+    });
     var headerHtml = '<div class="cal-header-cell"></div>';
     days.forEach(function(d, i) {
       var isToday = sameDay(d, today);
-      headerHtml += '<div class="cal-header-cell' + (isToday ? ' today' : '') + '">' + dayNames[i] + '<span class="cal-date-num">' + d.getDate() + '</span></div>';
+      var dt = dayTotals[i];
+      var split = (calendarFilter === 'all' && dt.projects.length > 1)
+        ? '<span class="cal-day-split">' + dt.projects.map(function(pr) {
+            return '<span class="cal-day-split-row"><span class="cal-day-split-name">' + esc(pr.name) + '</span><span>' + formatMinutesAsDuration(pr.secs / 60) + '</span></span>';
+          }).join('') + '</span>'
+        : '';
+      headerHtml += '<div class="cal-header-cell' + (isToday ? ' today' : '') + '">' + dayNames[i] + '<span class="cal-date-num">' + d.getDate() + '</span>' +
+        '<span class="cal-day-total' + (dt.total ? '' : ' empty') + '">' + (dt.total ? formatMinutesAsDuration(dt.total / 60) : '—') + '</span>' + split + '</div>';
     });
     document.getElementById('cal-header-row').innerHTML = headerHtml;
-
-    var allEntries = collectBoardEntries(calendarFilter);
 
     var bodyEl = document.getElementById('cal-body');
     Array.from(bodyEl.querySelectorAll('.cal-day-col')).forEach(function(el) { el.remove(); });
@@ -5912,15 +5946,16 @@
         var top = startMin * (HOUR_PX / 60);
         var height = Math.max(durMin * (HOUR_PX / 60), 14);
         var block = document.createElement('div');
-        block.className = 'cal-block' + (entry.billable ? '' : ' non-billable');
+        block.className = 'cal-block' + (entry.billable ? '' : ' non-billable') + (height < 34 ? ' short' : '');
         block.setAttribute('data-card-id', entry.cardId);
         block.style.top = top + 'px';
         block.style.height = height + 'px';
         block.style.background = entry.color;
         var startStr = new Date(s).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
         var endStr = new Date(e).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        block.title = entry.title + ' — ' + entry.subLabel + ' (' + startStr + '–' + endStr + ')' + (entry.billable ? '' : ' [unbillable]');
-        block.innerHTML = '<span class="cal-block-title">' + esc(entry.title) + '</span><span class="cal-block-time">' + startStr + '–' + endStr + '</span>';
+        var durStr = formatMinutesAsDuration(durMin);
+        block.title = entry.title + ' — ' + entry.subLabel + ' (' + startStr + '–' + endStr + ', ' + durStr + ')' + (entry.billable ? '' : ' [unbillable]');
+        block.innerHTML = '<span class="cal-block-title">' + esc(entry.title) + '</span><span class="cal-block-time">' + startStr + '–' + endStr + '</span><span class="cal-block-dur">' + durStr + '</span>';
         col.appendChild(block);
       });
 
@@ -5950,7 +5985,7 @@
       });
     });
 
-    document.getElementById('cal-week-total').innerHTML = formatHMS(weekSeconds) + '<span class="cost">' + formatMoney(weekCost) + '</span>';
+    document.getElementById('cal-week-total').innerHTML = (weekSeconds ? formatMinutesAsDuration(weekSeconds / 60) : '0m') + '<span class="cost">' + formatMoney(weekCost) + '</span>';
     document.getElementById('calendar-empty').classList.toggle('show', weekSeconds === 0);
   }
 
